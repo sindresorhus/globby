@@ -34,7 +34,20 @@
     "dirs",
     "directories",
     "wildcard",
-    "expand"
+    "wildcards",
+    "expand",
+    "multi",
+    "multiple",
+    "array",
+    "all",
+    "gulpfriendly",
+    "fnmatch",
+    "traverse",
+    "filesystem",
+    "fs",
+    "filter",
+    "util",
+    "utility"
   ],
   "dependencies": {
     "array-differ": "^0.1.0",
