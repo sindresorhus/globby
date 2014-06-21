@@ -1,6 +1,6 @@
 {
   "name": "globby",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Extends `glob` with support for multiple patterns",
   "license": "MIT",
   "repository": "sindresorhus/globby",
