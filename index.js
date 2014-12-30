@@ -1,8 +1,8 @@
 'use strict';
 var union = require('array-union');
-var diff = require('array-differ');
 var async = require('async');
 var glob = require('glob');
+var minimatch = require('minimatch');
 
 function arrayify(arr) {
 	return Array.isArray(arr) ? arr : [arr];
@@ -11,33 +11,59 @@ function arrayify(arr) {
 module.exports = function (patterns, opts, cb) {
 	patterns = arrayify(patterns);
 
-	if (patterns.length === 0) {
-		cb(null, []);
-		return;
-	}
-
 	if (typeof opts === 'function') {
 		cb = opts;
 		opts = {};
 	}
 
-	async.reduce(patterns, [], function (ret, pattern, next) {
-		var process = union;
+	var positives = [];
+	var negatives = [];
 
-		if (pattern[0] === '!') {
-			pattern = pattern.slice(1);
-			process = diff;
-		}
-
-		glob(pattern, opts, function (err, paths) {
-			if (err) {
-				next(err);
-				return;
-			}
-
-			next(null, process(ret, paths));
+	patterns.forEach(function (pattern, index) {
+		var patternArray = pattern[0] === '!' ? negatives : positives;
+		patternArray.push({
+			index: index,
+			pattern: pattern
 		});
-	}, cb);
+	});
+
+	if (positives.length === 0) {
+		cb(null, []);
+		return;
+	}
+
+	async.parallel(positives.map(function (positive) {
+		return function (callback) {
+			glob(positive.pattern, opts, function (err, paths) {
+				if (err) {
+					callback(err);
+					return;
+				}
+
+				var negativePatterns = negatives.filter(function (negative) {
+					return negative.index > positive.index;
+				}).map(function (negative) {
+					return negative.pattern;
+				});
+
+				if (negativePatterns.length === 0) {
+					callback(null, paths);
+					return;
+				}
+
+				callback(null, paths.filter(function (path) {
+					return negativePatterns.every(function (pattern) {
+						return minimatch(path, pattern, opts);
+					});
+				}));
+			});
+		};
+	}), function (err, paths) {
+		if (err) {
+			throw err;
+		}
+		cb(null, union.apply(null, paths));
+	});
 };
 
 module.exports.sync = function (patterns, opts) {
@@ -50,13 +76,12 @@ module.exports.sync = function (patterns, opts) {
 	opts = opts || {};
 
 	return patterns.reduce(function (ret, pattern) {
-		var process = union;
-
 		if (pattern[0] === '!') {
-			pattern = pattern.slice(1);
-			process = diff;
+			return ret.filter(function(path) {
+				return minimatch(path, pattern, opts);
+			});
 		}
 
-		return process(ret, glob.sync(pattern, opts));
+		return union(ret, glob.sync(pattern, opts));
 	}, []);
 };
