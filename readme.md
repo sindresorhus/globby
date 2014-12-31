@@ -65,7 +65,8 @@ Just a quick overview.
 
 ## Related
 
-See [multimatch](https://github.com/sindresorhus/multimatch) if you need to match against a list instead of the filesystem.
+- [multimatch](https://github.com/sindresorhus/multimatch) - Match against a list instead of the filesystem.
+- [glob-stream](https://github.com/wearefractal/glob-stream) - Streaming alternative.
 
 
 ## License
