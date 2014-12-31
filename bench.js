@@ -8,22 +8,22 @@ var rimraf = require('rimraf');
 
 var benchDir = 'bench';
 var runners = [{
-	name: 'globby async (current branch)',
+	name: 'globby async (working directory)',
 	run: function (patterns, cb) {
 		globby(patterns, cb);
 	}
 }, {
-	name: 'globby async (master branch)',
+	name: 'globby async (upstream/master)',
 	run: function (patterns, cb) {
 		globbyMaster(patterns, cb);
 	}
 }, {
-	name: 'globby sync (current branch)',
+	name: 'globby sync (working directory)',
 	run: function (patterns) {
 		globby.sync(patterns);
 	}
 }, {
-	name: 'globby sync (master branch)',
+	name: 'globby sync (upstream/master)',
 	run: function (patterns) {
 		globbyMaster.sync(patterns);
 	}
