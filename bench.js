@@ -2,19 +2,30 @@
 var assert = require('assert');
 var fs = require('fs');
 var globby = require('./');
+var globbyMaster = require('globby');
 var gs = require('glob-stream');
 var rimraf = require('rimraf');
 
 var benchDir = 'bench';
 var runners = [{
-	name: 'globby - async',
+	name: 'globby async (current branch)',
 	run: function (patterns, cb) {
 		globby(patterns, cb);
 	}
 }, {
-	name: 'globby - sync',
+	name: 'globby async (master branch)',
+	run: function (patterns, cb) {
+		globbyMaster(patterns, cb);
+	}
+}, {
+	name: 'globby sync (current branch)',
 	run: function (patterns) {
 		globby.sync(patterns);
+	}
+}, {
+	name: 'globby sync (master branch)',
+	run: function (patterns) {
+		globbyMaster.sync(patterns);
 	}
 }, {
 	name: 'glob-stream',
@@ -23,8 +34,11 @@ var runners = [{
 	}
 }];
 var benchs = [{
-	name: 'negative globs',
-	patterns: ['bench/**', '!bench/b/*']
+	name: 'negative globs (100 negated paths)',
+	patterns: ['bench/a/*', '!bench/a/c*']
+}, {
+	name: 'negative globs (500 negated paths)',
+	patterns: ['bench/a/*', '!bench/a/*']
 }, {
 	name: 'multiple positive globs',
 	patterns: ['bench/a/*', 'bench/b/*']
@@ -36,8 +50,8 @@ before(function () {
 	['a', 'b'].forEach(function (dir) {
 		var path = benchDir + '/' + dir + '/';
 		fs.mkdirSync(path);
-		for (var i = 0; i < 100; i++) {
-			fs.writeFileSync(path + i, '');
+		for (var i = 0; i < 500; i++) {
+			fs.writeFileSync(path + (i < 100 ? 'c' : 'd') + i, '');
 		}
 	});
 });
@@ -46,10 +60,10 @@ after(function () {
 	rimraf.sync(benchDir);
 });
 
-runners.forEach(function (runner) {
-	suite(runner.name, function () {
-		benchs.forEach(function (benchmark) {
-			bench(benchmark.name, runner.run.bind(null, benchmark.patterns));
+benchs.forEach(function (benchmark) {
+	suite(benchmark.name, function () {
+		runners.forEach(function (runner) {
+			bench(runner.name, runner.run.bind(null, benchmark.patterns));
 		});
 	});
 });
