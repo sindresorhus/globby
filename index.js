@@ -2,7 +2,7 @@
 var union = require('array-union');
 var async = require('async');
 var glob = require('glob');
-var minimatch = require('minimatch');
+var Minimatch = require('minimatch').Minimatch;
 
 function arrayify(arr) {
 	return Array.isArray(arr) ? arr : [arr];
@@ -40,20 +40,20 @@ module.exports = function (patterns, opts, cb) {
 					return;
 				}
 
-				var negativePatterns = negatives.filter(function (negative) {
+				var negativeMatchers = negatives.filter(function (negative) {
 					return negative.index > positive.index;
 				}).map(function (negative) {
-					return negative.pattern;
+					return new Minimatch(negative.pattern, opts);
 				});
 
-				if (negativePatterns.length === 0) {
+				if (negativeMatchers.length === 0) {
 					callback(null, paths);
 					return;
 				}
 
 				callback(null, paths.filter(function (path) {
-					return negativePatterns.every(function (pattern) {
-						return minimatch(path, pattern, opts);
+					return negativeMatchers.every(function (matcher) {
+						return matcher.match(path);
 					});
 				}));
 			});
@@ -77,8 +77,9 @@ module.exports.sync = function (patterns, opts) {
 
 	return patterns.reduce(function (ret, pattern) {
 		if (pattern[0] === '!') {
+			var matcher = new Minimatch(pattern, opts);
 			return ret.filter(function(path) {
-				return minimatch(path, pattern, opts);
+				return matcher.match(path);
 			});
 		}
 
