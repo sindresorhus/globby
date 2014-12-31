@@ -13,7 +13,7 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha && matcha bench.js"
   },
   "files": [
     "index.js"
@@ -56,6 +56,10 @@
     "glob": "^4.0.2"
   },
   "devDependencies": {
-    "mocha": "*"
+    "glob-stream": "wearefractal/glob-stream#master",
+    "globby": "sindresorhus/globby#master",
+    "matcha": "^0.6.0",
+    "mocha": "*",
+    "rimraf": "^2.2.8"
   }
 }
