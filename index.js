@@ -20,8 +20,7 @@ module.exports = function (patterns, opts, cb) {
 	var negatives = [];
 
 	patterns.forEach(function (pattern, index) {
-		var patternArray = pattern[0] === '!' ? negatives : positives;
-		patternArray.push({
+		(pattern[0] === '!' ? negatives : positives).push({
 			index: index,
 			pattern: pattern
 		});
@@ -33,10 +32,10 @@ module.exports = function (patterns, opts, cb) {
 	}
 
 	async.parallel(positives.map(function (positive) {
-		return function (callback) {
+		return function (cb2) {
 			glob(positive.pattern, opts, function (err, paths) {
 				if (err) {
-					callback(err);
+					cb2(err);
 					return;
 				}
 
@@ -47,11 +46,11 @@ module.exports = function (patterns, opts, cb) {
 				});
 
 				if (negativeMatchers.length === 0) {
-					callback(null, paths);
+					cb2(null, paths);
 					return;
 				}
 
-				callback(null, paths.filter(function (path) {
+				cb2(null, paths.filter(function (path) {
 					return negativeMatchers.every(function (matcher) {
 						return matcher.match(path);
 					});
@@ -60,8 +59,10 @@ module.exports = function (patterns, opts, cb) {
 		};
 	}), function (err, paths) {
 		if (err) {
-			throw err;
+			cb(err);
+			return;
 		}
+
 		cb(null, union.apply(null, paths));
 	});
 };
@@ -78,7 +79,7 @@ module.exports.sync = function (patterns, opts) {
 	return patterns.reduce(function (ret, pattern) {
 		if (pattern[0] === '!') {
 			var matcher = new Minimatch(pattern, opts);
-			return ret.filter(function(path) {
+			return ret.filter(function (path) {
 				return matcher.match(path);
 			});
 		}

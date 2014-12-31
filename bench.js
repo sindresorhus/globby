@@ -1,12 +1,12 @@
 'use strict';
-var assert = require('assert');
 var fs = require('fs');
-var globby = require('./');
+var rimraf = require('rimraf');
 var globbyMaster = require('globby');
 var gs = require('glob-stream');
-var rimraf = require('rimraf');
+var globby = require('./');
 
-var benchDir = 'bench';
+var BENCH_DIR = 'bench';
+
 var runners = [{
 	name: 'globby async (working directory)',
 	run: function (patterns, cb) {
@@ -45,10 +45,10 @@ var benchs = [{
 }];
 
 before(function () {
-	rimraf.sync(benchDir);
-	fs.mkdirSync(benchDir);
+	rimraf.sync(BENCH_DIR);
+	fs.mkdirSync(BENCH_DIR);
 	['a', 'b'].forEach(function (dir) {
-		var path = benchDir + '/' + dir + '/';
+		var path = BENCH_DIR + '/' + dir + '/';
 		fs.mkdirSync(path);
 		for (var i = 0; i < 500; i++) {
 			fs.writeFileSync(path + (i < 100 ? 'c' : 'd') + i, '');
@@ -57,7 +57,7 @@ before(function () {
 });
 
 after(function () {
-	rimraf.sync(benchDir);
+	rimraf.sync(BENCH_DIR);
 });
 
 benchs.forEach(function (benchmark) {
