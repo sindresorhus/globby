@@ -38,9 +38,18 @@ it('should glob with multiple patterns - async', function (cb) {
 	});
 });
 
+it('should respect patterns order - async', function (cb) {
+	globby(['!*.tmp', 'a.tmp'], function (err, paths) {
+		assert(!err, err);
+		assert.deepEqual(paths, ['a.tmp']);
+		cb();
+	});
+});
+
 it('should glob - sync', function () {
 	assert.deepEqual(globby.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	assert.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
+	assert.deepEqual(globby.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
 it('cwd option', function () {
