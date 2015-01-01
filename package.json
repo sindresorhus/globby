@@ -13,7 +13,8 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "mocha && matcha bench.js"
+    "bench": "npm update globby glob-stream && matcha bench.js",
+    "test": "mocha"
   },
   "files": [
     "index.js"
