@@ -31,6 +31,10 @@ module.exports = function (patterns, opts, cb) {
 		return;
 	}
 
+	negatives.forEach(function (negative) {
+		negative.matcher = new Minimatch(negative.pattern, opts);
+	});
+
 	async.parallel(positives.map(function (positive) {
 		return function (cb2) {
 			glob(positive.pattern, opts, function (err, paths) {
@@ -42,7 +46,7 @@ module.exports = function (patterns, opts, cb) {
 				var negativeMatchers = negatives.filter(function (negative) {
 					return negative.index > positive.index;
 				}).map(function (negative) {
-					return new Minimatch(negative.pattern, opts);
+					return negative.matcher;
 				});
 
 				if (negativeMatchers.length === 0) {
