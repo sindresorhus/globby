@@ -45,6 +45,7 @@ var benchs = [{
 }];
 
 before(function () {
+	process.chdir(__dirname);
 	rimraf.sync(BENCH_DIR);
 	fs.mkdirSync(BENCH_DIR);
 	process.chdir(BENCH_DIR);
@@ -58,7 +59,7 @@ before(function () {
 });
 
 after(function () {
-	process.chdir('..');
+	process.chdir(__dirname);
 	rimraf.sync(BENCH_DIR);
 });
 
