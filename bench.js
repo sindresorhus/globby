@@ -35,20 +35,21 @@ var runners = [{
 }];
 var benchs = [{
 	name: 'negative globs (100 negated paths)',
-	patterns: ['bench/a/*', '!bench/a/c*']
+	patterns: ['a/*', '!a/c*']
 }, {
 	name: 'negative globs (500 negated paths)',
-	patterns: ['bench/a/*', '!bench/a/*']
+	patterns: ['a/*', '!a/*']
 }, {
 	name: 'multiple positive globs',
-	patterns: ['bench/a/*', 'bench/b/*']
+	patterns: ['a/*', 'b/*']
 }];
 
 before(function () {
 	rimraf.sync(BENCH_DIR);
 	fs.mkdirSync(BENCH_DIR);
+	process.chdir(BENCH_DIR);
 	['a', 'b'].forEach(function (dir) {
-		var path = BENCH_DIR + '/' + dir + '/';
+		var path = dir + '/';
 		fs.mkdirSync(path);
 		for (var i = 0; i < 500; i++) {
 			fs.writeFileSync(path + (i < 100 ? 'c' : 'd') + i, '');
@@ -57,6 +58,7 @@ before(function () {
 });
 
 after(function () {
+	process.chdir('..');
 	rimraf.sync(BENCH_DIR);
 });
 
