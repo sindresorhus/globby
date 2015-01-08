@@ -34,11 +34,11 @@ var runners = [{
 	}
 }];
 var benchs = [{
-	name: 'negative globs (100 negated paths)',
+	name: 'negative globs (some files inside dir)',
 	patterns: ['a/*', '!a/c*']
 }, {
-	name: 'negative globs (500 negated paths)',
-	patterns: ['a/*', '!a/*']
+	name: 'negative globs (whole dir)',
+	patterns: ['a/*', '!a/**']
 }, {
 	name: 'multiple positive globs',
 	patterns: ['a/*', 'b/*']
