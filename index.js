@@ -2,44 +2,57 @@
 var union = require('array-union');
 var async = require('async');
 var glob = require('glob');
-var Minimatch = require('minimatch').Minimatch;
 
 function arrayify(arr) {
 	return Array.isArray(arr) ? arr : [arr];
 }
 
-module.exports = function (patterns, opts, cb) {
+function sortPatterns(patterns) {
 	patterns = arrayify(patterns);
+
+	var positives = [];
+	var negatives = [];
+
+	patterns.forEach(function (pattern, index) {
+		var isNegative = pattern[0] === '!';
+		(isNegative ? negatives : positives).push({
+			index: index,
+			pattern: isNegative ? pattern.slice(1) : pattern
+		});
+	});
+
+	return {
+		positives: positives,
+		negatives: negatives
+	};
+}
+
+function setIgnore(opts, negatives, positiveIndex) {
+	var negativePatterns = negatives.filter(function (negative) {
+		return negative.index > positiveIndex;
+	}).map(function (negative) {
+		return negative.pattern;
+	});
+
+	opts.ignore = (opts.ignore || []).concat(negativePatterns);
+}
+
+module.exports = function (patterns, opts, cb) {
+	var sortedPatterns = sortPatterns(patterns);
 
 	if (typeof opts === 'function') {
 		cb = opts;
 		opts = {};
 	}
 
-	var positives = [];
-	var negatives = [];
-
-	patterns.forEach(function (pattern, index) {
-		(pattern[0] === '!' ? negatives : positives).push({
-			index: index,
-			pattern: pattern
-		});
-	});
-
-	if (positives.length === 0) {
+	if (sortedPatterns.positives.length === 0) {
 		cb(null, []);
 		return;
 	}
 
-	async.parallel(positives.map(function (positive) {
+	async.parallel(sortedPatterns.positives.map(function (positive) {
 		return function (cb2) {
-			var negativePatterns = negatives.filter(function (negative) {
-				return negative.index > positive.index;
-			}).map(function (negative) {
-				return negative.pattern.slice(1);
-			});
-
-			opts.ignore = (opts.ignore || []).concat(negativePatterns);
+			setIgnore(opts, sortedPatterns.negatives, positive.index);
 
 			glob(positive.pattern, opts, function (err, paths) {
 				if (err) {
@@ -60,33 +73,16 @@ module.exports = function (patterns, opts, cb) {
 };
 
 module.exports.sync = function (patterns, opts) {
-	patterns = arrayify(patterns);
+	var sortedPatterns = sortPatterns(patterns);
 
-	if (patterns.length === 0) {
+	if (sortedPatterns.positives.length === 0) {
 		return [];
 	}
 
-	var positives = [];
-	var negatives = [];
-
-	patterns.forEach(function (pattern, index) {
-		(pattern[0] === '!' ? negatives : positives).push({
-			index: index,
-			pattern: pattern
-		});
-	});
-
 	opts = opts || {};
 
-	return positives.reduce(function(ret, positive) {
-		var negativePatterns = negatives.filter(function (negative) {
-			return negative.index > positive.index;
-		}).map(function (negative) {
-			return negative.pattern.slice(1);
-		});
-
-		opts.ignore = (opts.ignore || []).concat(negativePatterns);
-
+	return sortedPatterns.positives.reduce(function (ret, positive) {
+		setIgnore(opts, sortedPatterns.negatives, positive.index);
 		return union(ret, glob.sync(positive.pattern, opts));
 	}, []);
 
