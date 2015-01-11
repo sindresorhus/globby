@@ -1,5 +1,6 @@
 'use strict';
 var union = require('array-union');
+var assign = require('object-assign');
 var async = require('async');
 var glob = require('glob');
 
@@ -28,6 +29,8 @@ function sortPatterns(patterns) {
 }
 
 function setIgnore(opts, negatives, positiveIndex) {
+	opts = assign({}, opts);
+
 	var negativePatterns = negatives.filter(function (negative) {
 		return negative.index > positiveIndex;
 	}).map(function (negative) {
@@ -35,6 +38,7 @@ function setIgnore(opts, negatives, positiveIndex) {
 	});
 
 	opts.ignore = (opts.ignore || []).concat(negativePatterns);
+	return opts;
 }
 
 module.exports = function (patterns, opts, cb) {
@@ -52,9 +56,7 @@ module.exports = function (patterns, opts, cb) {
 
 	async.parallel(sortedPatterns.positives.map(function (positive) {
 		return function (cb2) {
-			setIgnore(opts, sortedPatterns.negatives, positive.index);
-
-			glob(positive.pattern, opts, function (err, paths) {
+			glob(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index), function (err, paths) {
 				if (err) {
 					cb2(err);
 					return;
@@ -82,8 +84,7 @@ module.exports.sync = function (patterns, opts) {
 	opts = opts || {};
 
 	return sortedPatterns.positives.reduce(function (ret, positive) {
-		setIgnore(opts, sortedPatterns.negatives, positive.index);
-		return union(ret, glob.sync(positive.pattern, opts));
+		return union(ret, glob.sync(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index)));
 	}, []);
 
 };
