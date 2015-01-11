@@ -66,16 +66,28 @@ module.exports.sync = function (patterns, opts) {
 		return [];
 	}
 
+	var positives = [];
+	var negatives = [];
+
+	patterns.forEach(function (pattern, index) {
+		(pattern[0] === '!' ? negatives : positives).push({
+			index: index,
+			pattern: pattern
+		});
+	});
+
 	opts = opts || {};
 
-	return patterns.reduce(function (ret, pattern) {
-		if (pattern[0] === '!') {
-			var matcher = new Minimatch(pattern, opts);
-			return ret.filter(function (path) {
-				return matcher.match(path);
-			});
-		}
+	return positives.reduce(function(ret, positive) {
+		var negativePatterns = negatives.filter(function (negative) {
+			return negative.index > positive.index;
+		}).map(function (negative) {
+			return negative.pattern.slice(1);
+		});
 
-		return union(ret, glob.sync(pattern, opts));
+		opts.ignore = (opts.ignore || []).concat(negativePatterns);
+
+		return union(ret, glob.sync(positive.pattern, opts));
 	}, []);
+
 };
