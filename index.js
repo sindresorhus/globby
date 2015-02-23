@@ -1,64 +1,67 @@
 'use strict';
 var union = require('array-union');
+var assign = require('object-assign');
 var async = require('async');
 var glob = require('glob');
-var Minimatch = require('minimatch').Minimatch;
 
 function arrayify(arr) {
 	return Array.isArray(arr) ? arr : [arr];
 }
 
-module.exports = function (patterns, opts, cb) {
+function sortPatterns(patterns) {
 	patterns = arrayify(patterns);
+
+	var positives = [];
+	var negatives = [];
+
+	patterns.forEach(function (pattern, index) {
+		var isNegative = pattern[0] === '!';
+		(isNegative ? negatives : positives).push({
+			index: index,
+			pattern: isNegative ? pattern.slice(1) : pattern
+		});
+	});
+
+	return {
+		positives: positives,
+		negatives: negatives
+	};
+}
+
+function setIgnore(opts, negatives, positiveIndex) {
+	opts = assign({}, opts);
+
+	var negativePatterns = negatives.filter(function (negative) {
+		return negative.index > positiveIndex;
+	}).map(function (negative) {
+		return negative.pattern;
+	});
+
+	opts.ignore = (opts.ignore || []).concat(negativePatterns);
+	return opts;
+}
+
+module.exports = function (patterns, opts, cb) {
+	var sortedPatterns = sortPatterns(patterns);
 
 	if (typeof opts === 'function') {
 		cb = opts;
 		opts = {};
 	}
 
-	var positives = [];
-	var negatives = [];
-
-	patterns.forEach(function (pattern, index) {
-		(pattern[0] === '!' ? negatives : positives).push({
-			index: index,
-			pattern: pattern
-		});
-	});
-
-	if (positives.length === 0) {
+	if (sortedPatterns.positives.length === 0) {
 		cb(null, []);
 		return;
 	}
 
-	negatives.forEach(function (negative) {
-		negative.matcher = new Minimatch(negative.pattern, opts);
-	});
-
-	async.parallel(positives.map(function (positive) {
+	async.parallel(sortedPatterns.positives.map(function (positive) {
 		return function (cb2) {
-			glob(positive.pattern, opts, function (err, paths) {
+			glob(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index), function (err, paths) {
 				if (err) {
 					cb2(err);
 					return;
 				}
-
-				var negativeMatchers = negatives.filter(function (negative) {
-					return negative.index > positive.index;
-				}).map(function (negative) {
-					return negative.matcher;
-				});
-
-				if (negativeMatchers.length === 0) {
-					cb2(null, paths);
-					return;
-				}
-
-				cb2(null, paths.filter(function (path) {
-					return negativeMatchers.every(function (matcher) {
-						return matcher.match(path);
-					});
-				}));
+				cb2(null, paths);
 			});
 		};
 	}), function (err, paths) {
@@ -72,22 +75,16 @@ module.exports = function (patterns, opts, cb) {
 };
 
 module.exports.sync = function (patterns, opts) {
-	patterns = arrayify(patterns);
+	var sortedPatterns = sortPatterns(patterns);
 
-	if (patterns.length === 0) {
+	if (sortedPatterns.positives.length === 0) {
 		return [];
 	}
 
 	opts = opts || {};
 
-	return patterns.reduce(function (ret, pattern) {
-		if (pattern[0] === '!') {
-			var matcher = new Minimatch(pattern, opts);
-			return ret.filter(function (path) {
-				return matcher.match(path);
-			});
-		}
-
-		return union(ret, glob.sync(pattern, opts));
+	return sortedPatterns.positives.reduce(function (ret, positive) {
+		return union(ret, glob.sync(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index)));
 	}, []);
+
 };

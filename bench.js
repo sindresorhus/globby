@@ -10,12 +10,12 @@ var BENCH_DIR = 'bench';
 var runners = [{
 	name: 'globby async (working directory)',
 	run: function (patterns, cb) {
-		globby(patterns, cb);
+		setImmediate(globby, patterns, cb);
 	}
 }, {
 	name: 'globby async (upstream/master)',
 	run: function (patterns, cb) {
-		globbyMaster(patterns, cb);
+		setImmediate(globbyMaster, patterns, cb);
 	}
 }, {
 	name: 'globby sync (working directory)',
@@ -34,11 +34,11 @@ var runners = [{
 	}
 }];
 var benchs = [{
-	name: 'negative globs (100 negated paths)',
+	name: 'negative globs (some files inside dir)',
 	patterns: ['a/*', '!a/c*']
 }, {
-	name: 'negative globs (500 negated paths)',
-	patterns: ['a/*', '!a/*']
+	name: 'negative globs (whole dir)',
+	patterns: ['a/*', '!a/**']
 }, {
 	name: 'multiple positive globs',
 	patterns: ['a/*', 'b/*']

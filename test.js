@@ -58,3 +58,14 @@ it('cwd option', function () {
 	assert.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd: cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
 });
+
+it('should not mutate the options object - async', function(cb) {
+	globby(['*.tmp', '!b.tmp'], Object.freeze({ ignore: Object.freeze([]) }), function (err, paths) {
+		assert(!err, err);
+		cb();
+	});
+});
+
+it('should not mutate the options object - sync', function() {
+	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ ignore: Object.freeze([]) }));
+});
