@@ -61,6 +61,7 @@ module.exports = function (patterns, opts, cb) {
 					cb2(err);
 					return;
 				}
+
 				cb2(null, paths);
 			});
 		};
@@ -81,10 +82,7 @@ module.exports.sync = function (patterns, opts) {
 		return [];
 	}
 
-	opts = opts || {};
-
 	return sortedPatterns.positives.reduce(function (ret, positive) {
 		return union(ret, glob.sync(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index)));
 	}, []);
-
 };
