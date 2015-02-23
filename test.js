@@ -60,20 +60,12 @@ it('cwd option', function () {
 });
 
 it('should not mutate the options object - async', function(cb) {
-	var ignore = [];
-	var opts = { ignore: ignore };
-	globby(['*.tmp', '!b.tmp'], opts, function (err, paths) {
+	globby(['*.tmp', '!b.tmp'], Object.freeze({ ignore: Object.freeze([]) }), function (err, paths) {
 		assert(!err, err);
-		assert.strictEqual(opts.ignore, ignore); // same reference
-		assert.deepEqual(ignore, []); // same contents
 		cb();
 	});
 });
 
 it('should not mutate the options object - sync', function() {
-	var ignore = [];
-	var opts = { ignore: ignore };
-	globby.sync(['*.tmp', '!b.tmp'], opts);
-	assert.strictEqual(opts.ignore, ignore); // same reference
-	assert.deepEqual(ignore, []); // same contents
+	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ ignore: Object.freeze([]) }));
 });
