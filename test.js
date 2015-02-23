@@ -65,7 +65,7 @@ it('should not mutate the options object - async', function(cb) {
 	globby(['*.tmp', '!b.tmp'], opts, function (err, paths) {
 		assert(!err, err);
 		assert.strictEqual(opts.ignore, ignore); // same reference
-		assert.deepEqual(opts.ignore, ignore); // same contents
+		assert.deepEqual(ignore, []); // same contents
 		cb();
 	});
 });
@@ -75,5 +75,5 @@ it('should not mutate the options object - sync', function() {
 	var opts = { ignore: ignore };
 	globby.sync(['*.tmp', '!b.tmp'], opts);
 	assert.strictEqual(opts.ignore, ignore); // same reference
-	assert.deepEqual(opts.ignore, ignore); // same contents
+	assert.deepEqual(ignore, []); // same contents
 });
