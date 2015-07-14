@@ -3,13 +3,10 @@ var union = require('array-union');
 var assign = require('object-assign');
 var async = require('async');
 var glob = require('glob');
-
-function arrayify(arr) {
-	return Array.isArray(arr) ? arr : [arr];
-}
+var arrify = require('arrify');
 
 function sortPatterns(patterns) {
-	patterns = arrayify(patterns);
+	patterns = arrify(patterns);
 
 	var positives = [];
 	var negatives = [];
