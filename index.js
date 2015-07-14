@@ -1,6 +1,6 @@
 'use strict';
-var union = require('array-union');
-var assign = require('object-assign');
+var arrayUnion = require('array-union');
+var objectAssign = require('object-assign');
 var async = require('async');
 var glob = require('glob');
 var arrify = require('arrify');
@@ -26,7 +26,7 @@ function sortPatterns(patterns) {
 }
 
 function setIgnore(opts, negatives, positiveIndex) {
-	opts = assign({}, opts);
+	opts = objectAssign({}, opts);
 
 	var negativePatterns = negatives.filter(function (negative) {
 		return negative.index > positiveIndex;
@@ -68,7 +68,7 @@ module.exports = function (patterns, opts, cb) {
 			return;
 		}
 
-		cb(null, union.apply(null, paths));
+		cb(null, arrayUnion.apply(null, paths));
 	});
 };
 
@@ -80,6 +80,6 @@ module.exports.sync = function (patterns, opts) {
 	}
 
 	return sortedPatterns.positives.reduce(function (ret, positive) {
-		return union(ret, glob.sync(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index)));
+		return arrayUnion(ret, glob.sync(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index)));
 	}, []);
 };

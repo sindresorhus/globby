@@ -59,13 +59,13 @@ it('cwd option', function () {
 	process.chdir(cwd);
 });
 
-it('should not mutate the options object - async', function(cb) {
-	globby(['*.tmp', '!b.tmp'], Object.freeze({ ignore: Object.freeze([]) }), function (err, paths) {
+it('should not mutate the options object - async', function (cb) {
+	globby(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}), function (err, paths) {
 		assert(!err, err);
 		cb();
 	});
 });
 
-it('should not mutate the options object - sync', function() {
-	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ ignore: Object.freeze([]) }));
+it('should not mutate the options object - sync', function () {
+	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 });
