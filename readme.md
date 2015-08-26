@@ -1,6 +1,6 @@
 # globby [![Build Status](https://travis-ci.org/sindresorhus/globby.svg?branch=master)](https://travis-ci.org/sindresorhus/globby)
 
-> Extends [glob](https://github.com/isaacs/node-glob) with support for multiple patterns
+> Extends [glob](https://github.com/isaacs/node-glob) with support for multiple patterns and exposes a Promise API
 
 
 ## Install
@@ -30,7 +30,7 @@ globby(['*', '!cake'], function (err, paths) {
 
 ## API
 
-### globby(patterns, [options], callback)
+### globby(patterns, [options])
 
 ### globby.sync(patterns, [options])
 
@@ -47,8 +47,8 @@ Type: `object`
 
 See the node-glob [options](https://github.com/isaacs/node-glob#options).
 
-#### callback(err, paths)
-
+`globby.sync` synchronously returns an array of paths matching the glob expression.
+`globby` returns a Promise object that resolves to an array of matching paths or is rejected with an error.
 
 ## Globbing patterns
 
