@@ -1,9 +1,10 @@
 'use strict';
+var Promise = require('pinkie-promise');
 var arrayUnion = require('array-union');
 var objectAssign = require('object-assign');
-var async = require('async');
 var glob = require('glob');
 var arrify = require('arrify');
+var pify = require('pify');
 
 function sortPatterns(patterns) {
 	patterns = arrify(patterns);
@@ -38,37 +39,19 @@ function setIgnore(opts, negatives, positiveIndex) {
 	return opts;
 }
 
-module.exports = function (patterns, opts, cb) {
+module.exports = function (patterns, opts) {
 	var sortedPatterns = sortPatterns(patterns);
-
-	if (typeof opts === 'function') {
-		cb = opts;
-		opts = {};
-	}
+	opts = opts || {};
 
 	if (sortedPatterns.positives.length === 0) {
-		cb(null, []);
-		return;
+		return Promise.resolve([]);
 	}
 
-	async.parallel(sortedPatterns.positives.map(function (positive) {
-		return function (cb2) {
-			glob(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index), function (err, paths) {
-				if (err) {
-					cb2(err);
-					return;
-				}
-
-				cb2(null, paths);
-			});
-		};
-	}), function (err, paths) {
-		if (err) {
-			cb(err);
-			return;
-		}
-
-		cb(null, arrayUnion.apply(null, paths));
+	return Promise.all(sortedPatterns.positives.map(function (positive) {
+		var globOpts = setIgnore(opts, sortedPatterns.negatives, positive.index);
+		return pify(glob, Promise)(positive.pattern, globOpts);
+	})).then(function (paths) {
+		return arrayUnion.apply(null, paths);
 	});
 };
 
