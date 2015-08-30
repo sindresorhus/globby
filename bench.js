@@ -1,3 +1,4 @@
+/* global bench */
 'use strict';
 var fs = require('fs');
 var rimraf = require('rimraf');

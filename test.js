@@ -48,13 +48,13 @@ it('should glob - sync', function () {
 
 it('should return [] for all negative patterns - sync', function () {
 	assert.deepEqual(globby.sync(['!a.tmp', '!b.tmp']), []);
-})
+});
 
 it('should return [] for all negative patterns - async', function () {
 	return globby(['!a.tmp', '!b.tmp']).then(function (paths) {
 		assert.deepEqual(paths, []);
 	});
-})
+});
 
 it('cwd option', function () {
 	process.chdir('tmp');
