@@ -48,13 +48,14 @@
     "util",
     "utility",
     "wildcard",
-    "wildcards"
+    "wildcards",
+    "promise"
   ],
   "dependencies": {
     "array-union": "^1.0.1",
     "arrify": "^1.0.0",
     "glob": "^5.0.3",
-    "object-assign": "^3.0.0",
+    "object-assign": "^4.0.1",
     "pify": "^1.0.0",
     "pinkie-promise": "^1.0.0"
   },

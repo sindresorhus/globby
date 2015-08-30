@@ -19,10 +19,10 @@ $ npm install --save globby
 ```
 
 ```js
-var globby = require('globby');
+const globby = require('globby');
 
-globby(['*', '!cake'], function (err, paths) {
-	console.log(paths);
+globby(['*', '!cake']).then(paths => {
+	console.log(paths)
 	//=> ['unicorn', 'rainbows']
 });
 ```
@@ -32,23 +32,24 @@ globby(['*', '!cake'], function (err, paths) {
 
 ### globby(patterns, [options])
 
+Returns a promise that resolves to an array of matching paths.
+
 ### globby.sync(patterns, [options])
+
+Returns an array of matching paths.
 
 #### patterns
 
-*Required*  
 Type: `string`, `array`
 
-See supported minimatch [patterns](https://github.com/isaacs/minimatch#usage).
+See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 #### options
 
 Type: `object`
 
-See the node-glob [options](https://github.com/isaacs/node-glob#options).
+See the `node-glob` [options](https://github.com/isaacs/node-glob#options).
 
-`globby.sync` synchronously returns an array of paths matching the glob expression.
-`globby` returns a Promise object that resolves to an array of matching paths or is rejected with an error.
 
 ## Globbing patterns
 
