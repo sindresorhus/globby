@@ -15,7 +15,7 @@ $ npm install --save globby
 ```
 ├── unicorn
 ├── cake
-└── rainbow
+└── rainbows
 ```
 
 ```js
