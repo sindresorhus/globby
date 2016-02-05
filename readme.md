@@ -66,8 +66,9 @@ Just a quick overview.
 
 ## Related
 
-- [multimatch](https://github.com/sindresorhus/multimatch) - Match against a list instead of the filesystem.
-- [glob-stream](https://github.com/wearefractal/glob-stream) - Streaming alternative.
+- [multimatch](https://github.com/sindresorhus/multimatch) - Match against a list instead of the filesystem
+- [glob-stream](https://github.com/wearefractal/glob-stream) - Streaming alternative
+- [matcher](https://github.com/sindresorhus/matcher) - Simple wildcard matching
 
 
 ## License
