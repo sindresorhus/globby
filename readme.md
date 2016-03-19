@@ -48,8 +48,14 @@ See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 Type: `object`
 
-See the `node-glob` [options](https://github.com/isaacs/node-glob#options).
+Options are passed to [node-glob](https://github.com/isaacs/node-glob#options).
 
+##### recursive
+
+Type: `boolean`
+Default: `false`
+
+Glob directories recursively.
 
 ## Globbing patterns
 

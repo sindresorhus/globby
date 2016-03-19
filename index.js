@@ -6,6 +6,8 @@ var glob = require('glob');
 var arrify = require('arrify');
 var pify = require('pify');
 
+var globP = pify(glob, Promise);
+
 function sortPatterns(patterns) {
 	patterns = arrify(patterns);
 
@@ -39,30 +41,52 @@ function setIgnore(opts, negatives, positiveIndex) {
 	return opts;
 }
 
-module.exports = function (patterns, opts) {
+function generateTasks(patterns, opts) {
 	var sortedPatterns = sortPatterns(patterns);
-	opts = opts || {};
 
-	if (sortedPatterns.positives.length === 0) {
-		return Promise.resolve([]);
-	}
+	return sortedPatterns.positives.map(function (positive) {
+		return {
+			pattern: positive.pattern,
+			opts: setIgnore(opts, sortedPatterns.negatives, positive.index)
+		};
+	});
+}
 
-	return Promise.all(sortedPatterns.positives.map(function (positive) {
-		var globOpts = setIgnore(opts, sortedPatterns.negatives, positive.index);
-		return pify(glob, Promise)(positive.pattern, globOpts);
-	})).then(function (paths) {
+module.exports = function (patterns, opts) {
+	var tasks = generateTasks(patterns, opts);
+
+	return Promise.all(tasks.map(function (task) {
+		var pendingGlob = globP(task.pattern, task.opts);
+
+		if (!task.opts.recursive) {
+			return pendingGlob;
+		}
+
+		return pendingGlob.then(function (paths) {
+			return Promise.all(paths.map(function (path) {
+				return globP(path + '{,/**}', task.opts);
+			})).then(function (paths) {
+				return arrayUnion.apply(null, paths);
+			});
+		});
+	}))
+	.then(function (paths) {
 		return arrayUnion.apply(null, paths);
 	});
 };
 
 module.exports.sync = function (patterns, opts) {
-	var sortedPatterns = sortPatterns(patterns);
+	var tasks = generateTasks(patterns, opts);
 
-	if (sortedPatterns.positives.length === 0) {
-		return [];
-	}
+	return tasks.reduce(function (matches, task) {
+		var paths = glob.sync(task.pattern, task.opts);
 
-	return sortedPatterns.positives.reduce(function (ret, positive) {
-		return arrayUnion(ret, glob.sync(positive.pattern, setIgnore(opts, sortedPatterns.negatives, positive.index)));
+		if (task.opts.recursive) {
+			paths = paths.reduce(function (recusiveMatches, path) {
+				return arrayUnion(recusiveMatches, glob.sync(path + '{,/**}', task.opts));
+			}, []);
+		}
+
+		return arrayUnion(matches, paths);
 	}, []);
 };
