@@ -8,16 +8,20 @@ var globby = require('./');
 
 var BENCH_DIR = 'bench';
 
+function globbyToCb(globbyFn) {
+	return function (patterns, cb) {
+		setImmediate(function () {
+			globbyFn(patterns).then(cb.bind(null, null), cb);
+		});
+	};
+}
+
 var runners = [{
 	name: 'globby async (working directory)',
-	run: function (patterns, cb) {
-		setImmediate(globby, patterns, cb);
-	}
+	run: globbyToCb(globby)
 }, {
 	name: 'globby async (upstream/master)',
-	run: function (patterns, cb) {
-		setImmediate(globbyMaster, patterns, cb);
-	}
+	run: globbyToCb(globbyMaster)
 }, {
 	name: 'globby sync (working directory)',
 	run: function (patterns) {
