@@ -70,3 +70,11 @@ it('should not mutate the options object - async', function () {
 it('should not mutate the options object - sync', function () {
 	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 });
+
+it('should expose generateGlobTasks', function () {
+	var tasks = globby.generateGlobTasks(['*.tmp', '!b.tmp'], {ignore: ['c.tmp']});
+
+	assert.strictEqual(tasks.length, 1);
+	assert.strictEqual(tasks[0].pattern, '*.tmp');
+	assert.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
+});
