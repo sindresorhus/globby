@@ -11,12 +11,12 @@ var BENCH_DIR = 'bench';
 var runners = [{
 	name: 'globby async (working directory)',
 	run: function (patterns, cb) {
-		setImmediate(globby, patterns, cb);
+		globby(patterns).then(cb.bind(null, null), cb);
 	}
 }, {
 	name: 'globby async (upstream/master)',
 	run: function (patterns, cb) {
-		setImmediate(globbyMaster, patterns, cb);
+		globbyMaster(patterns).then(cb.bind(null, null), cb);
 	}
 }, {
 	name: 'globby sync (working directory)',
