@@ -9,17 +9,30 @@ var fixture = [
 	'b.tmp',
 	'c.tmp',
 	'd.tmp',
-	'e.tmp'
+	'e.tmp',
+	'nested/filtered/f.tmp',
+	'nested/filtered/g.tmp',
+	'nested/filtered/.subdir/hidden.tmp',
+	'nested/subdir/f.tmp',
+	'nested/i.tmp'
 ];
 
 before(function () {
 	fs.mkdirSync('tmp');
+	fs.mkdirSync('nested');
+	fs.mkdirSync('nested/filtered');
+	fs.mkdirSync('nested/filtered/.subdir');
+	fs.mkdirSync('nested/subdir');
 	fixture.forEach(fs.writeFileSync.bind(fs));
 });
 
 after(function () {
-	fs.rmdirSync('tmp');
 	fixture.forEach(fs.unlinkSync.bind(fs));
+	fs.rmdirSync('tmp');
+	fs.rmdirSync('nested/subdir');
+	fs.rmdirSync('nested/filtered/.subdir');
+	fs.rmdirSync('nested/filtered');
+	fs.rmdirSync('nested');
 });
 
 it('should glob - async', function () {
@@ -69,4 +82,80 @@ it('should not mutate the options object - async', function () {
 
 it('should not mutate the options object - sync', function () {
 	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+});
+
+it('recursive option - sync', function () {
+	var actual = globby.sync(['nested', '!nested/filtered', 'nested/filtered', '!**/filtered/**/f.tmp'], {recursive: true});
+	var expected = [
+		'nested',
+		'nested/i.tmp',
+		'nested/filtered',
+		'nested/filtered/g.tmp',
+		'nested/subdir',
+		'nested/subdir/f.tmp'
+	];
+
+	actual.sort();
+	expected.sort();
+
+	assert.deepEqual(actual, expected);
+});
+
+it('recursive option - async', function () {
+	var actual = globby(['nested', '!nested/filtered', 'nested/filtered', '!**/filtered/**/f.tmp'], {recursive: true});
+	var expected = [
+		'nested',
+		'nested/i.tmp',
+		'nested/filtered',
+		'nested/filtered/g.tmp',
+		'nested/subdir',
+		'nested/subdir/f.tmp'
+	];
+
+	expected.sort();
+
+	return actual.then(function (actual) {
+		actual.sort();
+		assert.deepEqual(actual, expected);
+	});
+});
+
+it('recursive and dot option - sync', function () {
+	var actual = globby.sync(['nested', '!nested/filtered', 'nested/filtered', '!**/filtered/**/f.tmp'], {recursive: true, dot: true});
+	var expected = [
+		'nested',
+		'nested/i.tmp',
+		'nested/filtered',
+		'nested/filtered/g.tmp',
+		'nested/filtered/.subdir',
+		'nested/filtered/.subdir/hidden.tmp',
+		'nested/subdir',
+		'nested/subdir/f.tmp'
+	];
+
+	actual.sort();
+	expected.sort();
+
+	assert.deepEqual(actual, expected);
+});
+
+it('recursive and dot option - async', function () {
+	var actual = globby(['nested', '!nested/filtered', 'nested/filtered', '!**/filtered/**/f.tmp'], {recursive: true, dot: true});
+	var expected = [
+		'nested',
+		'nested/i.tmp',
+		'nested/filtered',
+		'nested/filtered/g.tmp',
+		'nested/filtered/.subdir',
+		'nested/filtered/.subdir/hidden.tmp',
+		'nested/subdir',
+		'nested/subdir/f.tmp'
+	];
+
+	expected.sort();
+
+	return actual.then(function (actual) {
+		actual.sort();
+		assert.deepEqual(actual, expected);
+	});
 });
