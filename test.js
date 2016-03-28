@@ -40,6 +40,12 @@ it('should glob with string one name - async', function () {
 	});
 });
 
+it('should glob with array one name - async', function () {
+	return globby(['a.tmp']).then(function (paths) {
+		assert.deepEqual(paths, ['a.tmp']);
+	});
+});
+
 it('should respect patterns order - async', function () {
 	return globby(['!*.tmp', 'a.tmp']).then(function (paths) {
 		assert.deepEqual(paths, ['a.tmp']);
