@@ -55,3 +55,5 @@ module.exports.sync = function (patterns, opts) {
 		return arrayUnion(matches, glob.sync(task.pattern, task.opts));
 	}, []);
 };
+
+module.exports.generateGlobTasks = generateGlobTasks;
