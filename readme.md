@@ -38,6 +38,10 @@ Returns a promise that resolves to an array of matching paths.
 
 Returns an array of matching paths.
 
+### globby.generateGlobTasks(patterns, [options])
+
+Returns an array of objects in the format `{ pattern: String, opts: Object }`, which can be passed as arguments to [node-glob](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
+
 #### patterns
 
 Type: `string`, `array`
