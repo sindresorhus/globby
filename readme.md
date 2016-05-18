@@ -32,7 +32,7 @@ globby(['*', '!cake']).then(paths => {
 
 ### globby(patterns, [options])
 
-Returns a promise that resolves to an array of matching paths.
+Returns a Promise for an array of matching paths.
 
 ### globby.sync(patterns, [options])
 
@@ -40,17 +40,17 @@ Returns an array of matching paths.
 
 ### globby.generateGlobTasks(patterns, [options])
 
-Returns an array of objects in the format `{ pattern: String, opts: Object }`, which can be passed as arguments to [node-glob](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
+Returns an array of objects in the format `{ pattern: string, opts: Object }`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
 
 #### patterns
 
-Type: `string`, `array`
+Type: `string`, `Array`
 
 See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 #### options
 
-Type: `object`
+Type: `Object`
 
 See the `node-glob` [options](https://github.com/isaacs/node-glob#options).
 
@@ -65,7 +65,7 @@ Just a quick overview.
 - `{}` allows for a comma-separated list of "or" expressions
 - `!` at the beginning of a pattern will negate the match
 
-[Various patterns and expected matches](https://github.com/sindresorhus/multimatch/blob/master/test.js).
+[Various patterns and expected matches.](https://github.com/sindresorhus/multimatch/blob/master/test.js)
 
 
 ## Related
@@ -77,4 +77,4 @@ Just a quick overview.
 
 ## License
 
-MIT © [Sindre Sorhus](http://sindresorhus.com)
+MIT © [Sindre Sorhus](https://sindresorhus.com)

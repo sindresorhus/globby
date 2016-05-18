@@ -1,5 +1,5 @@
-/* global bench */
 'use strict';
+/* global bench */
 var fs = require('fs');
 var rimraf = require('rimraf');
 var globbyMaster = require('globby');

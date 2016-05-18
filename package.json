@@ -62,7 +62,7 @@
   "devDependencies": {
     "glob-stream": "wearefractal/glob-stream#master",
     "globby": "sindresorhus/globby#master",
-    "matcha": "^0.6.0",
+    "matcha": "^0.7.0",
     "mocha": "*",
     "rimraf": "^2.2.8",
     "xo": "*"
