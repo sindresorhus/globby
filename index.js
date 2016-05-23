@@ -16,7 +16,13 @@ function generateGlobTasks(patterns, opts) {
 	var globTasks = [];
 
 	patterns = arrify(patterns);
-	opts = objectAssign({ignore: []}, opts);
+	opts = objectAssign({
+		cache: Object.create(null),
+		statCache: Object.create(null),
+		realpathCache: Object.create(null),
+		symlinks: Object.create(null),
+		ignore: []
+	}, opts);
 
 	patterns.forEach(function (pattern, i) {
 		if (isNegative(pattern)) {
