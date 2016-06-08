@@ -21,29 +21,29 @@ test.after(() => {
 	fixture.forEach(fs.unlinkSync.bind(fs));
 });
 
-test('should glob - async', async t => {
+test('glob - async', async t => {
 	t.deepEqual(await m('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-test('should glob with multiple patterns - async', async t => {
+test('glob with multiple patterns - async', async t => {
 	t.deepEqual(await m(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('should respect patterns order - async', async t => {
+test('respect patterns order - async', async t => {
 	t.deepEqual(await m(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-test('should glob - sync', t => {
+test('glob - sync', t => {
 	t.deepEqual(m.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 	t.deepEqual(m.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-test('should return [] for all negative patterns - sync', t => {
+test('return [] for all negative patterns - sync', t => {
 	t.deepEqual(m.sync(['!a.tmp', '!b.tmp']), []);
 });
 
-test('should return [] for all negative patterns - async', async t => {
+test('return [] for all negative patterns - async', async t => {
 	t.deepEqual(await m(['!a.tmp', '!b.tmp']), []);
 });
 
@@ -54,15 +54,15 @@ test('cwd option', t => {
 	process.chdir(cwd);
 });
 
-test('should not mutate the options object - async', async () => {
+test(`don't mutate the options object - async`, async () => {
 	await m(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 });
 
-test('should not mutate the options object - sync', () => {
+test(`don't mutate the options object - sync`, () => {
 	m.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 });
 
-test('should expose generateGlobTasks', t => {
+test('expose generateGlobTasks', t => {
 	const tasks = m.generateGlobTasks(['*.tmp', '!b.tmp'], {ignore: ['c.tmp']});
 
 	t.is(tasks.length, 1);
