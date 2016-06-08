@@ -1,10 +1,9 @@
-'use strict';
-var assert = require('assert');
-var fs = require('fs');
-var globby = require('./');
+import fs from 'fs';
+import test from 'ava';
+import m from './';
 
-var cwd = process.cwd();
-var fixture = [
+const cwd = process.cwd();
+const fixture = [
 	'a.tmp',
 	'b.tmp',
 	'c.tmp',
@@ -12,69 +11,61 @@ var fixture = [
 	'e.tmp'
 ];
 
-before(function () {
+test.before(() => {
 	fs.mkdirSync('tmp');
 	fixture.forEach(fs.writeFileSync.bind(fs));
 });
 
-after(function () {
+test.after(() => {
 	fs.rmdirSync('tmp');
 	fixture.forEach(fs.unlinkSync.bind(fs));
 });
 
-it('should glob - async', function () {
-	return globby('*.tmp').then(function (paths) {
-		assert.deepEqual(paths, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	});
+test('glob - async', async t => {
+	t.deepEqual(await m('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-it('should glob with multiple patterns - async', function () {
-	return globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']).then(function (paths) {
-		assert.deepEqual(paths, ['a.tmp', 'b.tmp']);
-	});
+test('glob with multiple patterns - async', async t => {
+	t.deepEqual(await m(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-it('should respect patterns order - async', function () {
-	return globby(['!*.tmp', 'a.tmp']).then(function (paths) {
-		assert.deepEqual(paths, ['a.tmp']);
-	});
+test('respect patterns order - async', async t => {
+	t.deepEqual(await m(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-it('should glob - sync', function () {
-	assert.deepEqual(globby.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	assert.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
-	assert.deepEqual(globby.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
+test('glob - sync', t => {
+	t.deepEqual(m.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
+	t.deepEqual(m.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-it('should return [] for all negative patterns - sync', function () {
-	assert.deepEqual(globby.sync(['!a.tmp', '!b.tmp']), []);
+test('return [] for all negative patterns - sync', t => {
+	t.deepEqual(m.sync(['!a.tmp', '!b.tmp']), []);
 });
 
-it('should return [] for all negative patterns - async', function () {
-	return globby(['!a.tmp', '!b.tmp']).then(function (paths) {
-		assert.deepEqual(paths, []);
-	});
+test('return [] for all negative patterns - async', async t => {
+	t.deepEqual(await m(['!a.tmp', '!b.tmp']), []);
 });
 
-it('cwd option', function () {
+test('cwd option', t => {
 	process.chdir('tmp');
-	assert.deepEqual(globby.sync('*.tmp', {cwd: cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	assert.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd: cwd}), ['a.tmp', 'b.tmp']);
+	t.deepEqual(m.sync('*.tmp', {cwd: cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd: cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
 });
 
-it('should not mutate the options object - async', function () {
-	return globby(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+test(`don't mutate the options object - async`, async () => {
+	await m(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 });
 
-it('should not mutate the options object - sync', function () {
-	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+test(`don't mutate the options object - sync`, () => {
+	m.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 });
 
-it('should expose generateGlobTasks', function () {
-	var tasks = globby.generateGlobTasks(['*.tmp', '!b.tmp'], {ignore: ['c.tmp']});
+test('expose generateGlobTasks', t => {
+	const tasks = m.generateGlobTasks(['*.tmp', '!b.tmp'], {ignore: ['c.tmp']});
 
-	assert.strictEqual(tasks.length, 1);
-	assert.strictEqual(tasks[0].pattern, '*.tmp');
-	assert.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
+	t.is(tasks.length, 1);
+	t.is(tasks[0].pattern, '*.tmp');
+	t.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
 });
