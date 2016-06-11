@@ -42,6 +42,8 @@ Returns an array of matching paths.
 
 Returns an array of objects in the format `{ pattern: string, opts: Object }`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
 
+Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, create a new tasks list to ensure that file system changes are taken in consideration.
+
 #### patterns
 
 Type: `string`, `Array`
