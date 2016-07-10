@@ -72,7 +72,7 @@ test('expose generateGlobTasks', t => {
 
 test('rejects the promise for invalid patterns parameter', async t => {
 	t.throws(m([null]), TypeError);
-	t.throws(m([null]), 'all pattners must be strings');
+	t.throws(m([null]), 'patterns must be a string or an array of strings');
 	t.throws(m({}), 'patterns must be a string or an array of strings');
 });
 
@@ -82,7 +82,7 @@ test('throws for invalid patterns parameter', t => {
 	}, TypeError);
 	t.throws(() => {
 		m.sync([null]);
-	}, 'all pattners must be strings');
+	}, 'patterns must be a string or an array of strings');
 	t.throws(() => {
 		m.sync({});
 	}, 'patterns must be a string or an array of strings');

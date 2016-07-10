@@ -22,14 +22,14 @@ function validatePatternsArray(patterns) {
 		return;
 	}
 
+	var err = new TypeError('patterns must be a string or an array of strings');
+
 	if (!Array.isArray(patterns)) {
-		return new TypeError('patterns must be a string or an array of strings');
+		return err;
 	}
 
-	var stringPatterns = patterns.filter(isString);
-
-	if (stringPatterns.length !== patterns.length) {
-		return new TypeError('all pattners must be strings');
+	if (patterns.filter(isString).length !== patterns.length) {
+		return err;
 	}
 }
 
