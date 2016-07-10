@@ -69,3 +69,21 @@ test('expose generateGlobTasks', t => {
 	t.is(tasks[0].pattern, '*.tmp');
 	t.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
 });
+
+test('rejects the promise for invalid patterns parameter', async t => {
+	t.throws(m([null]), TypeError);
+	t.throws(m([null]), 'all pattners must be strings');
+	t.throws(m({}), 'patterns must be a string or an array of strings');
+});
+
+test('throws for invalid patterns parameter', t => {
+	t.throws(() => {
+		m.sync([null]);
+	}, TypeError);
+	t.throws(() => {
+		m.sync([null]);
+	}, 'all pattners must be strings');
+	t.throws(() => {
+		m.sync({});
+	}, 'patterns must be a string or an array of strings');
+});
