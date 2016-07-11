@@ -9,7 +9,22 @@ var pify = require('pify');
 var globP = pify(glob, Promise).bind(glob);
 
 function isNegative(pattern) {
-	return pattern && pattern[0] === '!';
+	return pattern[0] === '!';
+}
+
+function isString(value) {
+	return typeof value === 'string';
+}
+
+function validatePatternsArray(patterns) {
+	if (isString(patterns)) {
+		// bail early, the rest will easier this way
+		return;
+	}
+
+	if (!Array.isArray(patterns) || !patterns.every(isString)) {
+		return new TypeError('patterns must be a string or an array of strings');
+	}
 }
 
 function generateGlobTasks(patterns, opts) {
@@ -45,6 +60,12 @@ function generateGlobTasks(patterns, opts) {
 }
 
 module.exports = function (patterns, opts) {
+	var validationError = validatePatternsArray(patterns);
+
+	if (validationError) {
+		return Promise.reject(validationError);
+	}
+
 	var globTasks = generateGlobTasks(patterns, opts);
 
 	return Promise.all(globTasks.map(function (task) {
@@ -55,6 +76,12 @@ module.exports = function (patterns, opts) {
 };
 
 module.exports.sync = function (patterns, opts) {
+	var validationError = validatePatternsArray(patterns);
+
+	if (validationError) {
+		throw validationError;
+	}
+
 	var globTasks = generateGlobTasks(patterns, opts);
 
 	return globTasks.reduce(function (matches, task) {
