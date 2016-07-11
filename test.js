@@ -70,18 +70,59 @@ test('expose generateGlobTasks', t => {
 	t.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
 });
 
-test('rejects the promise for invalid patterns parameter', async t => {
-	const msg = 'patterns must be a string or an array of strings';
+// false positive tests
+[
+	null,
+	[['!']],
+	{0: '!'}
+].forEach(v => {
+	const name = 'successfully gets empty array for pattern value: ' + (JSON.stringify(v) || v.toString());
 
-	t.throws(m([null]), TypeError);
-	t.throws(m([null]), msg);
-	t.throws(m({}), msg);
+	test(name + ' - async', async t => {
+		t.deepEqual(await m(v), []);
+	});
+
+	test(name, async t => {
+		t.deepEqual(m.sync(v), []);
+	});
 });
 
-test('throws for invalid patterns parameter', t => {
-	const msg = 'patterns must be a string or an array of strings';
+// rejected for being an invalid pattern
+[
+	{},
+	true,
+	[true],
+	function () {},
+	[function () {}]
+].forEach(v => {
+	const name = 'errors for invalid pattern value: ' + (JSON.stringify(v) || v.toString());
 
-	t.throws(() => m.sync([null]), TypeError);
-	t.throws(() => m.sync([null]), msg);
-	t.throws(() => m.sync({}), msg);
+	test(name + ' - async', async t => {
+		t.throws(m(v), TypeError);
+		t.throws(m(v), 'glob pattern string required');
+	});
+
+	test(name, t => {
+		t.throws(() => m.sync(v), TypeError);
+		t.throws(() => m.sync(v), 'glob pattern string required');
+	});
+});
+
+// rejected, but have a different error to async and sync
+[
+	[null],
+	false,
+	[false]
+].forEach(v => {
+	const name = 'errors for invalid pattern value: ' + (JSON.stringify(v) || v.toString());
+
+	test(name + ' - async', async t => {
+		t.throws(m(v), TypeError);
+		t.throws(m(v), 'glob pattern string required');
+	});
+
+	test(name, t => {
+		t.throws(() => m.sync(v), Error);
+		t.throws(() => m.sync(v), 'must provide pattern');
+	});
 });
