@@ -23,11 +23,15 @@ function validatePatternsArray(patterns) {
 	}
 
 	if (!Array.isArray(patterns) || !patterns.every(isString)) {
-		return new TypeError('patterns must be a string or an array of strings');
+		throw new TypeError('patterns must be a string or an array of strings');
 	}
 }
 
 function generateGlobTasks(patterns, opts) {
+	// make sure input is correct, so that we can safely parse
+	// it in this task
+	validatePatternsArray(patterns);
+
 	var globTasks = [];
 
 	patterns = arrify(patterns);
@@ -60,13 +64,13 @@ function generateGlobTasks(patterns, opts) {
 }
 
 module.exports = function (patterns, opts) {
-	var validationError = validatePatternsArray(patterns);
+	var globTasks;
 
-	if (validationError) {
-		return Promise.reject(validationError);
+	try {
+		globTasks = generateGlobTasks(patterns, opts);
+	} catch (err) {
+		return Promise.reject(err);
 	}
-
-	var globTasks = generateGlobTasks(patterns, opts);
 
 	return Promise.all(globTasks.map(function (task) {
 		return globP(task.pattern, task.opts);
@@ -76,12 +80,6 @@ module.exports = function (patterns, opts) {
 };
 
 module.exports.sync = function (patterns, opts) {
-	var validationError = validatePatternsArray(patterns);
-
-	if (validationError) {
-		throw validationError;
-	}
-
 	var globTasks = generateGlobTasks(patterns, opts);
 
 	return globTasks.reduce(function (matches, task) {

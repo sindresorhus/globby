@@ -85,3 +85,11 @@ test('throws for invalid patterns parameter', t => {
 	t.throws(() => m.sync([null]), msg);
 	t.throws(() => m.sync({}), msg);
 });
+
+test('generateGlobTasks throws for invalid patterns parameter', t => {
+	const msg = 'patterns must be a string or an array of strings';
+
+	t.throws(() => m.generateGlobTasks([null]), TypeError);
+	t.throws(() => m.generateGlobTasks([null]), msg);
+	t.throws(() => m.generateGlobTasks({}), msg);
+});
