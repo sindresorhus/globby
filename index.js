@@ -16,7 +16,7 @@ function isString(value) {
 	return typeof value === 'string';
 }
 
-function validatePatternsArray(patterns) {
+function assertPatternsInput(patterns) {
 	if (isString(patterns)) {
 		// bail early, the rest will easier this way
 		return;
@@ -30,7 +30,7 @@ function validatePatternsArray(patterns) {
 function generateGlobTasks(patterns, opts) {
 	// make sure input is correct, so that we can safely parse
 	// it in this task
-	validatePatternsArray(patterns);
+	assertPatternsInput(patterns);
 
 	var globTasks = [];
 
