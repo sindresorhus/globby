@@ -3,7 +3,6 @@ var Promise = require('pinkie-promise');
 var arrayUnion = require('array-union');
 var objectAssign = require('object-assign');
 var glob = require('glob');
-var arrify = require('arrify');
 var pify = require('pify');
 
 var globP = pify(glob, Promise).bind(glob);
@@ -17,24 +16,17 @@ function isString(value) {
 }
 
 function assertPatternsInput(patterns) {
-	if (isString(patterns)) {
-		// bail early, the rest will easier this way
-		return;
-	}
-
-	if (!Array.isArray(patterns) || !patterns.every(isString)) {
+	if (!patterns.every(isString)) {
 		throw new TypeError('patterns must be a string or an array of strings');
 	}
 }
 
 function generateGlobTasks(patterns, opts) {
-	// make sure input is correct, so that we can safely parse
-	// it in this task
+	patterns = Array.isArray(patterns) ? patterns : [patterns];
 	assertPatternsInput(patterns);
 
 	var globTasks = [];
 
-	patterns = arrify(patterns);
 	opts = objectAssign({
 		cache: Object.create(null),
 		statCache: Object.create(null),
