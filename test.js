@@ -69,3 +69,43 @@ test('expose generateGlobTasks', t => {
 	t.is(tasks[0].pattern, '*.tmp');
 	t.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
 });
+
+// rejected for being an invalid pattern
+[
+	{},
+	[{}],
+	true,
+	[true],
+	false,
+	[false],
+	null,
+	[null],
+	undefined,
+	[undefined],
+	NaN,
+	[NaN],
+	5,
+	[5],
+	function () {},
+	[function () {}]
+].forEach(v => {
+	const valstring = v === undefined ?
+		'undefined' :
+		(JSON.stringify(v) || v.toString());
+	const msg = 'patterns must be a string or an array of strings';
+
+	test(`rejects the promise for invalid patterns input: ${valstring} - async`, async t => {
+		t.throws(m(v), TypeError);
+		t.throws(m(v), msg);
+	});
+
+	test(`throws for invalid patterns input: ${valstring}`, t => {
+		t.throws(() => m.sync(v), TypeError);
+		t.throws(() => m.sync(v), msg);
+	});
+
+	test(`generateGlobTasks throws for invalid patterns input: ${valstring}`, t => {
+		t.throws(() => m.generateGlobTasks(v), TypeError);
+		t.throws(() => m.generateGlobTasks(v), msg);
+	});
+});
