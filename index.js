@@ -78,6 +78,7 @@ module.exports = function (patterns, opts) {
 	} catch (err) {
 		return Promise.reject(err);
 	}
+
 	return Promise.all(globTasks.map(function (task) {
 		return globP(task.pattern, task.opts);
 	})).then(function (paths) {
