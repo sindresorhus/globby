@@ -46,7 +46,7 @@ function generateGlobTasks(patterns, opts) {
 		ignore = opts.ignore.concat(ignore);
 
 		// Convert negated ignores into positive patterns
-		ignore.forEach(function(ign) {
+		ignore.forEach(function (ign) {
 			if (!isNegative(ign)) {
 				return;
 			}
@@ -57,8 +57,8 @@ function generateGlobTasks(patterns, opts) {
 		});
 
 		// Remove negated ignores from array
-		ignore = ignore.filter(function(ign) {
-			return !isNegative(ign)
+		ignore = ignore.filter(function (ign) {
+			return !isNegative(ign);
 		});
 
 		globTasks.push({
