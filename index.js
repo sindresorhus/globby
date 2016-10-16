@@ -43,11 +43,26 @@ function generateGlobTasks(patterns, opts) {
 		var ignore = patterns.slice(i).filter(isNegative).map(function (pattern) {
 			return pattern.slice(1);
 		});
+		ignore = opts.ignore.concat(ignore);
+
+		// Convert negated ignores into positive patterns
+		ignore.forEach(ign => {
+			if (!isNegative(ign)) {
+				return;
+			}
+			globTasks.push({
+				pattern: ign.slice(1),
+				opts: objectAssign({}, opts, {ignore: []})
+			});
+		});
+
+		// Remove negated ignores from array
+		ignore = ignore.filter(ign => !isNegative(ign));
 
 		globTasks.push({
 			pattern: pattern,
 			opts: objectAssign({}, opts, {
-				ignore: opts.ignore.concat(ignore)
+				ignore: ignore
 			})
 		});
 	});
