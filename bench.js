@@ -31,7 +31,7 @@ var runners = [{
 }, {
 	name: 'glob-stream',
 	run: function (patterns, cb) {
-		gs.create(patterns).on('data', function () {}).on('end', cb);
+		gs(patterns).on('data', function () {}).on('end', cb);
 	}
 }];
 var benchs = [{
