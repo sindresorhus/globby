@@ -70,6 +70,15 @@ test('expose generateGlobTasks', t => {
 	t.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
 });
 
+test('expose hasMagic', t => {
+	t.true(m.hasMagic('**'));
+});
+
+test('hasMagic handles multiple patterns', t => {
+	t.true(m.hasMagic(['**', 'path1', 'path2']));
+	t.false(m.hasMagic(['path1', 'path2']));
+});
+
 // rejected for being an invalid pattern
 [
 	{},
