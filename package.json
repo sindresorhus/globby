@@ -64,6 +64,6 @@
     "globby": "sindresorhus/globby#master",
     "matcha": "^0.7.0",
     "rimraf": "^2.2.8",
-    "xo": "*"
+    "xo": "^0.16.0"
   }
 }
