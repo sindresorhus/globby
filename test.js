@@ -70,6 +70,14 @@ test('expose generateGlobTasks', t => {
 	t.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
 });
 
+test(`ignore option`, async t => {
+	t.deepEqual(await m('*.tmp', {ignore: ['e.tmp']}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp']);
+});
+
+test(`un-ignore negated rules in ignore option`, async t => {
+	t.deepEqual(await m('*.tmp', {ignore: ['*.tmp', '!e.tmp']}), ['e.tmp']);
+});
+
 // rejected for being an invalid pattern
 [
 	{},
