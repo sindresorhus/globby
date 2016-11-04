@@ -56,6 +56,12 @@ Type: `Object`
 
 See the `node-glob` [options](https://github.com/isaacs/node-glob#options).
 
+### globby.hasMagic(patterns, [options])
+
+Returns `true` if there are any special glob characters in an array of patterns.
+
+See `node-glob` hasMagic(https://github.com/isaacs/node-glob#globhasmagicpattern-options).
+
 
 ## Globbing patterns
 
