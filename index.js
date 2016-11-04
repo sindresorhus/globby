@@ -21,12 +21,8 @@ function assertPatternsInput(patterns) {
 	}
 }
 
-function castArray(value) {
-	return Array.isArray(value) ? value : [value];
-}
-
 function generateGlobTasks(patterns, opts) {
-	patterns = castArray(patterns);
+	patterns = [].concat(patterns);
 	assertPatternsInput(patterns);
 
 	var globTasks = [];
@@ -86,8 +82,7 @@ module.exports.sync = function (patterns, opts) {
 module.exports.generateGlobTasks = generateGlobTasks;
 
 module.exports.hasMagic = function (patterns, opts) {
-	patterns = castArray(patterns);
-	return patterns.some(function (pattern) {
+	return [].concat(patterns).some(function (pattern) {
 		return glob.hasMagic(pattern, opts);
 	});
 };

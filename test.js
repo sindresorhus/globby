@@ -72,9 +72,6 @@ test('expose generateGlobTasks', t => {
 
 test('expose hasMagic', t => {
 	t.true(m.hasMagic('**'));
-});
-
-test('hasMagic handles multiple patterns', t => {
 	t.true(m.hasMagic(['**', 'path1', 'path2']));
 	t.false(m.hasMagic(['path1', 'path2']));
 });

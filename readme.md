@@ -44,9 +44,15 @@ Returns an array of objects in the format `{ pattern: string, opts: Object }`, w
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
+### globby.hasMagic(patterns, [options])
+
+Returns a `boolean` of whether there are any special glob characters in the `patterns`.
+
+Note that the options affect the results. If `noext: true` is set, then `+(a|b)` will not be considered a magic pattern. If the pattern has a brace expansion, like `a/{b/c,x/y}`, then that is considered magical, unless `nobrace: true` is set.
+
 #### patterns
 
-Type: `string`, `Array`
+Type: `string` `Array`
 
 See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
@@ -55,12 +61,6 @@ See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 Type: `Object`
 
 See the `node-glob` [options](https://github.com/isaacs/node-glob#options).
-
-### globby.hasMagic(patterns, [options])
-
-Returns `true` if there are any special glob characters in an array of patterns.
-
-See `node-glob` hasMagic(https://github.com/isaacs/node-glob#globhasmagicpattern-options).
 
 
 ## Globbing patterns
