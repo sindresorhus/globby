@@ -49,8 +49,8 @@ test('return [] for all negative patterns - async', async t => {
 
 test('cwd option', t => {
 	process.chdir('tmp');
-	t.deepEqual(m.sync('*.tmp', {cwd: cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd: cwd}), ['a.tmp', 'b.tmp']);
+	t.deepEqual(m.sync('*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
 });
 
@@ -78,7 +78,7 @@ test('expose hasMagic', t => {
 	t.false(m.hasMagic(['path1', 'path2']));
 });
 
-// rejected for being an invalid pattern
+// Rejected for being an invalid pattern
 [
 	{},
 	[{}],
