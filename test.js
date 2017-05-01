@@ -54,12 +54,14 @@ test('cwd option', t => {
 	process.chdir(cwd);
 });
 
-test(`don't mutate the options object - async`, async () => {
+test(`don't mutate the options object - async`, async t => {
 	await m(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+	t.pass();
 });
 
-test(`don't mutate the options object - sync`, () => {
+test(`don't mutate the options object - sync`, t => {
 	m.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+	t.pass();
 });
 
 test('expose generateGlobTasks', t => {
@@ -101,8 +103,8 @@ test('expose hasMagic', t => {
 	const msg = 'patterns must be a string or an array of strings';
 
 	test(`rejects the promise for invalid patterns input: ${valstring} - async`, async t => {
-		t.throws(m(v), TypeError);
-		t.throws(m(v), msg);
+		await t.throws(m(v), TypeError);
+		await t.throws(m(v), msg);
 	});
 
 	test(`throws for invalid patterns input: ${valstring}`, t => {
