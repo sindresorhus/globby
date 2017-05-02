@@ -32,15 +32,15 @@ globby(['*', '!cake']).then(paths => {
 
 ### globby(patterns, [options])
 
-Returns a Promise for an array of matching paths.
+Returns a `Promise<Array>` of matching paths.
 
 ### globby.sync(patterns, [options])
 
-Returns an array of matching paths.
+Returns an `Array` of matching paths.
 
 ### globby.generateGlobTasks(patterns, [options])
 
-Returns an array of objects in the format `{ pattern: string, opts: Object }`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
+Returns an `Array<Object>` in the format `{ pattern: string, opts: Object }`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
@@ -60,7 +60,7 @@ See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 Type: `Object`
 
-See the `node-glob` [options](https://github.com/isaacs/node-glob#options).
+See the [`node-glob` options](https://github.com/isaacs/node-glob#options).
 
 
 ## Globbing patterns
@@ -79,7 +79,6 @@ Just a quick overview.
 ## Related
 
 - [multimatch](https://github.com/sindresorhus/multimatch) - Match against a list instead of the filesystem
-- [glob-stream](https://github.com/wearefractal/glob-stream) - Streaming alternative
 - [matcher](https://github.com/sindresorhus/matcher) - Simple wildcard matching
 
 

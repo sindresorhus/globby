@@ -4,7 +4,7 @@ const fs = require('fs');
 const rimraf = require('rimraf');
 const globbyMaster = require('globby');
 const gs = require('glob-stream');
-const globby = require('./');
+const globby = require('.');
 
 const BENCH_DIR = 'bench';
 
@@ -67,6 +67,6 @@ after(() => {
 
 benchs.forEach(benchmark => {
 	suite(benchmark.name, () => {
-		runners.forEach(runner =>	bench(runner.name, runner.run.bind(null, benchmark.patterns)));
+		runners.forEach(runner => bench(runner.name, runner.run.bind(null, benchmark.patterns)));
 	});
 });
