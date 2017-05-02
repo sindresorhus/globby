@@ -1,6 +1,15 @@
 # globby [![Build Status](https://travis-ci.org/sindresorhus/globby.svg?branch=master)](https://travis-ci.org/sindresorhus/globby)
 
-> Extends [glob](https://github.com/isaacs/node-glob) with support for multiple patterns and exposes a Promise API
+> User-friendly glob matching
+
+Based on [`glob`](https://github.com/isaacs/node-glob), but adds a bunch of useful features and a nicer API.
+
+
+## Features
+
+- Promise API
+- Supports multiple patterns
+- Supports negated patterns → `['foo*', '!foobar']`
 
 
 ## Install
