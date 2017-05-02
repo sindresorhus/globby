@@ -1,40 +1,40 @@
 'use strict';
 /* global after, before, bench, suite */
-var fs = require('fs');
-var rimraf = require('rimraf');
-var globbyMaster = require('globby');
-var gs = require('glob-stream');
-var globby = require('./');
+const fs = require('fs');
+const rimraf = require('rimraf');
+const globbyMaster = require('globby');
+const gs = require('glob-stream');
+const globby = require('./');
 
-var BENCH_DIR = 'bench';
+const BENCH_DIR = 'bench';
 
-var runners = [{
+const runners = [{
 	name: 'globby async (working directory)',
-	run: function (patterns, cb) {
+	run: (patterns, cb) => {
 		globby(patterns).then(cb.bind(null, null), cb);
 	}
 }, {
 	name: 'globby async (upstream/master)',
-	run: function (patterns, cb) {
+	run: (patterns, cb) => {
 		globbyMaster(patterns).then(cb.bind(null, null), cb);
 	}
 }, {
 	name: 'globby sync (working directory)',
-	run: function (patterns) {
+	run: patterns => {
 		globby.sync(patterns);
 	}
 }, {
 	name: 'globby sync (upstream/master)',
-	run: function (patterns) {
+	run: patterns => {
 		globbyMaster.sync(patterns);
 	}
 }, {
 	name: 'glob-stream',
-	run: function (patterns, cb) {
-		gs(patterns).on('data', function () {}).on('end', cb);
+	run: (patterns, cb) => {
+		gs(patterns).on('data', () => {}).on('end', cb);
 	}
 }];
-var benchs = [{
+const benchs = [{
 	name: 'negative globs (some files inside dir)',
 	patterns: ['a/*', '!a/c*']
 }, {
@@ -45,29 +45,28 @@ var benchs = [{
 	patterns: ['a/*', 'b/*']
 }];
 
-before(function () {
+before(() => {
 	process.chdir(__dirname);
 	rimraf.sync(BENCH_DIR);
 	fs.mkdirSync(BENCH_DIR);
 	process.chdir(BENCH_DIR);
-	['a', 'b'].forEach(function (dir) {
-		var path = dir + '/';
-		fs.mkdirSync(path);
-		for (var i = 0; i < 500; i++) {
-			fs.writeFileSync(path + (i < 100 ? 'c' : 'd') + i, '');
-		}
-	});
+	['a', 'b']
+		.map(dir => `${dir}/`)
+		.forEach(dir => {
+			fs.mkdirSync(dir);
+			for (let i = 0; i < 500; i++) {
+				fs.writeFileSync(dir + (i < 100 ? 'c' : 'd') + i, '');
+			}
+		});
 });
 
-after(function () {
+after(() => {
 	process.chdir(__dirname);
 	rimraf.sync(BENCH_DIR);
 });
 
-benchs.forEach(function (benchmark) {
-	suite(benchmark.name, function () {
-		runners.forEach(function (runner) {
-			bench(runner.name, runner.run.bind(null, benchmark.patterns));
-		});
+benchs.forEach(benchmark => {
+	suite(benchmark.name, () => {
+		runners.forEach(runner =>	bench(runner.name, runner.run.bind(null, benchmark.patterns)));
 	});
 });

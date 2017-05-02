@@ -1,62 +1,55 @@
 'use strict';
-var Promise = require('pinkie-promise');
-var arrayUnion = require('array-union');
-var objectAssign = require('object-assign');
-var glob = require('glob');
-var pify = require('pify');
+const arrayUnion = require('array-union');
+const glob = require('glob');
+const pify = require('pify');
 
-var globP = pify(glob, Promise).bind(glob);
+const globP = pify(glob);
 
-function isNegative(pattern) {
-	return pattern[0] === '!';
-}
+const isNegative = pattern => pattern[0] === '!';
+const isString = value => typeof value === 'string';
 
-function isString(value) {
-	return typeof value === 'string';
-}
-
-function assertPatternsInput(patterns) {
+const assertPatternsInput = patterns => {
 	if (!patterns.every(isString)) {
 		throw new TypeError('patterns must be a string or an array of strings');
 	}
-}
+};
 
-function generateGlobTasks(patterns, opts) {
+const generateGlobTasks = (patterns, taskOpts) => {
 	patterns = [].concat(patterns);
 	assertPatternsInput(patterns);
 
-	var globTasks = [];
+	const globTasks = [];
 
-	opts = objectAssign({
+	taskOpts = Object.assign({
 		cache: Object.create(null),
 		statCache: Object.create(null),
 		realpathCache: Object.create(null),
 		symlinks: Object.create(null),
 		ignore: []
-	}, opts);
+	}, taskOpts);
 
-	patterns.forEach(function (pattern, i) {
+	patterns.forEach((pattern, i) => {
 		if (isNegative(pattern)) {
 			return;
 		}
 
-		var ignore = patterns.slice(i).filter(isNegative).map(function (pattern) {
-			return pattern.slice(1);
+		const ignore = patterns
+			.slice(i)
+			.filter(isNegative)
+			.map(pattern => pattern.slice(1));
+
+		const opts = Object.assign({}, taskOpts, {
+			ignore: taskOpts.ignore.concat(ignore)
 		});
 
-		globTasks.push({
-			pattern: pattern,
-			opts: objectAssign({}, opts, {
-				ignore: opts.ignore.concat(ignore)
-			})
-		});
+		globTasks.push({pattern, opts});
 	});
 
 	return globTasks;
-}
+};
 
-module.exports = function (patterns, opts) {
-	var globTasks;
+module.exports = (patterns, opts) => {
+	let globTasks;
 
 	try {
 		globTasks = generateGlobTasks(patterns, opts);
@@ -64,25 +57,23 @@ module.exports = function (patterns, opts) {
 		return Promise.reject(err);
 	}
 
-	return Promise.all(globTasks.map(function (task) {
-		return globP(task.pattern, task.opts);
-	})).then(function (paths) {
-		return arrayUnion.apply(null, paths);
-	});
+	return Promise.all(
+			globTasks.map(task => globP(task.pattern, task.opts))
+		)
+		.then(paths => arrayUnion.apply(null, paths));
 };
 
-module.exports.sync = function (patterns, opts) {
-	var globTasks = generateGlobTasks(patterns, opts);
+module.exports.sync = (patterns, opts) => {
+	const globTasks = generateGlobTasks(patterns, opts);
 
-	return globTasks.reduce(function (matches, task) {
-		return arrayUnion(matches, glob.sync(task.pattern, task.opts));
-	}, []);
+	return globTasks.reduce(
+		(matches, task) => arrayUnion(matches, glob.sync(task.pattern, task.opts)),
+		[]
+	);
 };
 
 module.exports.generateGlobTasks = generateGlobTasks;
 
-module.exports.hasMagic = function (patterns, opts) {
-	return [].concat(patterns).some(function (pattern) {
-		return glob.hasMagic(pattern, opts);
-	});
-};
+module.exports.hasMagic = (patterns, opts) => []
+	.concat(patterns)
+	.some(pattern => glob.hasMagic(pattern, opts));
