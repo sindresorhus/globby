@@ -89,6 +89,8 @@ Just a quick overview.
 
 - [multimatch](https://github.com/sindresorhus/multimatch) - Match against a list instead of the filesystem
 - [matcher](https://github.com/sindresorhus/matcher) - Simple wildcard matching
+- [del](https://github.com/sindresorhus/del) - Delete files and directories
+- [make-dir](https://github.com/sindresorhus/make-dir) - Make a directory and its parents if needed
 
 
 ## License
