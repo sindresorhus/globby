@@ -90,6 +90,13 @@ test('expandDirectories option', t => {
 			extensions: ['tmp']
 		}
 	}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(m.sync('tmp', {
+		expandDirectories: {
+			files: ['a', 'b'],
+			extensions: ['tmp']
+		},
+		ignore: ['**/b.tmp']
+	}), ['tmp/a.tmp']);
 });
 
 // Rejected for being an invalid pattern
