@@ -69,7 +69,26 @@ See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 Type: `Object`
 
-See the [`node-glob` options](https://github.com/isaacs/node-glob#options).
+See the [`node-glob` options](https://github.com/isaacs/node-glob#options) in addition to the ones below.
+
+##### expandDirectories
+
+Type: `boolean` `Array` `Object`<br>
+Default: `true`
+
+If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `Object` with `files` and `extensions` like below:
+
+```js
+globby('images', {
+	expandDirectories: {
+		files: ['cat', 'unicorn', '*.jpg'],
+		extensions: ['png']
+	}
+}).then(paths => {
+	console.log(paths);
+	//=> ['cat.png', 'unicorn.png', 'cow.jpg', 'rainbow.jpg']
+});
+```
 
 
 ## Globbing patterns

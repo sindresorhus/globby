@@ -53,6 +53,7 @@
   ],
   "dependencies": {
     "array-union": "^1.0.1",
+    "dir-glob": "kevva/dir-glob#files",
     "glob": "^7.1.2",
     "pify": "^2.3.0"
   },

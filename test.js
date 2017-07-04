@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import test from 'ava';
 import m from '.';
 
@@ -14,11 +15,13 @@ const fixture = [
 test.before(() => {
 	fs.mkdirSync('tmp');
 	fixture.forEach(fs.writeFileSync.bind(fs));
+	fixture.forEach(x => fs.writeFileSync(path.join(__dirname, 'tmp', x)));
 });
 
 test.after(() => {
-	fs.rmdirSync('tmp');
 	fixture.forEach(fs.unlinkSync.bind(fs));
+	fixture.forEach(x => fs.unlinkSync(path.join(__dirname, 'tmp', x)));
+	fs.rmdirSync('tmp');
 });
 
 test('glob - async', async t => {
@@ -76,6 +79,17 @@ test('expose hasMagic', t => {
 	t.true(m.hasMagic('**'));
 	t.true(m.hasMagic(['**', 'path1', 'path2']));
 	t.false(m.hasMagic(['path1', 'path2']));
+});
+
+test('expandDirectories option', t => {
+	t.deepEqual(m.sync('tmp'), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(m.sync('tmp', {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(m.sync('tmp', {
+		expandDirectories: {
+			files: ['a', 'b'],
+			extensions: ['tmp']
+		}
+	}), ['tmp/a.tmp', 'tmp/b.tmp']);
 });
 
 // Rejected for being an invalid pattern
