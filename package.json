@@ -53,7 +53,7 @@
   ],
   "dependencies": {
     "array-union": "^1.0.1",
-    "glob": "^7.0.3",
+    "glob": "^7.1.2",
     "pify": "^2.3.0"
   },
   "devDependencies": {
