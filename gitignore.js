@@ -69,19 +69,19 @@ const normalizeOpts = opts => {
 };
 
 module.exports = o => {
-	const {ignore, cwd} = normalizeOpts(o);
+	const opts = normalizeOpts(o);
 
-	return globP('**/.gitignore', {ignore, cwd})
-		.then(paths => Promise.all(paths.map(file => getFile(file, cwd))))
+	return globP('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd})
+		.then(paths => Promise.all(paths.map(file => getFile(file, opts.cwd))))
 		.then(files => reduceIgnore(files))
-		.then(ignores => getIsIgnoredPredecate(ignores, cwd));
+		.then(ignores => getIsIgnoredPredecate(ignores, opts.cwd));
 };
 
 module.exports.sync = o => {
-	const {ignore, cwd} = normalizeOpts(o);
+	const opts = normalizeOpts(o);
 
-	const paths = glob.sync('**/.gitignore', {ignore, cwd});
-	const files = paths.map(file => getFileSync(file, cwd));
+	const paths = glob.sync('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd});
+	const files = paths.map(file => getFileSync(file, opts.cwd));
 	const ignores = reduceIgnore(files);
-	return getIsIgnoredPredecate(ignores, cwd);
+	return getIsIgnoredPredecate(ignores, opts.cwd);
 };

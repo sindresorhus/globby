@@ -122,30 +122,30 @@ test('expose hasMagic', t => {
 
 test('gitignore option defaults to false', async t => {
 	const actual = await m('*');
-	t.true(actual.includes('node_modules'));
+	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('gitignore option defaults to false - sync', t => {
 	const actual = m.sync('*');
-	t.true(actual.includes('node_modules'));
+	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true', async t => {
 	const actual = await m('*', {gitignore: true});
-	t.false(actual.includes('node_modules'));
+	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true - sync', t => {
 	const actual = m.sync('*', {gitignore: true});
-	t.false(actual.includes('node_modules'));
+	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false', async t => {
 	const actual = await m('*', {gitignore: false});
-	t.true(actual.includes('node_modules'));
+	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false - sync', t => {
 	const actual = m.sync('*', {gitignore: false});
-	t.true(actual.includes('node_modules'));
+	t.true(actual.indexOf('node_modules') > -1);
 });
