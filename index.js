@@ -2,8 +2,10 @@
 const arrayUnion = require('array-union');
 const glob = require('glob');
 const pify = require('pify');
+const gitignore = require('./gitignore');
 
 const globP = pify(glob);
+const DEFAULT_FILTER = () => false;
 
 const isNegative = pattern => pattern[0] === '!';
 const isString = value => typeof value === 'string';
@@ -57,19 +59,30 @@ module.exports = (patterns, opts) => {
 		return Promise.reject(err);
 	}
 
-	return Promise.all(
-			globTasks.map(task => globP(task.pattern, task.opts))
+	return Promise
+		.resolve(opts && Boolean(opts.gitignore) ?
+			gitignore({cwd: opts.cwd, ignore: opts.ignore}) :
+			DEFAULT_FILTER
 		)
-		.then(paths => arrayUnion.apply(null, paths));
+		.then(isIgnored => {
+			return Promise.all(globTasks.map(task => globP(task.pattern, task.opts)))
+				.then(paths => arrayUnion.apply(null, paths))
+				.then(paths => paths.filter(p => !isIgnored(p)));
+		});
 };
 
 module.exports.sync = (patterns, opts) => {
 	const globTasks = generateGlobTasks(patterns, opts);
+	const isIgnored = opts && Boolean(opts.gitignore) ?
+		gitignore.sync({cwd: opts.cwd, ignore: opts.ignore}) :
+		DEFAULT_FILTER;
 
-	return globTasks.reduce(
-		(matches, task) => arrayUnion(matches, glob.sync(task.pattern, task.opts)),
-		[]
-	);
+	return globTasks
+		.reduce(
+			(matches, task) => arrayUnion(matches, glob.sync(task.pattern, task.opts)),
+			[]
+		)
+		.filter(p => !isIgnored(p));
 };
 
 module.exports.generateGlobTasks = generateGlobTasks;

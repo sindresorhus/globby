@@ -12,7 +12,9 @@ const fixture = [
 ];
 
 test.before(() => {
-	fs.mkdirSync('tmp');
+	if (!fs.existsSync('tmp')) {
+		fs.mkdirSync('tmp');
+	}
 	fixture.forEach(fs.writeFileSync.bind(fs));
 });
 
@@ -116,4 +118,34 @@ test('expose hasMagic', t => {
 		t.throws(() => m.generateGlobTasks(v), TypeError);
 		t.throws(() => m.generateGlobTasks(v), msg);
 	});
+});
+
+test('gitignore option defaults to false', async t => {
+	const actual = await m('*');
+	t.true(actual.includes('node_modules'));
+});
+
+test('gitignore option defaults to false - sync', t => {
+	const actual = m.sync('*');
+	t.true(actual.includes('node_modules'));
+});
+
+test('respects gitignore option true', async t => {
+	const actual = await m('*', {gitignore: true});
+	t.false(actual.includes('node_modules'));
+});
+
+test('respects gitignore option true - sync', t => {
+	const actual = m.sync('*', {gitignore: true});
+	t.false(actual.includes('node_modules'));
+});
+
+test('respects gitignore option false', async t => {
+	const actual = await m('*', {gitignore: false});
+	t.true(actual.includes('node_modules'));
+});
+
+test('respects gitignore option false - sync', t => {
+	const actual = m.sync('*', {gitignore: false});
+	t.true(actual.includes('node_modules'));
 });
