@@ -53,6 +53,7 @@
   ],
   "dependencies": {
     "array-union": "^1.0.1",
+    "dir-glob": "^2.0.0",
     "glob": "^7.1.2",
     "ignore": "^3.3.5",
     "pify": "^3.0.0",

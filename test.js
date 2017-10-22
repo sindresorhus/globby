@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import test from 'ava';
 import m from '.';
 
@@ -16,11 +17,13 @@ test.before(() => {
 		fs.mkdirSync('tmp');
 	}
 	fixture.forEach(fs.writeFileSync.bind(fs));
+	fixture.forEach(x => fs.writeFileSync(path.join(__dirname, 'tmp', x)));
 });
 
 test.after(() => {
-	fs.rmdirSync('tmp');
 	fixture.forEach(fs.unlinkSync.bind(fs));
+	fixture.forEach(x => fs.unlinkSync(path.join(__dirname, 'tmp', x)));
+	fs.rmdirSync('tmp');
 });
 
 test('glob - async', async t => {
@@ -80,6 +83,24 @@ test('expose hasMagic', t => {
 	t.false(m.hasMagic(['path1', 'path2']));
 });
 
+test('expandDirectories option', t => {
+	t.deepEqual(m.sync('tmp'), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(m.sync('tmp', {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(m.sync('tmp', {
+		expandDirectories: {
+			files: ['a', 'b'],
+			extensions: ['tmp']
+		}
+	}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(m.sync('tmp', {
+		expandDirectories: {
+			files: ['a', 'b'],
+			extensions: ['tmp']
+		},
+		ignore: ['**/b.tmp']
+	}), ['tmp/a.tmp']);
+});
+
 // Rejected for being an invalid pattern
 [
 	{},
@@ -121,31 +142,31 @@ test('expose hasMagic', t => {
 });
 
 test('gitignore option defaults to false', async t => {
-	const actual = await m('*');
+	const actual = await m('*', {nodir: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('gitignore option defaults to false - sync', t => {
-	const actual = m.sync('*');
+	const actual = m.sync('*', {nodir: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true', async t => {
-	const actual = await m('*', {gitignore: true});
+	const actual = await m('*', {gitignore: true, nodir: false});
 	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true - sync', t => {
-	const actual = m.sync('*', {gitignore: true});
+	const actual = m.sync('*', {gitignore: true, nodir: false});
 	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false', async t => {
-	const actual = await m('*', {gitignore: false});
+	const actual = await m('*', {gitignore: false, nodir: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false - sync', t => {
-	const actual = m.sync('*', {gitignore: false});
+	const actual = m.sync('*', {gitignore: false, nodir: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });

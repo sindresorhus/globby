@@ -2,6 +2,7 @@
 const arrayUnion = require('array-union');
 const glob = require('glob');
 const pify = require('pify');
+const dirGlob = require('dir-glob');
 const gitignore = require('./gitignore');
 
 const globP = pify(glob);
@@ -27,7 +28,9 @@ const generateGlobTasks = (patterns, taskOpts) => {
 		statCache: Object.create(null),
 		realpathCache: Object.create(null),
 		symlinks: Object.create(null),
-		ignore: []
+		ignore: [],
+		expandDirectories: true,
+		nodir: true
 	}, taskOpts);
 
 	patterns.forEach((pattern, i) => {
@@ -50,6 +53,20 @@ const generateGlobTasks = (patterns, taskOpts) => {
 	return globTasks;
 };
 
+const globDirs = (task, fn) => {
+	if (Array.isArray(task.opts.expandDirectories)) {
+		return fn(task.pattern, {files: task.opts.expandDirectories});
+	}
+
+	if (typeof task.opts.expandDirectories === 'object') {
+		return fn(task.pattern, task.opts.expandDirectories);
+	}
+
+	return fn(task.pattern);
+};
+
+const getPattern = (task, fn) => task.opts.expandDirectories ? globDirs(task, fn) : [task.pattern];
+
 module.exports = (patterns, opts) => {
 	let globTasks;
 
@@ -59,30 +76,54 @@ module.exports = (patterns, opts) => {
 		return Promise.reject(err);
 	}
 
-	return Promise
-		.resolve(opts && Boolean(opts.gitignore) ?
-			gitignore({cwd: opts.cwd, ignore: opts.ignore}) :
-			DEFAULT_FILTER
-		)
-		.then(isIgnored => {
-			return Promise.all(globTasks.map(task => globP(task.pattern, task.opts)))
+	const getTasks = Promise.all(globTasks.map(task => Promise.resolve(getPattern(task, dirGlob))
+		.then(globs => Promise.all(globs.map(glob => ({
+			pattern: glob,
+			opts: task.opts
+		}))))
+	))
+		.then(tasks => arrayUnion.apply(null, tasks));
+
+	const getFilter = () => {
+		return Promise.resolve(
+			opts && Boolean(opts.gitignore) ?
+				gitignore({cwd: opts.cwd, ignore: opts.ignore}) :
+				DEFAULT_FILTER
+		);
+	};
+
+	return getFilter()
+		.then(filter => {
+			return getTasks
+				.then(tasks => Promise.all(tasks.map(task => globP(task.pattern, task.opts))))
 				.then(paths => arrayUnion.apply(null, paths))
-				.then(paths => paths.filter(p => !isIgnored(p)));
+				.then(paths => paths.filter(p => !filter(p)));
 		});
 };
 
 module.exports.sync = (patterns, opts) => {
 	const globTasks = generateGlobTasks(patterns, opts);
-	const isIgnored = opts && Boolean(opts.gitignore) ?
-		gitignore.sync({cwd: opts.cwd, ignore: opts.ignore}) :
-		DEFAULT_FILTER;
 
-	return globTasks
-		.reduce(
-			(matches, task) => arrayUnion(matches, glob.sync(task.pattern, task.opts)),
-			[]
-		)
-		.filter(p => !isIgnored(p));
+	const getFilter = () => {
+		return opts && Boolean(opts.gitignore) ?
+			gitignore.sync({cwd: opts.cwd, ignore: opts.ignore}) :
+			DEFAULT_FILTER;
+	};
+
+	const tasks = globTasks.reduce(
+		(tasks, task) => arrayUnion(getPattern(task, dirGlob.sync).map(glob => ({
+			pattern: glob,
+			opts: task.opts
+		}))),
+		[]
+	);
+
+	const filter = getFilter();
+
+	return tasks.reduce(
+		(matches, task) => arrayUnion(matches, glob.sync(task.pattern, task.opts)),
+		[]
+	).filter(p => !filter(p));
 };
 
 module.exports.generateGlobTasks = generateGlobTasks;
