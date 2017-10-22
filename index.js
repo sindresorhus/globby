@@ -2,6 +2,7 @@
 const arrayUnion = require('array-union');
 const glob = require('glob');
 const pify = require('pify');
+const dirGlob = require('dir-glob');
 
 const globP = pify(glob);
 
@@ -25,7 +26,9 @@ const generateGlobTasks = (patterns, taskOpts) => {
 		statCache: Object.create(null),
 		realpathCache: Object.create(null),
 		symlinks: Object.create(null),
-		ignore: []
+		ignore: [],
+		expandDirectories: true,
+		nodir: true
 	}, taskOpts);
 
 	patterns.forEach((pattern, i) => {
@@ -48,6 +51,20 @@ const generateGlobTasks = (patterns, taskOpts) => {
 	return globTasks;
 };
 
+const globDirs = (task, fn) => {
+	if (Array.isArray(task.opts.expandDirectories)) {
+		return fn(task.pattern, {files: task.opts.expandDirectories});
+	}
+
+	if (typeof task.opts.expandDirectories === 'object') {
+		return fn(task.pattern, task.opts.expandDirectories);
+	}
+
+	return fn(task.pattern);
+};
+
+const getPattern = (task, fn) => task.opts.expandDirectories ? globDirs(task, fn) : [task.pattern];
+
 module.exports = (patterns, opts) => {
 	let globTasks;
 
@@ -57,16 +74,29 @@ module.exports = (patterns, opts) => {
 		return Promise.reject(err);
 	}
 
-	return Promise.all(
-			globTasks.map(task => globP(task.pattern, task.opts))
-		)
+	const getTasks = Promise.all(globTasks.map(task => Promise.resolve(getPattern(task, dirGlob))
+		.then(globs => Promise.all(globs.map(glob => ({
+			pattern: glob,
+			opts: task.opts
+		}))))
+	))
+		.then(tasks => arrayUnion.apply(null, tasks));
+
+	return getTasks.then(tasks => Promise.all(tasks.map(task => globP(task.pattern, task.opts))))
 		.then(paths => arrayUnion.apply(null, paths));
 };
 
 module.exports.sync = (patterns, opts) => {
 	const globTasks = generateGlobTasks(patterns, opts);
+	const tasks = globTasks.reduce(
+		(tasks, task) => arrayUnion(getPattern(task, dirGlob.sync).map(glob => ({
+			pattern: glob,
+			opts: task.opts
+		}))),
+		[]
+	);
 
-	return globTasks.reduce(
+	return tasks.reduce(
 		(matches, task) => arrayUnion(matches, glob.sync(task.pattern, task.opts)),
 		[]
 	);
