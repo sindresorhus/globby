@@ -8,14 +8,15 @@ Based on [`glob`](https://github.com/isaacs/node-glob), but adds a bunch of usef
 ## Features
 
 - Promise API
-- Supports multiple patterns
-- Supports negated patterns → `['foo*', '!foobar']`
+- Multiple patterns
+- Negated patterns: `['foo*', '!foobar']`
+- Expands directories: `dir` → `dir/**/*`
 
 
 ## Install
 
 ```
-$ npm install --save globby
+$ npm install globby
 ```
 
 
@@ -71,6 +72,8 @@ Type: `Object`
 
 See the [`node-glob` options](https://github.com/isaacs/node-glob#options) in addition to the ones below.
 
+One difference is that `nodir` is `true` by default here.
+
 ##### expandDirectories
 
 Type: `boolean` `Array` `Object`<br>
@@ -89,6 +92,8 @@ globby('images', {
 	//=> ['cat.png', 'unicorn.png', 'cow.jpg', 'rainbow.jpg']
 });
 ```
+
+Note that if you set this option to `false`, you won't get back matched directories unless you set `nodir: false`.
 
 
 ## Globbing patterns
