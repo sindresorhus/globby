@@ -43,7 +43,7 @@ const getIsIgnoredPredecate = (ignores, cwd) => {
 
 const getFile = (file, cwd) => {
 	const filePath = path.join(cwd, file);
-	return readFileP(filePath, 'utf-8')
+	return readFileP(filePath, 'utf8')
 		.then(content => ({
 			content,
 			cwd,
@@ -53,7 +53,7 @@ const getFile = (file, cwd) => {
 
 const getFileSync = (file, cwd) => {
 	const filePath = path.join(cwd, file);
-	const content = fs.readFileSync(filePath, 'utf-8');
+	const content = fs.readFileSync(filePath, 'utf8');
 
 	return {
 		content,
