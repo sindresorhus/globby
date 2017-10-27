@@ -13,7 +13,9 @@ const fixture = [
 ];
 
 test.before(() => {
-	fs.mkdirSync('tmp');
+	if (!fs.existsSync('tmp')) {
+		fs.mkdirSync('tmp');
+	}
 	fixture.forEach(fs.writeFileSync.bind(fs));
 	fixture.forEach(x => fs.writeFileSync(path.join(__dirname, 'tmp', x)));
 });
@@ -137,4 +139,34 @@ test('expandDirectories option', t => {
 		t.throws(() => m.generateGlobTasks(v), TypeError);
 		t.throws(() => m.generateGlobTasks(v), msg);
 	});
+});
+
+test('gitignore option defaults to false', async t => {
+	const actual = await m('*', {nodir: false});
+	t.true(actual.indexOf('node_modules') > -1);
+});
+
+test('gitignore option defaults to false - sync', t => {
+	const actual = m.sync('*', {nodir: false});
+	t.true(actual.indexOf('node_modules') > -1);
+});
+
+test('respects gitignore option true', async t => {
+	const actual = await m('*', {gitignore: true, nodir: false});
+	t.false(actual.indexOf('node_modules') > -1);
+});
+
+test('respects gitignore option true - sync', t => {
+	const actual = m.sync('*', {gitignore: true, nodir: false});
+	t.false(actual.indexOf('node_modules') > -1);
+});
+
+test('respects gitignore option false', async t => {
+	const actual = await m('*', {gitignore: false, nodir: false});
+	t.true(actual.indexOf('node_modules') > -1);
+});
+
+test('respects gitignore option false - sync', t => {
+	const actual = m.sync('*', {gitignore: false, nodir: false});
+	t.true(actual.indexOf('node_modules') > -1);
 });
