@@ -13,7 +13,7 @@
     "node": ">=4"
   },
   "scripts": {
-    "bench": "npm update glob-stream && matcha bench.js",
+    "bench": "npm update glob-stream fast-glob && matcha bench.js",
     "test": "xo && ava"
   },
   "files": [
@@ -62,7 +62,8 @@
   },
   "devDependencies": {
     "ava": "*",
-    "glob-stream": "gulpjs/glob-stream#master",
+    "fast-glob": "^1.0.1",
+    "glob-stream": "github:gulpjs/glob-stream#master",
     "globby": "sindresorhus/globby#master",
     "matcha": "^0.7.0",
     "rimraf": "^2.2.8",

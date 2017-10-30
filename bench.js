@@ -4,6 +4,7 @@ const fs = require('fs');
 const rimraf = require('rimraf');
 const globbyMaster = require('globby');
 const gs = require('glob-stream');
+const fastGlob = require('fast-glob');
 const globby = require('.');
 
 const BENCH_DIR = 'bench';
@@ -32,6 +33,16 @@ const runners = [{
 	name: 'glob-stream',
 	run: (patterns, cb) => {
 		gs(patterns).on('data', () => {}).on('end', cb);
+	}
+}, {
+	name: 'fast-glob async',
+	run: (patterns, cb) => {
+		fastGlob(patterns).then(cb.bind(null, null), cb);
+	}
+}, {
+	name: 'fast-glob sync',
+	run: patterns => {
+		fastGlob.sync(patterns);
 	}
 }];
 const benchs = [{
