@@ -17,6 +17,7 @@
     "test": "xo && ava"
   },
   "files": [
+    "gitignore.js",
     "index.js"
   ],
   "keywords": [
