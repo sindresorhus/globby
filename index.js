@@ -85,7 +85,7 @@ module.exports = (patterns, opts) => {
 
 	const getFilter = () => {
 		return Promise.resolve(
-			opts && Boolean(opts.gitignore) ?
+			opts && opts.gitignore ?
 				gitignore({cwd: opts.cwd, ignore: opts.ignore}) :
 				DEFAULT_FILTER
 		);
@@ -104,7 +104,7 @@ module.exports.sync = (patterns, opts) => {
 	const globTasks = generateGlobTasks(patterns, opts);
 
 	const getFilter = () => {
-		return opts && Boolean(opts.gitignore) ?
+		return opts && opts.gitignore ?
 			gitignore.sync({cwd: opts.cwd, ignore: opts.ignore}) :
 			DEFAULT_FILTER;
 	};

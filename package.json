@@ -50,7 +50,9 @@
 		"utility",
 		"wildcard",
 		"wildcards",
-		"promise"
+		"promise",
+		"gitignore",
+		"git"
 	],
 	"dependencies": {
 		"array-union": "^1.0.1",

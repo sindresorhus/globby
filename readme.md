@@ -11,6 +11,7 @@ Based on [`glob`](https://github.com/isaacs/node-glob), but adds a bunch of usef
 - Multiple patterns
 - Negated patterns: `['foo*', '!foobar']`
 - Expands directories: `dir` → `dir/**/*`
+- Supports `.gitignore`
 
 
 ## Install
@@ -98,6 +99,13 @@ If set to `true`, `globby` will automatically glob directories for you. If you d
 ```
 
 Note that if you set this option to `false`, you won't get back matched directories unless you set `nodir: false`.
+
+##### gitignore
+
+Type: `boolean`<br>
+Default: `false`
+
+Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
 
 ## Globbing patterns
