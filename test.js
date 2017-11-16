@@ -123,7 +123,7 @@ test('expandDirectories option', t => {
 	const valstring = v === undefined ?
 		'undefined' :
 		(JSON.stringify(v) || v.toString());
-	const msg = 'patterns must be a string or an array of strings';
+	const msg = 'Patterns must be a string or an array of strings';
 
 	test(`rejects the promise for invalid patterns input: ${valstring} - async`, async t => {
 		await t.throws(m(v), TypeError);

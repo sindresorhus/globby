@@ -31,10 +31,12 @@ $ npm install globby
 ```js
 const globby = require('globby');
 
-globby(['*', '!cake']).then(paths => {
+(async () => {
+	const paths = await globby(['*', '!cake']);
+
 	console.log(paths);
 	//=> ['unicorn', 'rainbow']
-});
+})();
 ```
 
 
@@ -50,7 +52,7 @@ Returns an `Array` of matching paths.
 
 ### globby.generateGlobTasks(patterns, [options])
 
-Returns an `Array<Object>` in the format `{ pattern: string, opts: Object }`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
+Returns an `Array<Object>` in the format `{pattern: string, opts: Object}`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
@@ -82,15 +84,17 @@ Default: `true`
 If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `Object` with `files` and `extensions` like below:
 
 ```js
-globby('images', {
-	expandDirectories: {
-		files: ['cat', 'unicorn', '*.jpg'],
-		extensions: ['png']
-	}
-}).then(paths => {
+(async () => {
+	const paths = await globby('images', {
+		expandDirectories: {
+			files: ['cat', 'unicorn', '*.jpg'],
+			extensions: ['png']
+		}
+	});
+
 	console.log(paths);
 	//=> ['cat.png', 'unicorn.png', 'cow.jpg', 'rainbow.jpg']
-});
+})();
 ```
 
 Note that if you set this option to `false`, you won't get back matched directories unless you set `nodir: false`.

@@ -9,11 +9,10 @@ const globP = pify(glob);
 const DEFAULT_FILTER = () => false;
 
 const isNegative = pattern => pattern[0] === '!';
-const isString = value => typeof value === 'string';
 
 const assertPatternsInput = patterns => {
-	if (!patterns.every(isString)) {
-		throw new TypeError('patterns must be a string or an array of strings');
+	if (!patterns.every(x => typeof x === 'string')) {
+		throw new TypeError('Patterns must be a string or an array of strings');
 	}
 };
 
