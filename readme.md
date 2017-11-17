@@ -74,9 +74,9 @@ used for the resulting filter function.
 const gitignore = require('globby').gitignore;
 
 gitignore({})
-	.then((isIgnored) => {
-		const ignored = isIgnored('some/file');
-	})
+  .then((isIgnored) => {
+    const ignored = isIgnored('some/file');
+  })
 ```
 
 ### globby.gitignore.sync(options)
