@@ -17,6 +17,7 @@ const mapGitIgnorePatternTo = base => ignore => {
 	return path.posix.join(base, ignore);
 };
 
+// memoize this
 const parseGitIgnore = (content, opts) => {
 	const base = slash(path.relative(opts.cwd, path.dirname(opts.fileName)));
 
@@ -41,6 +42,7 @@ const getIsIgnoredPredecate = (ignores, cwd) => {
 	return p => ignores.ignores(slash(path.relative(cwd, p)));
 };
 
+// memoize this
 const getFile = (file, cwd) => {
 	const filePath = path.join(cwd, file);
 	return readFileP(filePath, 'utf8')
@@ -51,6 +53,7 @@ const getFile = (file, cwd) => {
 		}));
 };
 
+// memoize this
 const getFileSync = (file, cwd) => {
 	const filePath = path.join(cwd, file);
 	const content = fs.readFileSync(filePath, 'utf8');
