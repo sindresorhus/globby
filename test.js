@@ -30,6 +30,10 @@ test('glob - async', async t => {
 	t.deepEqual(await m('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
+test('glob - async - multiple file paths', t => {
+	t.deepEqual(m.sync(['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
+});
+
 test('glob with multiple patterns - async', async t => {
 	t.deepEqual(await m(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
@@ -42,6 +46,10 @@ test('glob - sync', t => {
 	t.deepEqual(m.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 	t.deepEqual(m.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
+});
+
+test('glob - sync - multiple file paths', t => {
+	t.deepEqual(m.sync(['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
 
 test('return [] for all negative patterns - sync', t => {
