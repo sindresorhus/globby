@@ -63,6 +63,7 @@ const getFileSync = (file, cwd) => {
 };
 
 const normalizeOpts = opts => {
+	opts = opts || {};
 	const ignore = opts.ignore || [];
 	const cwd = opts.cwd || process.cwd();
 	return {ignore, cwd};

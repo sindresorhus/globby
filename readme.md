@@ -47,42 +47,6 @@ const globby = require('globby');
 
 Returns a `Promise<Array>` of matching paths.
 
-### globby.sync(patterns, [options])
-
-Returns an `Array` of matching paths.
-
-### globby.generateGlobTasks(patterns, [options])
-
-Returns an `Array<Object>` in the format `{pattern: string, opts: Object}`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
-
-Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
-
-### globby.hasMagic(patterns, [options])
-
-Returns a `boolean` of whether there are any special glob characters in the `patterns`.
-
-Note that the options affect the results. If `noext: true` is set, then `+(a|b)` will not be considered a magic pattern. If the pattern has a brace expansion, like `a/{b/c,x/y}`, then that is considered magical, unless `nobrace: true` is set.
-
-### globby.gitignore(options)
-
-Returns a `Promise<(path: string) => boolean>` indicating wether a given path is ignored via a `.gitignore` file.
-
-Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not
-used for the resulting filter function.
-
-```js
-const gitignore = require('globby').gitignore;
-
-gitignore({})
-  .then((isIgnored) => {
-    const ignored = isIgnored('some/file');
-  })
-```
-
-### globby.gitignore.sync(options)
-
-Returns a `(path: string) => boolean` indicating wether a given path is ignored via a `.gitignore` file.
-
 #### patterns
 
 Type: `string` `Array`
@@ -126,6 +90,44 @@ Type: `boolean`<br>
 Default: `false`
 
 Respect ignore patterns in `.gitignore` files that apply to the globbed files.
+
+### globby.sync(patterns, [options])
+
+Returns an `Array` of matching paths.
+
+### globby.generateGlobTasks(patterns, [options])
+
+Returns an `Array<Object>` in the format `{pattern: string, opts: Object}`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
+
+Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
+
+### globby.hasMagic(patterns, [options])
+
+Returns a `boolean` of whether there are any special glob characters in the `patterns`.
+
+Note that the options affect the results. If `noext: true` is set, then `+(a|b)` will not be considered a magic pattern. If the pattern has a brace expansion, like `a/{b/c,x/y}`, then that is considered magical, unless `nobrace: true` is set.
+
+### globby.gitignore([options])
+
+Returns a `Promise<(path: string) => boolean>` indicating wether a given path is ignored via a `.gitignore` file.
+
+Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not
+used for the resulting filter function.
+
+```js
+const {gitignore} = require('globby');
+
+(async () => {
+	const isIgnored = await gitignore();
+	console.log(isIgnored('some/file'));
+})();
+```
+
+### globby.gitignore.sync([options])
+
+Returns a `(path: string) => boolean` indicating wether a given path is ignored via a `.gitignore` file.
+
+Takes the same options as `globby.gitignore`.
 
 
 ## Globbing patterns
