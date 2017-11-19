@@ -130,3 +130,5 @@ module.exports.generateGlobTasks = generateGlobTasks;
 module.exports.hasMagic = (patterns, opts) => []
 	.concat(patterns)
 	.some(pattern => glob.hasMagic(pattern, opts));
+
+module.exports.gitignore = gitignore;

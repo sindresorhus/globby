@@ -63,6 +63,26 @@ Returns a `boolean` of whether there are any special glob characters in the `pat
 
 Note that the options affect the results. If `noext: true` is set, then `+(a|b)` will not be considered a magic pattern. If the pattern has a brace expansion, like `a/{b/c,x/y}`, then that is considered magical, unless `nobrace: true` is set.
 
+### globby.gitignore(options)
+
+Returns a `Promise<(path: string) => boolean>` indicating wether a given path is ignored via a `.gitignore` file.
+
+Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not
+used for the resulting filter function.
+
+```js
+const gitignore = require('globby').gitignore;
+
+gitignore({})
+  .then((isIgnored) => {
+    const ignored = isIgnored('some/file');
+  })
+```
+
+### globby.gitignore.sync(options)
+
+Returns a `(path: string) => boolean` indicating wether a given path is ignored via a `.gitignore` file.
+
 #### patterns
 
 Type: `string` `Array`
