@@ -109,6 +109,11 @@ test('expandDirectories option', t => {
 	}), ['tmp/a.tmp']);
 });
 
+test('expandDirectories:true and nodir:true option', t => {
+	t.deepEqual(m.sync('tmp', {nodir: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(m.sync('tmp', {nodir: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+});
+
 // Rejected for being an invalid pattern
 [
 	{},
