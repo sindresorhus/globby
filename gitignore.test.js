@@ -38,6 +38,24 @@ test('ignore ignored .gitignore - sync', t => {
 	t.deepEqual(actual, expected);
 });
 
+test('use other ignore file', async t => {
+	const cwd = path.join(__dirname, 'fixtures/otherignore');
+	const filename = '.otherignore';
+	const isIgnored = await gitignore({cwd, filename});
+	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
+	const expected = ['bar.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('use other ignore file - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/otherignore');
+	const filename = '.otherignore';
+	const isIgnored = gitignore.sync({cwd, filename});
+	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
+	const expected = ['bar.js'];
+	t.deepEqual(actual, expected);
+});
+
 test('negative gitignore', async t => {
 	const cwd = path.join(__dirname, 'fixtures/negative');
 	const isIgnored = await gitignore({cwd});

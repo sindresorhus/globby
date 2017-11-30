@@ -86,7 +86,7 @@ module.exports = (patterns, opts) => {
 	const getFilter = () => {
 		return Promise.resolve(
 			opts && opts.gitignore ?
-				gitignore({cwd: opts.cwd, ignore: opts.ignore}) :
+				gitignore({cwd: opts.cwd, ignore: opts.ignore, filename: opts.gitignoreName}) :
 				DEFAULT_FILTER
 		);
 	};
@@ -105,7 +105,7 @@ module.exports.sync = (patterns, opts) => {
 
 	const getFilter = () => {
 		return opts && opts.gitignore ?
-			gitignore.sync({cwd: opts.cwd, ignore: opts.ignore}) :
+			gitignore.sync({cwd: opts.cwd, ignore: opts.ignore, filename: opts.gitignoreName}) :
 			DEFAULT_FILTER;
 	};
 

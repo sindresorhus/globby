@@ -66,13 +66,18 @@ const normalizeOpts = opts => {
 	opts = opts || {};
 	const ignore = opts.ignore || [];
 	const cwd = opts.cwd || process.cwd();
-	return {ignore, cwd};
+	const filename = opts.filename || '.gitignore';
+	return {ignore, cwd, filename};
+};
+
+const getGitIgnoreGlob = filename => {
+	return path.join('**', filename);
 };
 
 module.exports = o => {
 	const opts = normalizeOpts(o);
 
-	return globP('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd})
+	return globP(getGitIgnoreGlob(opts.filename), {ignore: opts.ignore, cwd: opts.cwd})
 		.then(paths => Promise.all(paths.map(file => getFile(file, opts.cwd))))
 		.then(files => reduceIgnore(files))
 		.then(ignores => getIsIgnoredPredecate(ignores, opts.cwd));
@@ -81,7 +86,7 @@ module.exports = o => {
 module.exports.sync = o => {
 	const opts = normalizeOpts(o);
 
-	const paths = glob.sync('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd});
+	const paths = glob.sync(getGitIgnoreGlob(opts.filename), {ignore: opts.ignore, cwd: opts.cwd});
 	const files = paths.map(file => getFileSync(file, opts.cwd));
 	const ignores = reduceIgnore(files);
 	return getIsIgnoredPredecate(ignores, opts.cwd);
