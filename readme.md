@@ -109,7 +109,7 @@ Note that the options affect the results. If `noext: true` is set, then `+(a|b)`
 
 ### globby.gitignore([options])
 
-Returns a `Promise<(path: string) => boolean>` indicating wether a given path is ignored via a `.gitignore` file.
+Returns a `Promise<(path: string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
 Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not
 used for the resulting filter function.
@@ -125,7 +125,7 @@ const {gitignore} = require('globby');
 
 ### globby.gitignore.sync([options])
 
-Returns a `(path: string) => boolean` indicating wether a given path is ignored via a `.gitignore` file.
+Returns a `(path: string) => boolean` indicating whether a given path is ignored via a `.gitignore` file.
 
 Takes the same options as `globby.gitignore`.
 
