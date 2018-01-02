@@ -91,6 +91,13 @@ Default: `false`
 
 Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
+##### gitignoreName
+
+Type: `string`<br>
+Default: `.gitignore`
+
+The file name to look for `.gitignore` file when applying ignore patterns to the globbed files.
+
 ### globby.sync(patterns, [options])
 
 Returns an `Array` of matching paths.

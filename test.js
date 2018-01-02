@@ -174,6 +174,16 @@ test('respects gitignore option true - sync', t => {
 	t.false(actual.indexOf('node_modules') > -1);
 });
 
+test('respects other ignore option', async t => {
+	const actual = await m('fixtures/otherignore/*', {gitignore: true, gitignoreName: '.otherignore', nodir: false});
+	t.false(actual.indexOf('fixtures/otherignore/foo.js') > -1);
+});
+
+test('respects other ignore option - sync', t => {
+	const actual = m.sync('fixtures/otherignore/*', {gitignore: true, gitignoreName: '.otherignore', nodir: false});
+	t.false(actual.indexOf('fixtures/otherignore/foo.js') > -1);
+});
+
 test('respects gitignore option false', async t => {
 	const actual = await m('*', {gitignore: false, nodir: false});
 	t.true(actual.indexOf('node_modules') > -1);
