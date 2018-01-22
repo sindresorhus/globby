@@ -64,7 +64,7 @@
   },
   "devDependencies": {
     "ava": "*",
-    "fast-glob": "^1.0.1",
+    "fast-glob": "^2.0.1",
     "glob-stream": "^6.1.0",
     "globby": "sindresorhus/globby#master",
     "matcha": "^0.7.0",
