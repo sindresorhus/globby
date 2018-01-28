@@ -109,13 +109,13 @@ module.exports.sync = (patterns, opts) => {
 			DEFAULT_FILTER;
 	};
 
-	const tasks = globTasks.reduce(
-		(tasks, task) => arrayUnion(getPattern(task, dirGlob.sync).map(glob => ({
+	const tasks = globTasks.reduce((tasks, task) => {
+		const newTask = getPattern(task, dirGlob.sync).map(glob => ({
 			pattern: glob,
 			opts: task.opts
-		}))),
-		[]
-	);
+		}));
+		return tasks.concat(newTask);
+	}, []);
 
 	const filter = getFilter();
 
@@ -130,3 +130,5 @@ module.exports.generateGlobTasks = generateGlobTasks;
 module.exports.hasMagic = (patterns, opts) => []
 	.concat(patterns)
 	.some(pattern => glob.hasMagic(pattern, opts));
+
+module.exports.gitignore = gitignore;

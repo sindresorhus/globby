@@ -1,14 +1,11 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const findUp = require('find-up');
-const glob = require('glob');
 const gitIgnore = require('ignore');
 const multimatch = require('multimatch');
 const pify = require('pify');
 const slash = require('slash');
 
-const globP = pify(glob);
 const readFileP = pify(fs.readFile);
 
 const mapGitIgnorePatternTo = base => ignore => {
@@ -65,6 +62,7 @@ const getFileSync = (file, cwd) => {
 };
 
 const normalizeOpts = opts => {
+	opts = opts || {};
 	const ignore = opts.ignore || [];
 	const cwd = opts.cwd || process.cwd();
 	return {ignore, cwd};
@@ -76,7 +74,7 @@ module.exports = o => {
 	const opts = normalizeOpts(o);
 	const rootIgnore = path.join(opts.cwd, '.gitignore');
 
-	if (opts.ignore.length > 0 && multimatch(rootIgnore, opts.ignore)) {
+	if (opts.ignore.length > 0 && multimatch(rootIgnore, opts.ignore).length > 0) {
 		return Promise.resolve(PASS_THROUGH);
 	}
 
@@ -93,7 +91,7 @@ module.exports.sync = o => {
 	const opts = normalizeOpts(o);
 	const rootIgnore = path.join(opts.cwd, '.gitignore');
 
-	if (opts.ignore.length > 0 && multimatch(rootIgnore, opts.ignore)) {
+	if (opts.ignore.length > 0 && multimatch(rootIgnore, opts.ignore).length > 0) {
 		return PASS_THROUGH;
 	}
 
