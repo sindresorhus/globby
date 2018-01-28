@@ -1,8 +1,10 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const findUp = require('find-up');
 const glob = require('glob');
 const gitIgnore = require('ignore');
+const multimatch = require('multimatch');
 const pify = require('pify');
 const slash = require('slash');
 
@@ -68,20 +70,38 @@ const normalizeOpts = opts => {
 	return {ignore, cwd};
 };
 
+const PASS_THROUGH = () => false;
+
 module.exports = o => {
 	const opts = normalizeOpts(o);
+	const rootIgnore = path.join(opts.cwd, '.gitignore');
 
-	return globP('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd})
-		.then(paths => Promise.all(paths.map(file => getFile(file, opts.cwd))))
-		.then(files => reduceIgnore(files))
+	if (opts.ignore.length > 0 && multimatch(rootIgnore, opts.ignore)) {
+		return Promise.resolve(PASS_THROUGH);
+	}
+
+	if (!fs.existsSync(rootIgnore)) {
+		return Promise.resolve(PASS_THROUGH);
+	}
+
+	return getFile('.gitignore', opts.cwd)
+		.then(file => reduceIgnore([file]))
 		.then(ignores => getIsIgnoredPredecate(ignores, opts.cwd));
 };
 
 module.exports.sync = o => {
 	const opts = normalizeOpts(o);
+	const rootIgnore = path.join(opts.cwd, '.gitignore');
 
-	const paths = glob.sync('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd});
-	const files = paths.map(file => getFileSync(file, opts.cwd));
-	const ignores = reduceIgnore(files);
+	if (opts.ignore.length > 0 && multimatch(rootIgnore, opts.ignore)) {
+		return PASS_THROUGH;
+	}
+
+	if (!fs.existsSync(rootIgnore)) {
+		return PASS_THROUGH;
+	}
+
+	const file = getFileSync('.gitignore', opts.cwd);
+	const ignores = reduceIgnore([file]);
 	return getIsIgnoredPredecate(ignores, opts.cwd);
 };

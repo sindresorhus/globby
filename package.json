@@ -57,8 +57,10 @@
 	"dependencies": {
 		"array-union": "^1.0.1",
 		"dir-glob": "^2.0.0",
+		"find-up": "^2.1.0",
 		"glob": "^7.1.2",
 		"ignore": "^3.3.5",
+		"multimatch": "^2.1.0",
 		"pify": "^3.0.0",
 		"slash": "^1.0.0"
 	},
