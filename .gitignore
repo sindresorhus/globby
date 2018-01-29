@@ -1,3 +1,4 @@
+bench
 node_modules
 yarn.lock
 *.tmp
