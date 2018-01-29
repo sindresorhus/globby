@@ -30,6 +30,26 @@ const runners = [{
 		globbyMaster.sync(patterns);
 	}
 }, {
+	name: 'globby async gitignore (working directory)',
+	run: (patterns, cb) => {
+		globby(patterns, {gitignore: true}).then(cb.bind(null, null), cb);
+	}
+}, {
+	name: 'globby async gitignore (upstream/master)',
+	run: (patterns, cb) => {
+		globbyMaster(patterns, {gitignore: true}).then(cb.bind(null, null), cb);
+	}
+}, {
+	name: 'globby sync gitignore (working directory)',
+	run: patterns => {
+		globby.sync(patterns, {gitignore: true});
+	}
+}, {
+	name: 'globby sync gitignore (upstream/master)',
+	run: patterns => {
+		globbyMaster.sync(patterns, {gitignore: true});
+	}
+}, {
 	name: 'glob-stream',
 	run: (patterns, cb) => {
 		gs(patterns).on('data', () => {}).on('end', cb);
@@ -53,7 +73,7 @@ const benchs = [{
 	patterns: ['a/*', '!a/**']
 }, {
 	name: 'multiple positive globs',
-	patterns: ['a/*', 'b/*']
+	patterns: ['a/*', 'b/*', 'c/*']
 }];
 
 before(() => {
@@ -61,7 +81,10 @@ before(() => {
 	rimraf.sync(BENCH_DIR);
 	fs.mkdirSync(BENCH_DIR);
 	process.chdir(BENCH_DIR);
-	['a', 'b']
+
+	fs.writeFileSync('.gitignore', 'c');
+
+	['a', 'b', 'c']
 		.map(dir => `${dir}/`)
 		.forEach(dir => {
 			fs.mkdirSync(dir);
