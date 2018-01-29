@@ -32,6 +32,10 @@ const generateGlobTasks = (patterns, taskOpts) => {
 		nodir: true
 	}, taskOpts);
 
+	if (taskOpts.expandDirectories) {
+		taskOpts.ignore = dirGlob.sync(taskOpts.ignore);
+	}
+
 	patterns.forEach((pattern, i) => {
 		if (isNegative(pattern)) {
 			return;
