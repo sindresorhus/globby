@@ -20,6 +20,16 @@ const runners = [{
 		globbyMaster(patterns).then(cb.bind(null, null), cb);
 	}
 }, {
+	name: 'globby async (working directory) with gitignore',
+	run: (patterns, cb) => {
+		globby(patterns, {gitignore: true}).then(cb.bind(null, null), cb);
+	}
+}, {
+	name: 'globby async (upstream/master) with gitignore',
+	run: (patterns, cb) => {
+		globbyMaster(patterns, {gitignore: true}).then(cb.bind(null, null), cb);
+	}
+}, {
 	name: 'globby sync (working directory)',
 	run: patterns => {
 		globby.sync(patterns);
@@ -28,6 +38,16 @@ const runners = [{
 	name: 'globby sync (upstream/master)',
 	run: patterns => {
 		globbyMaster.sync(patterns);
+	}
+}, {
+	name: 'globby sync (working directory) with gitignore',
+	run: patterns => {
+		globby.sync(patterns, {gitignore: true});
+	}
+}, {
+	name: 'globby sync (upstream/master) with gitignore',
+	run: patterns => {
+		globbyMaster.sync(patterns, {gitignore: true});
 	}
 }, {
 	name: 'glob-stream',
@@ -69,6 +89,7 @@ before(() => {
 				fs.writeFileSync(dir + (i < 100 ? 'c' : 'd') + i, '');
 			}
 		});
+	fs.writeFileSync('.gitignore', 'a\nb/c*');
 });
 
 after(() => {
