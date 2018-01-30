@@ -38,8 +38,12 @@ test('glob with multiple patterns - async', async t => {
 	t.deepEqual(await m(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('respect patterns order - async', async t => {
+test('respect patterns order', async t => {
 	t.deepEqual(await m(['!*.tmp', 'a.tmp']), ['a.tmp']);
+});
+
+test('respect patterns order - sync', t => {
+	t.deepEqual(m.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
 test('glob - sync', t => {
