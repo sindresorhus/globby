@@ -70,7 +70,7 @@ const benchs = [{
 	patterns: ['a/*', '!a/c*']
 }, {
 	name: 'negative globs (whole dir)',
-	patterns: ['a/*', '!a/**']
+	patterns: ['b/*', 'a/*', '!a/**']
 }, {
 	name: 'multiple positive globs',
 	patterns: ['a/*', 'b/*']
