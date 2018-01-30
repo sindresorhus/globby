@@ -113,9 +113,15 @@ test('expandDirectories option', t => {
 	}), ['tmp/a.tmp']);
 });
 
-test('expandDirectories:true and nodir:true option', t => {
-	t.deepEqual(m.sync('tmp', {nodir: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	t.deepEqual(m.sync('tmp', {nodir: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+test('expandDirectories:true and onlyFiles:true option', t => {
+	t.deepEqual(m.sync('tmp', {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+});
+
+test.failing('expandDirectories:true and onlyFiles:false option', t => {
+	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
+	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
+	// See https://github.com/mrmlnc/fast-glob/issues/47
+	t.deepEqual(m.sync('tmp', {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 // Rejected for being an invalid pattern
@@ -151,39 +157,108 @@ test('expandDirectories:true and nodir:true option', t => {
 		t.throws(() => m.sync(v), TypeError);
 		t.throws(() => m.sync(v), msg);
 	});
-
-	test(`generateGlobTasks throws for invalid patterns input: ${valstring}`, t => {
-		t.throws(() => m.generateGlobTasks(v), TypeError);
-		t.throws(() => m.generateGlobTasks(v), msg);
+	test(`generateGlobTasks throws for invalid patterns input: ${valstring}`, async t => {
+		await t.throws(m(v), TypeError);
+		await t.throws(m(v), msg);
 	});
 });
 
 test('gitignore option defaults to false', async t => {
-	const actual = await m('*', {nodir: false});
+	const actual = await m('*', {onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('gitignore option defaults to false - sync', t => {
-	const actual = m.sync('*', {nodir: false});
+	const actual = m.sync('*', {onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true', async t => {
-	const actual = await m('*', {gitignore: true, nodir: false});
+	const actual = await m('*', {gitignore: true, onlyFiles: false});
 	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true - sync', t => {
-	const actual = m.sync('*', {gitignore: true, nodir: false});
+	const actual = m.sync('*', {gitignore: true, onlyFiles: false});
 	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false', async t => {
-	const actual = await m('*', {gitignore: false, nodir: false});
+	const actual = await m('*', {gitignore: false, onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false - sync', t => {
-	const actual = m.sync('*', {gitignore: false, nodir: false});
+	const actual = m.sync('*', {gitignore: false, onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
+});
+
+test('gitignore', async t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore');
+	const actual = await m('*', {cwd, gitignore: true});
+	const expected = ['bar.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('gitignore - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore');
+	const actual = m.sync('*', {cwd, gitignore: true});
+	const expected = ['bar.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('ignore ignored .gitignore', async t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore');
+	const actual = await m('*', {ignore: ['**/.gitignore'], cwd, gitignore: true});
+	const expected = ['bar.js', 'foo.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('ignore ignored .gitignore - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore');
+	const actual = m.sync('*', {ignore: ['**/.gitignore'], cwd, gitignore: true});
+	const expected = ['bar.js', 'foo.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('negative gitignore', async t => {
+	const cwd = path.join(__dirname, 'fixtures/negative');
+	const actual = await m('*', {cwd, gitignore: true});
+	const expected = ['foo.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('negative ignore', async t => {
+	const cwd = path.join(__dirname, 'fixtures/negative');
+	const actual = await m('*', {ignore: ['**/*.js', '!**/foo.js'], gitignore: false, cwd});
+	const expected = ['foo.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('negative ignore - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/negative');
+	const actual = m.sync('*', {ignore: ['**/*.js', '!**/foo.js'], gitignore: false, cwd});
+	const expected = ['foo.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('negative gitignore - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/negative');
+	const actual = m.sync('*', {cwd, gitignore: true});
+	const expected = ['foo.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('multiple negation', async t => {
+	const cwd = path.join(__dirname, 'fixtures/multiple-negation');
+	const actual = await m('*', {cwd, gitignore: true});
+	const expected = ['!unicorn.js', '!!unicorn.js'];
+	t.deepEqual(actual, expected);
+});
+
+test('multiple negation - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/multiple-negation');
+	const actual = m.sync('*', {cwd, gitignore: true});
+	const expected = ['!unicorn.js', '!!unicorn.js'];
+	t.deepEqual(actual, expected);
 });
