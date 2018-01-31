@@ -18,12 +18,14 @@ test.before(() => {
 	}
 	fixture.forEach(fs.writeFileSync.bind(fs));
 	fixture.forEach(x => fs.writeFileSync(path.join(__dirname, 'tmp', x)));
+	fs.writeFileSync('fixtures/gitignore/foo.js', fs.readFileSync('fixtures/negative/foo.js', 'utf-8'));
 });
 
 test.after(() => {
 	fixture.forEach(fs.unlinkSync.bind(fs));
 	fixture.forEach(x => fs.unlinkSync(path.join(__dirname, 'tmp', x)));
 	fs.rmdirSync('tmp');
+	fs.unlinkSync('fixtures/gitignore/foo.js');
 });
 
 test('glob - async', async t => {
