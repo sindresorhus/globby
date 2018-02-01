@@ -209,6 +209,13 @@ test('gitignore - sync', t => {
 	t.deepEqual(actual, expected);
 });
 
+test.failing('do not include gitignore negative patterns - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore');
+	const actual = m.sync('baz.js', {cwd, gitignore: true});
+	const expected = [];
+	t.deepEqual(actual, expected);
+});
+
 test('ignore ignored .gitignore', async t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
 	const actual = await m('*', {ignore: ['**/.gitignore'], cwd, gitignore: true});
