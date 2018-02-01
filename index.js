@@ -86,14 +86,12 @@ const gitignoreToGlob = (filePath, gitignore) => gitignore.split('\n')
 	}, []);
 
 const gitignorePatternsSync = opts =>
-	// Add default ignores. See https://github.com/mrmlnc/fast-glob/issues/42
 	fg.sync('**/.gitignore', {ignore: opts.ignore.concat(DEFAULT_IGNORE), cwd: opts.cwd})
 	.reduce((ignores, filePath) => {
 		return ignores.concat(gitignoreToGlob(filePath, fs.readFileSync(path.join(opts.cwd, filePath), 'utf8')));
 	}, []);
 
 const gitignorePatterns = opts =>
-	// Add default ignores. See https://github.com/mrmlnc/fast-glob/issues/42
 	fg('**/.gitignore', {ignore: opts.ignore.concat(DEFAULT_IGNORE), cwd: opts.cwd})
 	.then(filePaths => Promise.all(filePaths.map(filePath =>
 		readFileP(path.join(opts.cwd, filePath), 'utf8').then(content => ({content, filePath}))
@@ -122,9 +120,7 @@ module.exports = (patterns, opts) => {
 	)))
 		.then(tasks => arrayUnion.apply(null, tasks))
 		.then(tasks => Promise.all(tasks.map(task => fg(task.pattern, task.opts))))
-		.then(paths => arrayUnion.apply(null, paths))
-		// TODO Remove trailing `/`, remove this workaround when https://github.com/mrmlnc/fast-glob/issues/46 is fixed
-		.then(paths => paths.map(p => p.replace(/\/$/, '')));
+		.then(paths => arrayUnion.apply(null, paths));
 };
 
 module.exports.sync = (patterns, opts) => {
@@ -141,9 +137,7 @@ module.exports.sync = (patterns, opts) => {
 
 	return generateGlobTasks(patterns, options).reduce(
 		(tasks, task) => tasks.concat(getPattern(task, dirGlob.sync).map(glob => ({pattern: glob, opts: task.opts}))), [])
-			.reduce((matches, task) => arrayUnion(matches, fg.sync(task.pattern, task.opts)), [])
-			// TODO Remove trailing `/`, remove this workaround when https://github.com/mrmlnc/fast-glob/issues/46 is fixed
-			.map(p => p.replace(/\/$/, ''));
+			.reduce((matches, task) => arrayUnion(matches, fg.sync(task.pattern, task.opts)), []);
 };
 
 module.exports.generateGlobTasks = generateGlobTasks;
