@@ -2,7 +2,7 @@
 
 > User-friendly glob matching
 
-Based on [`glob`](https://github.com/isaacs/node-glob), but adds a bunch of useful features and a nicer API.
+Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob), but adds a bunch of useful features and a nicer API.
 
 
 ## Features
@@ -57,9 +57,7 @@ See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 Type: `Object`
 
-See the [`node-glob` options](https://github.com/isaacs/node-glob#options) in addition to the ones below.
-
-One difference is that `nodir` is `true` by default here.
+See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options) in addition to the ones below.
 
 ##### expandDirectories
 
@@ -97,7 +95,7 @@ Returns an `Array` of matching paths.
 
 ### globby.generateGlobTasks(patterns, [options])
 
-Returns an `Array<Object>` in the format `{pattern: string, opts: Object}`, which can be passed as arguments to [`node-glob`](https://github.com/isaacs/node-glob). This is useful for other globbing-related packages.
+Returns an `Array<Object>` in the format `{pattern: string, opts: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
@@ -106,6 +104,8 @@ Note that you should avoid running the same tasks multiple times as they contain
 Returns a `boolean` of whether there are any special glob characters in the `patterns`.
 
 Note that the options affect the results. If `noext: true` is set, then `+(a|b)` will not be considered a magic pattern. If the pattern has a brace expansion, like `a/{b/c,x/y}`, then that is considered magical, unless `nobrace: true` is set.
+
+This function is backed by [`node-glob`](https://github.com/isaacs/node-glob#globhasmagicpattern-options)
 
 ### globby.gitignore([options])
 

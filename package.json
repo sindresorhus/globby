@@ -57,6 +57,7 @@
   "dependencies": {
     "array-union": "^1.0.1",
     "dir-glob": "^2.0.0",
+    "fast-glob": "^2.0.2",
     "glob": "^7.1.2",
     "ignore": "^3.3.5",
     "pify": "^3.0.0",
@@ -64,7 +65,6 @@
   },
   "devDependencies": {
     "ava": "*",
-    "fast-glob": "^2.0.1",
     "glob-stream": "^6.1.0",
     "globby": "sindresorhus/globby#master",
     "matcha": "^0.7.0",

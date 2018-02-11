@@ -42,6 +42,10 @@ test('respect patterns order - async', async t => {
 	t.deepEqual(await m(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
+test('respect patterns order - sync', t => {
+	t.deepEqual(m.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
+});
+
 test('glob - sync', t => {
 	t.deepEqual(m.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
@@ -109,9 +113,15 @@ test('expandDirectories option', t => {
 	}), ['tmp/a.tmp']);
 });
 
-test('expandDirectories:true and nodir:true option', t => {
-	t.deepEqual(m.sync('tmp', {nodir: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	t.deepEqual(m.sync('tmp', {nodir: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+test('expandDirectories:true and onlyFiles:true option', t => {
+	t.deepEqual(m.sync('tmp', {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+});
+
+test.failing('expandDirectories:true and onlyFiles:false option', t => {
+	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
+	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
+	// See https://github.com/mrmlnc/fast-glob/issues/47
+	t.deepEqual(m.sync('tmp', {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 // Rejected for being an invalid pattern
@@ -155,31 +165,31 @@ test('expandDirectories:true and nodir:true option', t => {
 });
 
 test('gitignore option defaults to false', async t => {
-	const actual = await m('*', {nodir: false});
+	const actual = await m('*', {onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('gitignore option defaults to false - sync', t => {
-	const actual = m.sync('*', {nodir: false});
+	const actual = m.sync('*', {onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true', async t => {
-	const actual = await m('*', {gitignore: true, nodir: false});
+	const actual = await m('*', {gitignore: true, onlyFiles: false});
 	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option true - sync', t => {
-	const actual = m.sync('*', {gitignore: true, nodir: false});
+	const actual = m.sync('*', {gitignore: true, onlyFiles: false});
 	t.false(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false', async t => {
-	const actual = await m('*', {gitignore: false, nodir: false});
+	const actual = await m('*', {gitignore: false, onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
 test('respects gitignore option false - sync', t => {
-	const actual = m.sync('*', {gitignore: false, nodir: false});
+	const actual = m.sync('*', {gitignore: false, onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
