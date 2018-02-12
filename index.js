@@ -1,7 +1,7 @@
 'use strict';
 const arrayUnion = require('array-union');
 const glob = require('glob');
-const fg = require('fast-glob');
+const fastGlob = require('fast-glob');
 const dirGlob = require('dir-glob');
 const gitignore = require('./gitignore');
 
@@ -93,7 +93,7 @@ module.exports = (patterns, opts) => {
 	return getFilter()
 		.then(filter => {
 			return getTasks
-				.then(tasks => Promise.all(tasks.map(task => fg(task.pattern, task.opts))))
+				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.opts))))
 				.then(paths => arrayUnion.apply(null, paths))
 				.then(paths => paths.filter(p => !filter(p)));
 		});
@@ -119,7 +119,7 @@ module.exports.sync = (patterns, opts) => {
 	const filter = getFilter();
 
 	return tasks.reduce(
-		(matches, task) => arrayUnion(matches, fg.sync(task.pattern, task.opts)),
+		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.opts)),
 		[]
 	).filter(p => !filter(p));
 };

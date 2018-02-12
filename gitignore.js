@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const fg = require('fast-glob');
+const fastGlob = require('fast-glob');
 const gitIgnore = require('ignore');
 const pify = require('pify');
 const slash = require('slash');
@@ -79,7 +79,7 @@ const normalizeOpts = opts => {
 module.exports = o => {
 	const opts = normalizeOpts(o);
 
-	return fg('**/.gitignore', {ignore: opts.ignore.concat(DEFAULT_IGNORE), cwd: opts.cwd})
+	return fastGlob('**/.gitignore', {ignore: opts.ignore.concat(DEFAULT_IGNORE), cwd: opts.cwd})
 		.then(paths => Promise.all(paths.map(file => getFile(file, opts.cwd))))
 		.then(files => reduceIgnore(files))
 		.then(ignores => getIsIgnoredPredecate(ignores, opts.cwd));
@@ -88,7 +88,7 @@ module.exports = o => {
 module.exports.sync = o => {
 	const opts = normalizeOpts(o);
 
-	const paths = fg.sync('**/.gitignore', {ignore: opts.ignore.concat(DEFAULT_IGNORE), cwd: opts.cwd});
+	const paths = fastGlob.sync('**/.gitignore', {ignore: opts.ignore.concat(DEFAULT_IGNORE), cwd: opts.cwd});
 	const files = paths.map(file => getFileSync(file, opts.cwd));
 	const ignores = reduceIgnore(files);
 	return getIsIgnoredPredecate(ignores, opts.cwd);
