@@ -22,10 +22,6 @@ const generateGlobTasks = (patterns, taskOpts) => {
 	const globTasks = [];
 
 	taskOpts = Object.assign({
-		cache: Object.create(null),
-		statCache: Object.create(null),
-		realpathCache: Object.create(null),
-		symlinks: Object.create(null),
 		ignore: [],
 		expandDirectories: true,
 		nodir: true
