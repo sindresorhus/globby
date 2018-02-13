@@ -1,12 +1,19 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const glob = require('glob');
+const fastGlob = require('fast-glob');
 const gitIgnore = require('ignore');
 const pify = require('pify');
 const slash = require('slash');
 
-const globP = pify(glob);
+const DEFAULT_IGNORE = [
+	'**/node_modules/**',
+	'**/bower_components/**',
+	'**/flow-typed/**',
+	'**/coverage/**',
+	'**/.git'
+];
+
 const readFileP = pify(fs.readFile);
 
 const mapGitIgnorePatternTo = base => ignore => {
@@ -72,7 +79,7 @@ const normalizeOpts = opts => {
 module.exports = o => {
 	const opts = normalizeOpts(o);
 
-	return globP('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd})
+	return fastGlob('**/.gitignore', {ignore: DEFAULT_IGNORE.concat(opts.ignore), cwd: opts.cwd})
 		.then(paths => Promise.all(paths.map(file => getFile(file, opts.cwd))))
 		.then(files => reduceIgnore(files))
 		.then(ignores => getIsIgnoredPredecate(ignores, opts.cwd));
@@ -81,7 +88,7 @@ module.exports = o => {
 module.exports.sync = o => {
 	const opts = normalizeOpts(o);
 
-	const paths = glob.sync('**/.gitignore', {ignore: opts.ignore, cwd: opts.cwd});
+	const paths = fastGlob.sync('**/.gitignore', {ignore: DEFAULT_IGNORE.concat(opts.ignore), cwd: opts.cwd});
 	const files = paths.map(file => getFileSync(file, opts.cwd));
 	const ignores = reduceIgnore(files);
 	return getIsIgnoredPredecate(ignores, opts.cwd);
