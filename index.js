@@ -24,7 +24,7 @@ const generateGlobTasks = (patterns, taskOpts) => {
 	taskOpts = Object.assign({
 		ignore: [],
 		expandDirectories: true,
-		nodir: true
+		onlyFiles: true
 	}, taskOpts);
 
 	patterns.forEach((pattern, i) => {
