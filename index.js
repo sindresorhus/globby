@@ -47,15 +47,15 @@ const generateGlobTasks = (patterns, taskOpts) => {
 };
 
 const globDirs = (task, fn) => {
+	let opts = {cwd: task.opts.cwd};
+
 	if (Array.isArray(task.opts.expandDirectories)) {
-		return fn(task.pattern, {files: task.opts.expandDirectories});
+		opts = Object.assign(opts, {files: task.opts.expandDirectories});
+	} else if (typeof task.opts.expandDirectories === 'object') {
+		opts = Object.assign(opts, task.opts.expandDirectories);
 	}
 
-	if (typeof task.opts.expandDirectories === 'object') {
-		return fn(task.pattern, task.opts.expandDirectories);
-	}
-
-	return fn(task.pattern);
+	return fn(task.pattern, opts);
 };
 
 const getPattern = (task, fn) => task.opts.expandDirectories ? globDirs(task, fn) : [task.pattern];

@@ -4,6 +4,7 @@ import test from 'ava';
 import m from '.';
 
 const cwd = process.cwd();
+const tmp = 'tmp';
 const fixture = [
 	'a.tmp',
 	'b.tmp',
@@ -13,17 +14,17 @@ const fixture = [
 ];
 
 test.before(() => {
-	if (!fs.existsSync('tmp')) {
-		fs.mkdirSync('tmp');
+	if (!fs.existsSync(tmp)) {
+		fs.mkdirSync(tmp);
 	}
 	fixture.forEach(fs.writeFileSync.bind(fs));
-	fixture.forEach(x => fs.writeFileSync(path.join(__dirname, 'tmp', x)));
+	fixture.forEach(x => fs.writeFileSync(path.join(__dirname, tmp, x)));
 });
 
 test.after(() => {
 	fixture.forEach(fs.unlinkSync.bind(fs));
-	fixture.forEach(x => fs.unlinkSync(path.join(__dirname, 'tmp', x)));
-	fs.rmdirSync('tmp');
+	fixture.forEach(x => fs.unlinkSync(path.join(__dirname, tmp, x)));
+	fs.rmdirSync(tmp);
 });
 
 test('glob - async', async t => {
@@ -65,7 +66,7 @@ test('return [] for all negative patterns - async', async t => {
 });
 
 test('cwd option', t => {
-	process.chdir('tmp');
+	process.chdir(tmp);
 	t.deepEqual(m.sync('*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(m.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
@@ -96,15 +97,16 @@ test('expose hasMagic', t => {
 });
 
 test('expandDirectories option', t => {
-	t.deepEqual(m.sync('tmp'), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	t.deepEqual(m.sync('tmp', {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(m.sync('tmp', {
+	t.deepEqual(m.sync(tmp), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(m.sync('**', {cwd: tmp}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(m.sync(tmp, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(m.sync(tmp, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp']
 		}
 	}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(m.sync('tmp', {
+	t.deepEqual(m.sync(tmp, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp']
@@ -114,14 +116,14 @@ test('expandDirectories option', t => {
 });
 
 test('expandDirectories:true and onlyFiles:true option', t => {
-	t.deepEqual(m.sync('tmp', {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(m.sync(tmp, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// See https://github.com/mrmlnc/fast-glob/issues/47
-	t.deepEqual(m.sync('tmp', {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(m.sync(tmp, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 // Rejected for being an invalid pattern
