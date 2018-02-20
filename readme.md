@@ -80,7 +80,7 @@ If set to `true`, `globby` will automatically glob directories for you. If you d
 })();
 ```
 
-Note that if you set this option to `false`, you won't get back matched directories unless you set `nodir: false`.
+Note that if you set this option to `false`, you won't get back matched directories unless you set [`onlyDirectories`](https://github.com/mrmlnc/fast-glob#onlydirectories) to `true`.
 
 ##### gitignore
 
