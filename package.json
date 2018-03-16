@@ -4,7 +4,7 @@
   "description": "Extends `glob` with support for multiple patterns and exposes a Promise API",
   "license": "MIT",
   "repository": "sindresorhus/globby",
-	"types": "index.d.ts",
+  "types": "index.d.ts",
   "author": {
     "email": "sindresorhus@gmail.com",
     "name": "Sindre Sorhus",
