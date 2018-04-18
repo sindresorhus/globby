@@ -1,4 +1,5 @@
 import fs from 'fs';
+import util from 'util';
 import path from 'path';
 import test from 'ava';
 import m from '.';
@@ -126,6 +127,17 @@ test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	t.deepEqual(m.sync(tmp, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
+test.failing('expandDirectories and ignores option', t => {
+	t.deepEqual(m.sync('tmp', {
+		ignore: ['tmp']
+	}), []);
+
+	t.deepEqual(m.sync('tmp/**', {
+		expandDirectories: false,
+		ignore: ['tmp']
+	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+});
+
 // Rejected for being an invalid pattern
 [
 	{},
@@ -145,9 +157,7 @@ test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	function () {},
 	[function () {}]
 ].forEach(v => {
-	const valstring = v === undefined ?
-		'undefined' :
-		(JSON.stringify(v) || v.toString());
+	const valstring = util.format(v);
 	const msg = 'Patterns must be a string or an array of strings';
 
 	test(`rejects the promise for invalid patterns input: ${valstring} - async`, async t => {
