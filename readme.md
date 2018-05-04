@@ -57,7 +57,7 @@ See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 Type: `Object`
 
-See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options) in addition to the ones below.
+See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones below.
 
 ##### expandDirectories
 
