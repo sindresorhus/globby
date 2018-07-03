@@ -138,6 +138,15 @@ test('expandDirectories and ignores option', t => {
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
+test.failing('relative paths and ignores option', t => {
+	process.chdir(tmp);
+	t.deepEqual(m.sync('../tmp', {
+		cwd: process.cwd(),
+		ignore: ['tmp']
+	}), []);
+	process.chdir(cwd);
+});
+
 // Rejected for being an invalid pattern
 [
 	{},
