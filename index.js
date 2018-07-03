@@ -60,6 +60,17 @@ const globDirs = (task, fn) => {
 
 const getPattern = (task, fn) => task.opts.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
+const globToTask = task => glob => {
+	const opts = task.opts;
+	if (opts.ignore && Array.isArray(opts.ignore) && opts.expandDirectories) {
+		opts.ignore = dirGlob.sync(opts.ignore);
+	}
+	return {
+		pattern: glob,
+		opts: task.opts
+	};
+};
+
 module.exports = (patterns, opts) => {
 	let globTasks;
 
@@ -70,10 +81,7 @@ module.exports = (patterns, opts) => {
 	}
 
 	const getTasks = Promise.all(globTasks.map(task => Promise.resolve(getPattern(task, dirGlob))
-		.then(globs => Promise.all(globs.map(glob => ({
-			pattern: glob,
-			opts: task.opts
-		}))))
+		.then(globs => Promise.all(globs.map(globToTask(task))))
 	))
 		.then(tasks => arrayUnion.apply(null, tasks));
 
@@ -104,15 +112,11 @@ module.exports.sync = (patterns, opts) => {
 	};
 
 	const tasks = globTasks.reduce((tasks, task) => {
-		const newTask = getPattern(task, dirGlob.sync).map(glob => ({
-			pattern: glob,
-			opts: task.opts
-		}));
+		const newTask = getPattern(task, dirGlob.sync).map(globToTask(task));
 		return tasks.concat(newTask);
 	}, []);
 
 	const filter = getFilter();
-
 	return tasks.reduce(
 		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.opts)),
 		[]
