@@ -18,19 +18,19 @@ const readFileP = pify(fs.readFile);
 
 const mapGitIgnorePatternTo = base => ignore => {
 	if (ignore.startsWith('!')) {
-		return '!' + path.posix.join(base, ignore.substr(1));
+		return '!' + path.posix.join(base, ignore.slice(1));
 	}
 
 	return path.posix.join(base, ignore);
 };
 
-const parseGitIgnore = (content, opts) => {
-	const base = slash(path.relative(opts.cwd, path.dirname(opts.fileName)));
+const parseGitIgnore = (content, options) => {
+	const base = slash(path.relative(options.cwd, path.dirname(options.fileName)));
 
 	return content
 		.split(/\r?\n/)
 		.filter(Boolean)
-		.filter(l => l.charAt(0) !== '#')
+		.filter(line => line.charAt(0) !== '#')
 		.map(mapGitIgnorePatternTo(base));
 };
 
@@ -69,27 +69,33 @@ const getFileSync = (file, cwd) => {
 	};
 };
 
-const normalizeOpts = opts => {
-	opts = opts || {};
-	const ignore = opts.ignore || [];
-	const cwd = opts.cwd || process.cwd();
+const normalizeOptions = (options = {}) => {
+	const ignore = options.ignore || [];
+	const cwd = options.cwd || process.cwd();
 	return {ignore, cwd};
 };
 
-module.exports = o => {
-	const opts = normalizeOpts(o);
+module.exports = options => {
+	options = normalizeOptions(options);
 
-	return fastGlob('**/.gitignore', {ignore: DEFAULT_IGNORE.concat(opts.ignore), cwd: opts.cwd})
-		.then(paths => Promise.all(paths.map(file => getFile(file, opts.cwd))))
+	return fastGlob('**/.gitignore', {
+		ignore: DEFAULT_IGNORE.concat(options.ignore),
+		cwd: options.cwd
+	})
+		.then(paths => Promise.all(paths.map(file => getFile(file, options.cwd))))
 		.then(files => reduceIgnore(files))
-		.then(ignores => getIsIgnoredPredecate(ignores, opts.cwd));
+		.then(ignores => getIsIgnoredPredecate(ignores, options.cwd));
 };
 
-module.exports.sync = o => {
-	const opts = normalizeOpts(o);
+module.exports.sync = options => {
+	options = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', {ignore: DEFAULT_IGNORE.concat(opts.ignore), cwd: opts.cwd});
-	const files = paths.map(file => getFileSync(file, opts.cwd));
+	const paths = fastGlob.sync('**/.gitignore', {
+		ignore: DEFAULT_IGNORE.concat(options.ignore),
+		cwd: options.cwd
+	});
+	const files = paths.map(file => getFileSync(file, options.cwd));
 	const ignores = reduceIgnore(files);
-	return getIsIgnoredPredecate(ignores, opts.cwd);
+
+	return getIsIgnoredPredecate(ignores, options.cwd);
 };

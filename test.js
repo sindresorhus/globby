@@ -73,12 +73,12 @@ test('cwd option', t => {
 	process.chdir(cwd);
 });
 
-test(`don't mutate the options object - async`, async t => {
+test('don\'t mutate the options object - async', async t => {
 	await m(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 	t.pass();
 });
 
-test(`don't mutate the options object - sync`, t => {
+test('don\'t mutate the options object - sync', t => {
 	m.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 	t.pass();
 });

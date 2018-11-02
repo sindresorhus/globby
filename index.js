@@ -15,16 +15,16 @@ const assertPatternsInput = patterns => {
 	}
 };
 
-const generateGlobTasks = (patterns, taskOpts) => {
+const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = [].concat(patterns);
 	assertPatternsInput(patterns);
 
 	const globTasks = [];
 
-	taskOpts = Object.assign({
+	taskOptions = Object.assign({
 		ignore: [],
 		expandDirectories: true
-	}, taskOpts);
+	}, taskOptions);
 
 	patterns.forEach((pattern, i) => {
 		if (isNegative(pattern)) {
@@ -36,8 +36,8 @@ const generateGlobTasks = (patterns, taskOpts) => {
 			.filter(isNegative)
 			.map(pattern => pattern.slice(1));
 
-		const opts = Object.assign({}, taskOpts, {
-			ignore: taskOpts.ignore.concat(ignore)
+		const opts = Object.assign({}, taskOptions, {
+			ignore: taskOptions.ignore.concat(ignore)
 		});
 
 		globTasks.push({pattern, opts});
@@ -47,21 +47,21 @@ const generateGlobTasks = (patterns, taskOpts) => {
 };
 
 const globDirs = (task, fn) => {
-	let opts = {cwd: task.opts.cwd};
+	let options = {cwd: task.opts.cwd};
 
 	if (Array.isArray(task.opts.expandDirectories)) {
-		opts = Object.assign(opts, {files: task.opts.expandDirectories});
+		options = Object.assign(options, {files: task.opts.expandDirectories});
 	} else if (typeof task.opts.expandDirectories === 'object') {
-		opts = Object.assign(opts, task.opts.expandDirectories);
+		options = Object.assign(options, task.opts.expandDirectories);
 	}
 
-	return fn(task.pattern, opts);
+	return fn(task.pattern, options);
 };
 
 const getPattern = (task, fn) => task.opts.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
 const globToTask = task => glob => {
-	const opts = task.opts;
+	const {opts} = task;
 	if (opts.ignore && Array.isArray(opts.ignore) && opts.expandDirectories) {
 		opts.ignore = dirGlob.sync(opts.ignore);
 	}
@@ -71,24 +71,24 @@ const globToTask = task => glob => {
 	};
 };
 
-module.exports = (patterns, opts) => {
+module.exports = (patterns, options) => {
 	let globTasks;
 
 	try {
-		globTasks = generateGlobTasks(patterns, opts);
-	} catch (err) {
-		return Promise.reject(err);
+		globTasks = generateGlobTasks(patterns, options);
+	} catch (error) {
+		return Promise.reject(error);
 	}
 
 	const getTasks = Promise.all(globTasks.map(task => Promise.resolve(getPattern(task, dirGlob))
 		.then(globs => Promise.all(globs.map(globToTask(task))))
 	))
-		.then(tasks => arrayUnion.apply(null, tasks));
+		.then(tasks => arrayUnion(...tasks));
 
 	const getFilter = () => {
 		return Promise.resolve(
-			opts && opts.gitignore ?
-				gitignore({cwd: opts.cwd, ignore: opts.ignore}) :
+			options && options.gitignore ?
+				gitignore({cwd: options.cwd, ignore: options.ignore}) :
 				DEFAULT_FILTER
 		);
 	};
@@ -97,17 +97,17 @@ module.exports = (patterns, opts) => {
 		.then(filter => {
 			return getTasks
 				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.opts))))
-				.then(paths => arrayUnion.apply(null, paths))
+				.then(paths => arrayUnion(...paths))
 				.then(paths => paths.filter(p => !filter(p)));
 		});
 };
 
-module.exports.sync = (patterns, opts) => {
-	const globTasks = generateGlobTasks(patterns, opts);
+module.exports.sync = (patterns, options) => {
+	const globTasks = generateGlobTasks(patterns, options);
 
 	const getFilter = () => {
-		return opts && opts.gitignore ?
-			gitignore.sync({cwd: opts.cwd, ignore: opts.ignore}) :
+		return options && options.gitignore ?
+			gitignore.sync({cwd: options.cwd, ignore: options.ignore}) :
 			DEFAULT_FILTER;
 	};
 
@@ -125,8 +125,8 @@ module.exports.sync = (patterns, opts) => {
 
 module.exports.generateGlobTasks = generateGlobTasks;
 
-module.exports.hasMagic = (patterns, opts) => []
+module.exports.hasMagic = (patterns, options) => []
 	.concat(patterns)
-	.some(pattern => glob.hasMagic(pattern, opts));
+	.some(pattern => glob.hasMagic(pattern, options));
 
 module.exports.gitignore = gitignore;

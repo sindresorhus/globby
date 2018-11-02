@@ -1,1 +1,1 @@
-console.log('no semicolon')
+console.log('no semicolon');
