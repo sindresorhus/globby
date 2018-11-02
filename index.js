@@ -36,38 +36,38 @@ const generateGlobTasks = (patterns, taskOptions) => {
 			.filter(isNegative)
 			.map(pattern => pattern.slice(1));
 
-		const opts = Object.assign({}, taskOptions, {
+		const options = Object.assign({}, taskOptions, {
 			ignore: taskOptions.ignore.concat(ignore)
 		});
 
-		globTasks.push({pattern, opts});
+		globTasks.push({pattern, options});
 	});
 
 	return globTasks;
 };
 
 const globDirs = (task, fn) => {
-	let options = {cwd: task.opts.cwd};
+	let options = {cwd: task.options.cwd};
 
-	if (Array.isArray(task.opts.expandDirectories)) {
-		options = Object.assign(options, {files: task.opts.expandDirectories});
-	} else if (typeof task.opts.expandDirectories === 'object') {
-		options = Object.assign(options, task.opts.expandDirectories);
+	if (Array.isArray(task.options.expandDirectories)) {
+		options = Object.assign(options, {files: task.options.expandDirectories});
+	} else if (typeof task.options.expandDirectories === 'object') {
+		options = Object.assign(options, task.options.expandDirectories);
 	}
 
 	return fn(task.pattern, options);
 };
 
-const getPattern = (task, fn) => task.opts.expandDirectories ? globDirs(task, fn) : [task.pattern];
+const getPattern = (task, fn) => task.options.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
 const globToTask = task => glob => {
-	const {opts} = task;
-	if (opts.ignore && Array.isArray(opts.ignore) && opts.expandDirectories) {
-		opts.ignore = dirGlob.sync(opts.ignore);
+	const {options} = task;
+	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
+		options.ignore = dirGlob.sync(options.ignore);
 	}
 	return {
 		pattern: glob,
-		opts: task.opts
+		options
 	};
 };
 
@@ -96,7 +96,7 @@ module.exports = (patterns, options) => {
 	return getFilter()
 		.then(filter => {
 			return getTasks
-				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.opts))))
+				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.options))))
 				.then(paths => arrayUnion(...paths))
 				.then(paths => paths.filter(p => !filter(p)));
 		});
@@ -118,7 +118,7 @@ module.exports.sync = (patterns, options) => {
 
 	const filter = getFilter();
 	return tasks.reduce(
-		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.opts)),
+		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.options)),
 		[]
 	).filter(p => !filter(p));
 };

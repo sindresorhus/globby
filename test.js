@@ -88,7 +88,7 @@ test('expose generateGlobTasks', t => {
 
 	t.is(tasks.length, 1);
 	t.is(tasks[0].pattern, '*.tmp');
-	t.deepEqual(tasks[0].opts.ignore, ['c.tmp', 'b.tmp']);
+	t.deepEqual(tasks[0].options.ignore, ['c.tmp', 'b.tmp']);
 });
 
 test('expose hasMagic', t => {

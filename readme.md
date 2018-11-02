@@ -1,4 +1,4 @@
-# globby [![Build Status: macOS & Linux](https://travis-ci.org/sindresorhus/globby.svg?branch=master)](https://travis-ci.org/sindresorhus/globby) [![Build status: Windows](https://ci.appveyor.com/api/projects/status/ik0aj9roriqwc5uf/branch/master?svg=true)](https://ci.appveyor.com/project/sindresorhus/globby/branch/master)
+# globby [![Build Status: macOS & Linux](https://travis-ci.com/sindresorhus/globby.svg?branch=master)](https://travis-ci.com/sindresorhus/globby) [![Build status: Windows](https://ci.appveyor.com/api/projects/status/ik0aj9roriqwc5uf/branch/master?svg=true)](https://ci.appveyor.com/project/sindresorhus/globby/branch/master)
 
 > User-friendly glob matching
 
@@ -95,7 +95,7 @@ Returns an `Array` of matching paths.
 
 ### globby.generateGlobTasks(patterns, [options])
 
-Returns an `Array<Object>` in the format `{pattern: string, opts: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
+Returns an `Array<Object>` in the format `{pattern: string, options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
