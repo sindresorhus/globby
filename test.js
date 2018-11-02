@@ -127,7 +127,7 @@ test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	t.deepEqual(m.sync(tmp, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test.failing('expandDirectories and ignores option', t => {
+test('expandDirectories and ignores option', t => {
 	t.deepEqual(m.sync('tmp', {
 		ignore: ['tmp']
 	}), []);
@@ -136,6 +136,15 @@ test.failing('expandDirectories and ignores option', t => {
 		expandDirectories: false,
 		ignore: ['tmp']
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+});
+
+test.failing('relative paths and ignores option', t => {
+	process.chdir(tmp);
+	t.deepEqual(m.sync('../tmp', {
+		cwd: process.cwd(),
+		ignore: ['tmp']
+	}), []);
+	process.chdir(cwd);
 });
 
 // Rejected for being an invalid pattern
