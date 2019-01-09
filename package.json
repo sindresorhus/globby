@@ -56,7 +56,7 @@
   ],
   "dependencies": {
     "array-union": "^1.0.1",
-    "dir-glob": "^2.0.0",
+    "dir-glob": "2.0.0",
     "fast-glob": "^2.0.2",
     "glob": "^7.1.2",
     "ignore": "^3.3.5",
