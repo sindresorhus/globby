@@ -47,7 +47,10 @@ const generateGlobTasks = (patterns, taskOptions) => {
 };
 
 const globDirs = (task, fn) => {
-	let options = {cwd: task.options.cwd};
+	let options = {};
+	if (task.options.cwd) {
+		options.cwd = task.options.cwd;
+	}
 
 	if (Array.isArray(task.options.expandDirectories)) {
 		options = Object.assign(options, {files: task.options.expandDirectories});
