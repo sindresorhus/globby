@@ -56,19 +56,19 @@
 	],
 	"dependencies": {
 		"array-union": "^1.0.2",
-		"dir-glob": "^2.0.0",
-		"fast-glob": "^2.2.3",
+		"dir-glob": "^2.2.1",
+		"fast-glob": "^2.2.6",
 		"glob": "^7.1.3",
 		"ignore": "^4.0.3",
 		"pify": "^4.0.1",
 		"slash": "^2.0.0"
 	},
 	"devDependencies": {
-		"ava": "^0.25.0",
+		"ava": "^1.0.1",
 		"glob-stream": "^6.1.0",
 		"globby": "sindresorhus/globby#master",
 		"matcha": "^0.7.0",
-		"rimraf": "^2.2.8",
+		"rimraf": "^2.6.3",
 		"xo": "^0.23.0"
 	},
 	"xo": {

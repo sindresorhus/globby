@@ -170,8 +170,8 @@ test.failing('relative paths and ignores option', t => {
 	const msg = 'Patterns must be a string or an array of strings';
 
 	test(`rejects the promise for invalid patterns input: ${valstring} - async`, async t => {
-		await t.throws(m(v), TypeError);
-		await t.throws(m(v), msg);
+		await t.throwsAsync(m(v), TypeError);
+		await t.throwsAsync(m(v), msg);
 	});
 
 	test(`throws for invalid patterns input: ${valstring}`, t => {
