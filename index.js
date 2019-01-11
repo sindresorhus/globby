@@ -16,7 +16,7 @@ const assertPatternsInput = patterns => {
 };
 
 const generateGlobTasks = (patterns, taskOptions) => {
-	patterns = [].concat(patterns);
+	patterns = arrayUnion([].concat(patterns));
 	assertPatternsInput(patterns);
 
 	const globTasks = [];
