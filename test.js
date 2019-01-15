@@ -214,3 +214,17 @@ test('respects gitignore option false - sync', t => {
 	const actual = m.sync('*', {gitignore: false, onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
+
+// https://github.com/sindresorhus/globby/issues/105
+test.failing('throws ENOTDIR when specifying a file as cwd - async', async t => {
+	const isFile = path.resolve('fixtures/gitignore/bar.js');
+	await t.throwsAsync(m('.', {cwd: isFile}), {code: 'ENOTDIR'});
+	await t.throwsAsync(m('*', {cwd: isFile}), {code: 'ENOTDIR'});
+});
+
+// https://github.com/sindresorhus/globby/issues/105
+test.failing('throws ENOTDIR when specifying a file as cwd - sync', t => {
+	const isFile = path.resolve('fixtures/gitignore/bar.js');
+	t.throws(() => m.sync('.', {cwd: isFile}), {code: 'ENOTDIR'});
+	t.throws(() => m.sync('*', {cwd: isFile}), {code: 'ENOTDIR'});
+});
