@@ -5,6 +5,8 @@ const path = require('path');
 const fastGlob = require('fast-glob');
 const gitIgnore = require('ignore');
 const slash = require('slash');
+const findUp = require('find-up');
+const findUpAll = require('find-up-all');
 
 const DEFAULT_IGNORE = [
 	'**/node_modules/**',
@@ -55,8 +57,12 @@ const ensureAbsolutePathForCwd = (cwd, p) => {
 	return path.join(cwd, p);
 };
 
-const getIsIgnoredPredecate = (ignores, cwd) => {
-	return p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, p))));
+const getIsIgnoredPredecate = (ignores, gitRoot, cwd) => {
+	return p => {
+		const pathWithCwd = ensureAbsolutePathForCwd(cwd, p);
+		const pathRelativeToGitRoot = path.relative(gitRoot, pathWithCwd);
+		return ignores.ignores(slash(pathRelativeToGitRoot));
+	};
 };
 
 const getFile = async (file, cwd) => {
@@ -90,28 +96,55 @@ const normalizeOptions = ({
 
 module.exports = async options => {
 	options = normalizeOptions(options);
+	const {cwd} = options;
 
-	const paths = await fastGlob('**/.gitignore', {
-		ignore: DEFAULT_IGNORE.concat(options.ignore),
-		cwd: options.cwd
-	});
+	const gitDir = await findUp('.git', {cwd});
+	const gitRoot = gitDir ? path.dirname(gitDir) : '';
 
-	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
-	const ignores = reduceIgnore(files);
+	const gitIgnoreFilePaths = await Promise.all([
+		findUpAll('.gitignore', {
+			cwd: path.join(cwd, '..'),
+			end: gitRoot
+		}),
+		fastGlob('**/.gitignore', {
+			ignore: DEFAULT_IGNORE.concat(options.ignore),
+			absolute: true,
+			cwd
+		})
+	]);
 
-	return getIsIgnoredPredecate(ignores, options.cwd);
+	const gitIgnoreFileContents = await Promise.all(
+		[].concat(...gitIgnoreFilePaths)
+			.map(p => path.relative(gitRoot, p))
+			.map(file => getFile(file, gitRoot))
+	);
+
+	const ignores = reduceIgnore(gitIgnoreFileContents);
+	return getIsIgnoredPredecate(ignores, gitRoot, cwd);
 };
 
 module.exports.sync = options => {
 	options = normalizeOptions(options);
+	const {cwd} = options;
 
-	const paths = fastGlob.sync('**/.gitignore', {
-		ignore: DEFAULT_IGNORE.concat(options.ignore),
-		cwd: options.cwd
-	});
+	const gitDir = findUp.sync('.git', {cwd});
+	const gitRoot = gitDir ? path.dirname(gitDir) : '';
 
-	const files = paths.map(file => getFileSync(file, options.cwd));
-	const ignores = reduceIgnore(files);
+	const gitIgnoreFilePaths = [
+		...findUpAll.sync('.gitignore', {
+			cwd: path.join(cwd, '..'),
+			end: gitRoot
+		}),
+		...fastGlob.sync('**/.gitignore', {
+			ignore: DEFAULT_IGNORE.concat(options.ignore),
+			cwd
+		}).map(p => path.join(cwd, p))
+	];
 
-	return getIsIgnoredPredecate(ignores, options.cwd);
+	const gitIgnoreFileContents = gitIgnoreFilePaths
+		.map(p => path.relative(gitRoot, p))
+		.map(file => getFileSync(file, gitRoot));
+
+	const ignores = reduceIgnore(gitIgnoreFileContents);
+	return getIsIgnoredPredecate(ignores, gitRoot, cwd);
 };

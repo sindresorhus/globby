@@ -1,2 +1,4 @@
+nested-1/foo.js
+nested-1/nested-2/foo.js
 foo.js
 !bar.js
