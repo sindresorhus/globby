@@ -214,3 +214,25 @@ test('respects gitignore option false - sync', t => {
 	const actual = m.sync('*', {gitignore: false, onlyFiles: false});
 	t.true(actual.indexOf('node_modules') > -1);
 });
+
+// https://github.com/sindresorhus/globby/issues/97
+test.failing('`{extension: false}` and `expandDirectories.extensions` option', t => {
+	t.deepEqual(
+		m.sync(tmp, {
+			extension: false,
+			expandDirectories: {
+				extensions: [
+					'md',
+					'tmp'
+				]
+			}
+		}),
+		[
+			'a.tmp',
+			'b.tmp',
+			'c.tmp',
+			'd.tmp',
+			'e.tmp'
+		]
+	);
+});
