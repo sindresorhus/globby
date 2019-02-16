@@ -236,3 +236,21 @@ test.failing('`{extension: false}` and `expandDirectories.extensions` option', t
 		]
 	);
 });
+
+// https://github.com/sindresorhus/globby/issues/105
+test.failing('throws ENOTDIR when specifying a file as cwd - async', async t => {
+	const isFile = path.resolve('fixtures/gitignore/bar.js');
+	await t.throwsAsync(m('.', {cwd: isFile}), {code: 'ENOTDIR'});
+	await t.throwsAsync(m('*', {cwd: isFile}), {code: 'ENOTDIR'});
+});
+
+// https://github.com/sindresorhus/globby/issues/105
+test.failing('throws ENOTDIR when specifying a file as cwd - sync', t => {
+	const isFile = path.resolve('fixtures/gitignore/bar.js');
+	t.throws(() => {
+		m.sync('.', {cwd: isFile});
+	}, {code: 'ENOTDIR'});
+	t.throws(() => {
+		m.sync('*', {cwd: isFile});
+	}, {code: 'ENOTDIR'});
+});
