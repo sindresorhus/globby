@@ -215,6 +215,28 @@ test('respects gitignore option false - sync', t => {
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
+// https://github.com/sindresorhus/globby/issues/97
+test.failing('`{extension: false}` and `expandDirectories.extensions` option', t => {
+	t.deepEqual(
+		m.sync(tmp, {
+			extension: false,
+			expandDirectories: {
+				extensions: [
+					'md',
+					'tmp'
+				]
+			}
+		}),
+		[
+			'a.tmp',
+			'b.tmp',
+			'c.tmp',
+			'd.tmp',
+			'e.tmp'
+		]
+	);
+});
+
 // https://github.com/sindresorhus/globby/issues/105
 test.failing('throws ENOTDIR when specifying a file as cwd - async', async t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
@@ -225,6 +247,10 @@ test.failing('throws ENOTDIR when specifying a file as cwd - async', async t => 
 // https://github.com/sindresorhus/globby/issues/105
 test.failing('throws ENOTDIR when specifying a file as cwd - sync', t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
-	t.throws(() => m.sync('.', {cwd: isFile}), {code: 'ENOTDIR'});
-	t.throws(() => m.sync('*', {cwd: isFile}), {code: 'ENOTDIR'});
+	t.throws(() => {
+		m.sync('.', {cwd: isFile});
+	}, {code: 'ENOTDIR'});
+	t.throws(() => {
+		m.sync('*', {cwd: isFile});
+	}, {code: 'ENOTDIR'});
 });
