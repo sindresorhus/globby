@@ -64,12 +64,12 @@
 		"slash": "^2.0.0"
 	},
 	"devDependencies": {
-		"ava": "^1.0.1",
+		"ava": "^1.2.1",
 		"glob-stream": "^6.1.0",
 		"globby": "sindresorhus/globby#master",
 		"matcha": "^0.7.0",
 		"rimraf": "^2.6.3",
-		"xo": "^0.23.0"
+		"xo": "^0.24.0"
 	},
 	"xo": {
 		"ignores": [

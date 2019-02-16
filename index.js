@@ -68,6 +68,7 @@ const globToTask = task => glob => {
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
 		options.ignore = dirGlob.sync(options.ignore);
 	}
+
 	return {
 		pattern: glob,
 		options
