@@ -13,6 +13,7 @@ const DEFAULT_IGNORE = [
 	'**/coverage/**',
 	'**/.git'
 ];
+const REGEX_RELATIVE_PATH = /^\.*\/|^\.+$/;
 
 const readFileP = pify(fs.readFile);
 
@@ -45,7 +46,14 @@ const reduceIgnore = files => {
 };
 
 const getIsIgnoredPredecate = (ignores, cwd) => {
-	return p => ignores.ignores(slash(path.relative(cwd, p)));
+	return p => {
+		if (REGEX_RELATIVE_PATH.test(p)) {
+			p = slash(path.relative(cwd, p));
+		} else {
+			p = slash(p);
+		}
+		return ignores.ignores(p);
+	};
 };
 
 const getFile = (file, cwd) => {
