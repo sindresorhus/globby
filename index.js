@@ -1,4 +1,5 @@
 'use strict';
+const fs = require('fs');
 const arrayUnion = require('array-union');
 const glob = require('glob');
 const fastGlob = require('fast-glob');
@@ -15,9 +16,16 @@ const assertPatternsInput = patterns => {
 	}
 };
 
+const checkCwdOption = options => {
+	if (options && options.cwd && !fs.statSync(options.cwd).isDirectory()) {
+		throw new Error('The `cwd` option must be a path to a directory');
+	}
+};
+
 const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([].concat(patterns));
 	assertPatternsInput(patterns);
+	checkCwdOption(taskOptions);
 
 	const globTasks = [];
 
