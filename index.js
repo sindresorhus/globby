@@ -18,7 +18,7 @@ const assertPatternsInput = patterns => {
 
 const checkCwdOption = options => {
 	if (options && options.cwd && !fs.statSync(options.cwd).isDirectory()) {
-		throw new Error('Option `cwd` must be a path to a directory');
+		throw new Error('The `cwd` option must be a path to a directory');
 	}
 };
 
