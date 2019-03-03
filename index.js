@@ -75,7 +75,7 @@ const globToTask = task => glob => {
 	};
 };
 
-module.exports = (patterns, options) => {
+const globby = (patterns, options) => {
 	let globTasks;
 
 	try {
@@ -105,6 +105,9 @@ module.exports = (patterns, options) => {
 				.then(paths => paths.filter(p => !filter(p)));
 		});
 };
+
+module.exports = globby;
+module.exports.default = globby;
 
 module.exports.sync = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
