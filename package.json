@@ -14,11 +14,12 @@
 	},
 	"scripts": {
 		"bench": "npm update glob-stream fast-glob && matcha bench.js",
-		"test": "xo && ava"
+		"test": "xo && ava && tsd-check"
 	},
 	"files": [
 		"index.js",
-		"gitignore.js"
+		"gitignore.js",
+		"index.d.ts"
 	],
 	"keywords": [
 		"all",
@@ -55,6 +56,7 @@
 		"git"
 	],
 	"dependencies": {
+		"@types/glob": "^7.1.1",
 		"array-union": "^1.0.2",
 		"dir-glob": "^2.2.1",
 		"fast-glob": "^2.2.6",
@@ -69,6 +71,7 @@
 		"globby": "sindresorhus/globby#master",
 		"matcha": "^0.7.0",
 		"rimraf": "^2.6.3",
+		"tsd-check": "^0.3.0",
 		"xo": "^0.24.0"
 	},
 	"xo": {
