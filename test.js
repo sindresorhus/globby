@@ -245,22 +245,26 @@ test.failing('`{extension: false}` and `expandDirectories.extensions` option', t
 
 test('throws when specifying a file as cwd - async', async t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
+
 	await t.throwsAsync(
 		globby('.', {cwd: isFile}),
-		'Option `cwd` must be a path to a directory'
+		'The `cwd` option must be a path to a directory'
 	);
+
 	await t.throwsAsync(
 		globby('*', {cwd: isFile}),
-		'Option `cwd` must be a path to a directory'
+		'The `cwd` option must be a path to a directory'
 	);
 });
 
 test('throws when specifying a file as cwd - sync', t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
+
 	t.throws(() => {
 		globby.sync('.', {cwd: isFile});
-	}, 'Option `cwd` must be a path to a directory');
+	}, 'The `cwd` option must be a path to a directory');
+
 	t.throws(() => {
 		globby.sync('*', {cwd: isFile});
-	}, 'Option `cwd` must be a path to a directory');
+	}, 'The `cwd` option must be a path to a directory');
 });
