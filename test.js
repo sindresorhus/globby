@@ -2,6 +2,7 @@ import fs from 'fs';
 import util from 'util';
 import path from 'path';
 import test from 'ava';
+import getStream from 'get-stream';
 import globby from '.';
 
 const cwd = process.cwd();
@@ -72,6 +73,41 @@ test('return [] for all negative patterns - async', async t => {
 	t.deepEqual(await globby(['!a.tmp', '!b.tmp']), []);
 });
 
+test('glob - stream', async t => {
+	t.deepEqual((await getStream.array(globby.stream('*.tmp'))).sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+});
+
+// Readable streams are readable since node version 10, but this test runs on 6 and 8 too.
+// So we define the test only if async iteration is supported.
+if (Symbol.asyncIterator) {
+	// For the reason behind `eslint-disable` below see https://github.com/avajs/eslint-plugin-ava/issues/216
+	// eslint-disable-next-line ava/no-async-fn-without-await
+	test('glob - stream async iterator support', async t => {
+		const results = [];
+		for await (const path of globby.stream('*.tmp')) {
+			results.push(path);
+		}
+
+		t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	});
+}
+
+test('glob - stream - multiple file paths', async t => {
+	t.deepEqual(await getStream.array(globby.stream(['a.tmp', 'b.tmp'])), ['a.tmp', 'b.tmp']);
+});
+
+test('glob with multiple patterns - stream', async t => {
+	t.deepEqual(await getStream.array(globby.stream(['a.tmp', '*.tmp', '!{c,d,e}.tmp'])), ['a.tmp', 'b.tmp']);
+});
+
+test('respect patterns order - stream', async t => {
+	t.deepEqual(await getStream.array(globby.stream(['!*.tmp', 'a.tmp'])), ['a.tmp']);
+});
+
+test('return [] for all negative patterns - stream', async t => {
+	t.deepEqual(await getStream.array(globby.stream(['!a.tmp', '!b.tmp'])), []);
+});
+
 test('cwd option', t => {
 	process.chdir(tmp);
 	t.deepEqual(globby.sync('*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
@@ -86,6 +122,11 @@ test('don\'t mutate the options object - async', async t => {
 
 test('don\'t mutate the options object - sync', t => {
 	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+	t.pass();
+});
+
+test('don\'t mutate the options object - stream', async t => {
+	await getStream.array(globby.stream(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])})));
 	t.pass();
 });
 
@@ -180,13 +221,23 @@ test.failing('relative paths and ignores option', t => {
 		await t.throwsAsync(globby(value), message);
 	});
 
-	test(`throws for invalid patterns input: ${valueString}`, t => {
+	test(`throws for invalid patterns input: ${valueString} - sync`, t => {
 		t.throws(() => {
 			globby.sync(value);
 		}, TypeError);
 
 		t.throws(() => {
 			globby.sync(value);
+		}, message);
+	});
+
+	test(`throws for invalid patterns input: ${valueString} - stream`, t => {
+		t.throws(() => {
+			globby.stream(value);
+		}, TypeError);
+
+		t.throws(() => {
+			globby.stream(value);
 		}, message);
 	});
 
@@ -201,7 +252,7 @@ test.failing('relative paths and ignores option', t => {
 	});
 });
 
-test('gitignore option defaults to false', async t => {
+test('gitignore option defaults to false - async', async t => {
 	const actual = await globby('*', {onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
@@ -211,7 +262,12 @@ test('gitignore option defaults to false - sync', t => {
 	t.true(actual.includes('node_modules'));
 });
 
-test('respects gitignore option true', async t => {
+test('gitignore option defaults to false - stream', async t => {
+	const actual = await getStream.array(globby.stream('*', {onlyFiles: false}));
+	t.true(actual.indexOf('node_modules') > -1);
+});
+
+test('respects gitignore option true - async', async t => {
 	const actual = await globby('*', {gitignore: true, onlyFiles: false});
 	t.false(actual.includes('node_modules'));
 });
@@ -221,7 +277,12 @@ test('respects gitignore option true - sync', t => {
 	t.false(actual.includes('node_modules'));
 });
 
-test('respects gitignore option false', async t => {
+test('respects gitignore option true - stream', async t => {
+	const actual = await getStream.array(globby.stream('*', {gitignore: true, onlyFiles: false}));
+	t.false(actual.indexOf('node_modules') > -1);
+});
+
+test('respects gitignore option false - async', async t => {
 	const actual = await globby('*', {gitignore: false, onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
@@ -235,6 +296,11 @@ test('gitignore option with stats option', async t => {
 	const result = await globby('*', {gitignore: true, stats: true});
 	const actual = result.map(x => x.path);
 	t.false(actual.includes('node_modules'));
+});
+
+test('respects gitignore option false - stream', async t => {
+	const actual = await getStream.array(globby.stream('*', {gitignore: false, onlyFiles: false}));
+	t.true(actual.indexOf('node_modules') > -1);
 });
 
 // https://github.com/sindresorhus/globby/issues/97
@@ -282,5 +348,17 @@ test('throws when specifying a file as cwd - sync', t => {
 
 	t.throws(() => {
 		globby.sync('*', {cwd: isFile});
+	}, 'The `cwd` option must be a path to a directory');
+});
+
+test('throws when specifying a file as cwd - stream', t => {
+	const isFile = path.resolve('fixtures/gitignore/bar.js');
+
+	t.throws(() => {
+		globby.stream('.', {cwd: isFile});
+	}, 'The `cwd` option must be a path to a directory');
+
+	t.throws(() => {
+		globby.stream('*', {cwd: isFile});
 	}, 'The `cwd` option must be a path to a directory');
 });

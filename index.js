@@ -1,10 +1,12 @@
 'use strict';
 const fs = require('fs');
 const arrayUnion = require('array-union');
+const merge2 = require('merge2');
 const glob = require('glob');
 const fastGlob = require('fast-glob');
 const dirGlob = require('dir-glob');
 const gitignore = require('./gitignore');
+const {FilterStream, UniqueStream} = require('./stream-utils');
 
 const DEFAULT_FILTER = () => false;
 
@@ -81,6 +83,12 @@ const globDirs = (task, fn) => {
 
 const getPattern = (task, fn) => task.options.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
+const getFilterSync = options => {
+	return options && options.gitignore ?
+		gitignore.sync({cwd: options.cwd, ignore: options.ignore}) :
+		DEFAULT_FILTER;
+};
+
 const globToTask = task => glob => {
 	const {options} = task;
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
@@ -120,22 +128,34 @@ module.exports = async (patterns, options) => {
 module.exports.sync = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
-	const getFilter = () => {
-		return options && options.gitignore ?
-			gitignore.sync({cwd: options.cwd, ignore: options.ignore}) :
-			DEFAULT_FILTER;
-	};
+	const tasks = globTasks.reduce((tasks, task) => {
+		const newTask = getPattern(task, dirGlob.sync).map(globToTask(task));
+		return tasks.concat(newTask);
+	}, []);
+
+	const filter = getFilterSync(options);
+
+	return tasks.reduce(
+		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.options)),
+		[]
+	).filter(path_ => !filter(path_));
+};
+
+module.exports.stream = (patterns, options) => {
+	const globTasks = generateGlobTasks(patterns, options);
 
 	const tasks = globTasks.reduce((tasks, task) => {
 		const newTask = getPattern(task, dirGlob.sync).map(globToTask(task));
 		return tasks.concat(newTask);
 	}, []);
 
-	const filter = getFilter();
-	return tasks.reduce(
-		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.options)),
-		[]
-	).filter(path_ => !filter(path_));
+	const filter = getFilterSync(options);
+	const filterStream = new FilterStream(p => !filter(p));
+	const uniqueStream = new UniqueStream();
+
+	return merge2(tasks.map(task => fastGlob.stream(task.pattern, task.options)))
+		.pipe(filterStream)
+		.pipe(uniqueStream);
 };
 
 module.exports.generateGlobTasks = generateGlobTasks;

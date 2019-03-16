@@ -93,6 +93,10 @@ Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
 Returns `string[]` of matching paths.
 
+### globby.stream(patterns, options?)
+
+Returns a `ReadableStream` of matching paths.
+
 ### globby.generateGlobTasks(patterns, options?)
 
 Returns an `object[]` in the format `{pattern: string, options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
