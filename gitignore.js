@@ -44,8 +44,8 @@ const reduceIgnore = files => {
 	}, gitIgnore());
 };
 
-const getIsIgnoredPredecate = (ignores, cwd) => {
-	return p => ignores.ignores(slash(path.relative(cwd, p)));
+const getIsIgnoredPredecate = ignores => {
+	return p => ignores.ignores(slash(p));
 };
 
 const getFile = (file, cwd) => {
@@ -84,7 +84,7 @@ module.exports = options => {
 	})
 		.then(paths => Promise.all(paths.map(file => getFile(file, options.cwd))))
 		.then(files => reduceIgnore(files))
-		.then(ignores => getIsIgnoredPredecate(ignores, options.cwd));
+		.then(ignores => getIsIgnoredPredecate(ignores));
 };
 
 module.exports.sync = options => {
@@ -97,5 +97,5 @@ module.exports.sync = options => {
 	const files = paths.map(file => getFileSync(file, options.cwd));
 	const ignores = reduceIgnore(files);
 
-	return getIsIgnoredPredecate(ignores, options.cwd);
+	return getIsIgnoredPredecate(ignores);
 };
