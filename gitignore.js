@@ -52,6 +52,7 @@ const getIsIgnoredPredecate = (ignores, cwd) => {
 		} else {
 			p = slash(p);
 		}
+
 		return ignores.ignores(p);
 	};
 };
