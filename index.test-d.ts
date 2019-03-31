@@ -1,5 +1,6 @@
-import {expectType} from 'tsd-check';
-import globby, {
+import {expectType} from 'tsd';
+import globby = require('.');
+import {
 	GlobTask,
 	FilterFunction,
 	sync as globbySync,
