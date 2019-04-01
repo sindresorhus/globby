@@ -115,6 +115,7 @@ const globby = (patterns, options) => {
 };
 
 module.exports = globby;
+// TODO: Remove this for the next major release
 module.exports.default = globby;
 
 module.exports.sync = (patterns, options) => {
