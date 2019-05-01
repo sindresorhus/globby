@@ -6,8 +6,6 @@ const fastGlob = require('fast-glob');
 const dirGlob = require('dir-glob');
 const gitignore = require('./gitignore');
 
-const DEFAULT_FILTER = () => false;
-
 const isNegative = pattern => pattern[0] === '!';
 
 const assertPatternsInput = patterns => {
@@ -85,33 +83,44 @@ const globToTask = task => glob => {
 
 const globby = (patterns, options) => {
 	let globTasks;
+	patterns = arrayUnion([].concat(patterns));
 
 	try {
-		globTasks = generateGlobTasks(patterns, options);
+		assertPatternsInput(patterns);
+		checkCwdOption(options);
 	} catch (error) {
 		return Promise.reject(error);
 	}
 
-	const getTasks = Promise.all(globTasks.map(task => Promise.resolve(getPattern(task, dirGlob))
-		.then(globs => Promise.all(globs.map(globToTask(task))))
-	))
-		.then(tasks => arrayUnion(...tasks));
-
-	const getFilter = () => {
+	const gitignoreStrings = () => {
 		return Promise.resolve(
 			options && options.gitignore ?
-				gitignore({cwd: options.cwd, ignore: options.ignore}) :
-				DEFAULT_FILTER
+				gitignore.getPatterns({cwd: options.cwd, ignore: options.ignore}) :
+				[]
 		);
 	};
 
-	return getFilter()
-		.then(filter => {
-			return getTasks
-				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.options))))
-				.then(paths => arrayUnion(...paths))
-				.then(paths => paths.filter(p => !filter(p)));
-		});
+	return gitignoreStrings().then(gitignoreStrings => {
+		console.log();
+
+		try {
+			globTasks = generateGlobTasks(patterns.concat(gitignoreStrings), options);
+		} catch (error) {
+			return Promise.reject(error);
+		}
+
+		const getTasks = Promise.all(globTasks.map(task => Promise.resolve(getPattern(task, dirGlob))
+			.then(globs => Promise.all(globs.map(globToTask(task))))
+		))
+			.then(tasks => arrayUnion(...tasks));
+
+		return getTasks
+			.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.options))))
+			.then(paths => arrayUnion(...paths))
+			.then(res => {
+				return res;
+			});
+	});
 };
 
 module.exports = globby;
@@ -119,24 +128,22 @@ module.exports = globby;
 module.exports.default = globby;
 
 module.exports.sync = (patterns, options) => {
-	const globTasks = generateGlobTasks(patterns, options);
-
-	const getFilter = () => {
-		return options && options.gitignore ?
-			gitignore.sync({cwd: options.cwd, ignore: options.ignore}) :
-			DEFAULT_FILTER;
-	};
-
+	patterns = arrayUnion([].concat(patterns));
+	assertPatternsInput(patterns);
+	checkCwdOption(options);
+	const gitignoreStrings = options && options.gitignore ?
+		gitignore.getPatterns.sync({cwd: options.cwd, ignore: options.ignore}) :
+		[];
+	const globTasks = generateGlobTasks(patterns.concat(gitignoreStrings), options);
 	const tasks = globTasks.reduce((tasks, task) => {
 		const newTask = getPattern(task, dirGlob.sync).map(globToTask(task));
 		return tasks.concat(newTask);
 	}, []);
 
-	const filter = getFilter();
 	return tasks.reduce(
 		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.options)),
 		[]
-	).filter(p => !filter(p));
+	);
 };
 
 module.exports.generateGlobTasks = generateGlobTasks;
