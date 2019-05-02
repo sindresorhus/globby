@@ -1,35 +1,51 @@
-"use strict";
-const fs = require("fs");
-const arrayUnion = require("array-union");
-const glob = require("glob");
-const fastGlob = require("fast-glob");
-const dirGlob = require("dir-glob");
-const gitignore = require("./gitignore");
+'use strict';
+const fs = require('fs');
+const arrayUnion = require('array-union');
+const glob = require('glob');
+const fastGlob = require('fast-glob');
+const dirGlob = require('dir-glob');
+const gitignore = require('./gitignore');
 
-const isNegative = (pattern) => pattern[0] === "!";
+const isNegative = pattern => pattern[0] === '!';
 
-const assertPatternsInput = (patterns) => {
-	if (!patterns.every((x) => typeof x === "string")) {
-		throw new TypeError("Patterns must be a string or an array of strings");
+const assertPatternsInput = patterns => {
+	if (!patterns.every(x => typeof x === 'string')) {
+		throw new TypeError('Patterns must be a string or an array of strings');
 	}
 };
 
-const checkCwdOption = (options) => {
+const checkCwdOption = options => {
 	if (options && options.cwd && !fs.statSync(options.cwd).isDirectory()) {
-		throw new Error("The `cwd` option must be a path to a directory");
+		throw new Error('The `cwd` option must be a path to a directory');
+	}
+};
+
+// https://github.com/sindresorhus/globby/issues/97
+const checkExtensionOptions = options => {
+	if (
+		options &&
+		options.noext &&
+		options.expandDirectories.extensions &&
+		options.expandDirectories.extensions.length !== 0
+	) {
+		throw new Error(
+			'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
+		);
 	}
 };
 
 function gitPatterns(cb, sync = true) {
-	return function(patterns, options) {
+	return function (patterns, options) {
 		patterns = arrayUnion([].concat(patterns));
 		if (sync) {
 			assertPatternsInput(patterns);
 			checkCwdOption(options);
+			checkExtensionOptions(options);
 		} else {
 			try {
 				assertPatternsInput(patterns);
 				checkCwdOption(options);
+				checkExtensionOptions(options);
 			} catch (error) {
 				return Promise.reject(error);
 			}
@@ -41,17 +57,15 @@ function gitPatterns(cb, sync = true) {
 
 		const gitignoreStrings = () => {
 			return Promise.resolve(
-				patterns.concat(
-					gitignore.getPatterns({
-						cwd: options.cwd,
-						ignore: options.ignore
-					})
-				)
+				gitignore.getPatterns({
+					cwd: options.cwd,
+					ignore: options.ignore
+				})
 			);
 		};
 
 		if (!sync) {
-			return gitignoreStrings().then(cb);
+			return gitignoreStrings().then(x => patterns.concat(x)).then(cb);
 		}
 
 		patterns = patterns.concat(
@@ -84,13 +98,13 @@ const generateGlobTasks = (patterns, taskOptions) => {
 		const ignore = patterns
 			.slice(i)
 			.filter(isNegative)
-			.map((pattern) => pattern.slice(1));
+			.map(pattern => pattern.slice(1));
 
 		const options = Object.assign({}, taskOptions, {
 			ignore: taskOptions.ignore.concat(ignore)
 		});
 
-		globTasks.push({ pattern, options });
+		globTasks.push({pattern, options});
 	});
 
 	return globTasks;
@@ -106,7 +120,7 @@ const globDirs = (task, fn) => {
 		options = Object.assign(options, {
 			files: task.options.expandDirectories
 		});
-	} else if (typeof task.options.expandDirectories === "object") {
+	} else if (typeof task.options.expandDirectories === 'object') {
 		options = Object.assign(options, task.options.expandDirectories);
 	}
 
@@ -116,8 +130,8 @@ const globDirs = (task, fn) => {
 const getPattern = (task, fn) =>
 	task.options.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
-const globToTask = (task) => (glob) => {
-	const { options } = task;
+const globToTask = task => glob => {
+	const {options} = task;
 	if (
 		options.ignore &&
 		Array.isArray(options.ignore) &&
@@ -142,21 +156,21 @@ const globby = (patterns, options) => {
 	}
 
 	const getTasks = Promise.all(
-		globTasks.map((task) =>
-			Promise.resolve(getPattern(task, dirGlob)).then((globs) =>
+		globTasks.map(task =>
+			Promise.resolve(getPattern(task, dirGlob)).then(globs =>
 				Promise.all(globs.map(globToTask(task)))
 			)
 		)
-	).then((tasks) => arrayUnion(...tasks));
+	).then(tasks => arrayUnion(...tasks));
 
 	return getTasks
-		.then((tasks) =>
+		.then(tasks =>
 			Promise.all(
-				tasks.map((task) => fastGlob(task.pattern, task.options))
+				tasks.map(task => fastGlob(task.pattern, task.options))
 			)
 		)
-		.then((paths) => arrayUnion(...paths))
-		.then((res) => {
+		.then(paths => arrayUnion(...paths))
+		.then(res => {
 			return res;
 		});
 };
@@ -186,7 +200,7 @@ module.exports.sync = gitPatterns((patterns, options) => {
 module.exports.generateGlobTasks = gitPatterns(generateGlobTasks);
 
 module.exports.hasMagic = gitPatterns((patterns, options) =>
-	[].concat(patterns).some((pattern) => glob.hasMagic(pattern, options))
+	[].concat(patterns).some(pattern => glob.hasMagic(pattern, options))
 );
 
 module.exports.gitignore = gitignore;
