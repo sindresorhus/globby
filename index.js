@@ -24,7 +24,7 @@ const checkCwdOption = options => {
 const checkExtensionOptions = options => {
 	if (
 		options &&
-		options.noext &&
+		(options.noext === true || options.extension === false) &&
 		options.expandDirectories.extensions &&
 		options.expandDirectories.extensions.length !== 0
 	) {
@@ -65,7 +65,9 @@ function gitPatterns(cb, sync = true) {
 		};
 
 		if (!sync) {
-			return gitignoreStrings().then(x => patterns.concat(x)).then(cb);
+			return gitignoreStrings()
+				.then(x => patterns.concat(x))
+				.then(cb);
 		}
 
 		patterns = patterns.concat(

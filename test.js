@@ -6,13 +6,7 @@ import globby from '.';
 
 const cwd = process.cwd();
 const tmp = 'tmp';
-const fixture = [
-	'a.tmp',
-	'b.tmp',
-	'c.tmp',
-	'd.tmp',
-	'e.tmp'
-];
+const fixture = ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp'];
 
 test.before(() => {
 	if (!fs.existsSync(tmp)) {
@@ -35,7 +29,13 @@ test.after(() => {
 });
 
 test('glob - async', async t => {
-	t.deepEqual((await globby('*.tmp')).sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual((await globby('*.tmp')).sort(), [
+		'a.tmp',
+		'b.tmp',
+		'c.tmp',
+		'd.tmp',
+		'e.tmp'
+	]);
 });
 
 test('glob - async - multiple file paths', t => {
@@ -43,7 +43,10 @@ test('glob - async - multiple file paths', t => {
 });
 
 test('glob with multiple patterns - async', async t => {
-	t.deepEqual(await globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
+	t.deepEqual(await globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), [
+		'a.tmp',
+		'b.tmp'
+	]);
 });
 
 test('respect patterns order - async', async t => {
@@ -55,8 +58,17 @@ test('respect patterns order - sync', t => {
 });
 
 test('glob - sync', t => {
-	t.deepEqual(globby.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
+	t.deepEqual(globby.sync('*.tmp'), [
+		'a.tmp',
+		'b.tmp',
+		'c.tmp',
+		'd.tmp',
+		'e.tmp'
+	]);
+	t.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), [
+		'a.tmp',
+		'b.tmp'
+	]);
 	t.deepEqual(globby.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
@@ -74,23 +86,40 @@ test('return [] for all negative patterns - async', async t => {
 
 test('cwd option', t => {
 	process.chdir(tmp);
-	t.deepEqual(globby.sync('*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
+	t.deepEqual(globby.sync('*.tmp', {cwd}), [
+		'a.tmp',
+		'b.tmp',
+		'c.tmp',
+		'd.tmp',
+		'e.tmp'
+	]);
+	t.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), [
+		'a.tmp',
+		'b.tmp'
+	]);
 	process.chdir(cwd);
 });
 
 test('don\'t mutate the options object - async', async t => {
-	await globby(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+	await globby(
+		['*.tmp', '!b.tmp'],
+		Object.freeze({ignore: Object.freeze([])})
+	);
 	t.pass();
 });
 
 test('don\'t mutate the options object - sync', t => {
-	globby.sync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
+	globby.sync(
+		['*.tmp', '!b.tmp'],
+		Object.freeze({ignore: Object.freeze([])})
+	);
 	t.pass();
 });
 
 test('expose generateGlobTasks', t => {
-	const tasks = globby.generateGlobTasks(['*.tmp', '!b.tmp'], {ignore: ['c.tmp']});
+	const tasks = globby.generateGlobTasks(['*.tmp', '!b.tmp'], {
+		ignore: ['c.tmp']
+	});
 
 	t.is(tasks.length, 1);
 	t.is(tasks[0].pattern, '*.tmp');
@@ -104,52 +133,95 @@ test('expose hasMagic', t => {
 });
 
 test('expandDirectories option', t => {
-	t.deepEqual(globby.sync(tmp), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	t.deepEqual(globby.sync('**', {cwd: tmp}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globby.sync(tmp, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globby.sync(tmp, {
-		expandDirectories: {
-			files: ['a', 'b'],
-			extensions: ['tmp']
-		}
-	}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globby.sync(tmp, {
-		expandDirectories: {
-			files: ['a', 'b'],
-			extensions: ['tmp']
-		},
-		ignore: ['**/b.tmp']
-	}), ['tmp/a.tmp']);
+	t.deepEqual(globby.sync(tmp), [
+		'tmp/a.tmp',
+		'tmp/b.tmp',
+		'tmp/c.tmp',
+		'tmp/d.tmp',
+		'tmp/e.tmp'
+	]);
+	t.deepEqual(globby.sync('**', {cwd: tmp}), [
+		'a.tmp',
+		'b.tmp',
+		'c.tmp',
+		'd.tmp',
+		'e.tmp'
+	]);
+	t.deepEqual(globby.sync(tmp, {expandDirectories: ['a*', 'b*']}), [
+		'tmp/a.tmp',
+		'tmp/b.tmp'
+	]);
+	t.deepEqual(
+		globby.sync(tmp, {
+			expandDirectories: {
+				files: ['a', 'b'],
+				extensions: ['tmp']
+			}
+		}),
+		['tmp/a.tmp', 'tmp/b.tmp']
+	);
+	t.deepEqual(
+		globby.sync(tmp, {
+			expandDirectories: {
+				files: ['a', 'b'],
+				extensions: ['tmp']
+			},
+			ignore: ['**/b.tmp']
+		}),
+		['tmp/a.tmp']
+	);
 });
 
 test('expandDirectories:true and onlyFiles:true option', t => {
-	t.deepEqual(globby.sync(tmp, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync(tmp, {onlyFiles: true}), [
+		'tmp/a.tmp',
+		'tmp/b.tmp',
+		'tmp/c.tmp',
+		'tmp/d.tmp',
+		'tmp/e.tmp'
+	]);
 });
 
 test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// See https://github.com/mrmlnc/fast-glob/issues/47
-	t.deepEqual(globby.sync(tmp, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync(tmp, {onlyFiles: false}), [
+		'tmp',
+		'tmp/a.tmp',
+		'tmp/b.tmp',
+		'tmp/c.tmp',
+		'tmp/d.tmp',
+		'tmp/e.tmp'
+	]);
 });
 
 test('expandDirectories and ignores option', t => {
-	t.deepEqual(globby.sync('tmp', {
-		ignore: ['tmp']
-	}), []);
+	t.deepEqual(
+		globby.sync('tmp', {
+			ignore: ['tmp']
+		}),
+		[]
+	);
 
-	t.deepEqual(globby.sync('tmp/**', {
-		expandDirectories: false,
-		ignore: ['tmp']
-	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(
+		globby.sync('tmp/**', {
+			expandDirectories: false,
+			ignore: ['tmp']
+		}),
+		['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
+	);
 });
 
 test.failing('relative paths and ignores option', t => {
 	process.chdir(tmp);
-	t.deepEqual(globby.sync('../tmp', {
-		cwd: process.cwd(),
-		ignore: ['tmp']
-	}), []);
+	t.deepEqual(
+		globby.sync('../tmp', {
+			cwd: process.cwd(),
+			ignore: ['tmp']
+		}),
+		[]
+	);
 	process.chdir(cwd);
 });
 
@@ -222,24 +294,42 @@ test('respects gitignore option false - sync', t => {
 });
 
 // https://github.com/sindresorhus/globby/issues/97
-test.failing('`{extension: false}` and `expandDirectories.extensions` option', t => {
-	t.deepEqual(
-		globby.sync(tmp, {
-			extension: false,
-			expandDirectories: {
-				extensions: [
-					'md',
-					'tmp'
-				]
-			}
-		}),
-		[
-			'a.tmp',
-			'b.tmp',
-			'c.tmp',
-			'd.tmp',
-			'e.tmp'
-		]
+test.failing(
+	'`{extension: false}` and `expandDirectories.extensions` option',
+	t => {
+		t.deepEqual(
+			globby.sync(tmp, {
+				extension: false,
+				expandDirectories: {
+					extensions: ['md', 'tmp']
+				}
+			}),
+			['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']
+		);
+	}
+);
+
+test('`{extension: false}` and `expandDirectories.extensions` option throws error', async t => {
+	await t.throwsAsync(globby(tmp, {
+		extension: false,
+		expandDirectories: {
+			extensions: ['md', 'tmp']
+		}
+	}),
+	'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
+	);
+});
+
+test('`{extension: false}` and `expandDirectories.extensions` option throws error - sync', t => {
+	t.throws(
+		() =>
+			globby.sync(tmp, {
+				extension: false,
+				expandDirectories: {
+					extensions: ['md', 'tmp']
+				}
+			}),
+		'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
 	);
 });
 
