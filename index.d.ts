@@ -5,7 +5,7 @@ declare namespace globby {
 	type ExpandDirectoriesOption =
 		| boolean
 		| ReadonlyArray<string>
-		| {files: ReadonlyArray<string>; extensions: ReadonlyArray<string>};
+		| {files: readonly string[]; extensions: readonly string[]};
 
 	interface GlobbyOptions extends FastGlobOptions {
 		/**
@@ -48,7 +48,7 @@ declare namespace globby {
 
 	interface GitignoreOptions {
 		readonly cwd?: string;
-		readonly ignore?: ReadonlyArray<string>;
+		readonly ignore?: readonly string[];
 	}
 
 	type FilterFunction = (path: string) => boolean;
@@ -58,7 +58,7 @@ interface Gitignore {
 	/**
 	`.gitignore` files matched by the ignore config are not used for the resulting filter function.
 
-	@returns A `Promise` for a filter function indicating whether a given path is ignored via a `.gitignore` file.
+	@returns A filter function indicating whether a given path is ignored via a `.gitignore` file.
 
 	@example
 	```
@@ -82,7 +82,7 @@ declare const globby: {
 	/**
 	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
-	@returns A `Promise<Array>` of matching paths.
+	@returns The matching paths.
 
 	@example
 	```
@@ -97,17 +97,17 @@ declare const globby: {
 	```
 	*/
 	(
-		patterns: string | ReadonlyArray<string>,
+		patterns: string | readonly string[],
 		options?: globby.GlobbyOptions
 	): Promise<string[]>;
 
 	/**
 	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
-	@returns An `Array` of matching paths.
+	@returns The matching paths.
 	*/
 	sync(
-		patterns: string | ReadonlyArray<string>,
+		patterns: string | readonly string[],
 		options?: globby.GlobbyOptions
 	): string[];
 
@@ -116,10 +116,10 @@ declare const globby: {
 
 	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
-	@returns An `Array<Object>` in the format `{ pattern: string, options: Object }`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
+	@returns Object in the format `{ pattern: string, options: Object }`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 	*/
 	generateGlobTasks(
-		patterns: string | ReadonlyArray<string>,
+		patterns: string | readonly string[],
 		options?: globby.GlobbyOptions
 	): globby.GlobTask[];
 
@@ -130,10 +130,10 @@ declare const globby: {
 
 	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 	@param options - See the [`node-glob` options](https://github.com/isaacs/node-glob#globhasmagicpattern-options).
-	@returns A boolean of whether there are any special glob characters in the `patterns`.
+	@returns Whether there are any special glob characters in the `patterns`.
 	*/
 	hasMagic(
-		patterns: string | ReadonlyArray<string>,
+		patterns: string | readonly string[],
 		options?: NodeGlobOptions
 	): boolean;
 
