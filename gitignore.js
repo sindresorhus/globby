@@ -44,8 +44,20 @@ const reduceIgnore = files => {
 	}, gitIgnore());
 };
 
+const ensureAbsolutePathForCwd = (cwd, p) => {
+	if (path.isAbsolute(p)) {
+		if (p.startsWith(cwd)) {
+			return p;
+		}
+
+		throw new Error(`Path ${p} is not in cwd ${cwd}`);
+	}
+
+	return path.join(cwd, p);
+};
+
 const getIsIgnoredPredecate = (ignores, cwd) => {
-	return p => ignores.ignores(slash(path.relative(cwd, p)));
+	return p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, p))));
 };
 
 const getFile = (file, cwd) => {
