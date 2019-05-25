@@ -221,6 +221,12 @@ test('respects gitignore option false - sync', t => {
 	t.true(actual.indexOf('node_modules') > -1);
 });
 
+test('gitignore option with stats option', async t => {
+	const res = await globby('*', {gitignore: true, stats: true});
+	const actual = res.map(s => s.path);
+	t.false(actual.indexOf('node_modules') > -1);
+});
+
 // https://github.com/sindresorhus/globby/issues/97
 test.failing('`{extension: false}` and `expandDirectories.extensions` option', t => {
 	t.deepEqual(

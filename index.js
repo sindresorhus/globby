@@ -22,6 +22,8 @@ const checkCwdOption = options => {
 	}
 };
 
+const getPathString = p => p instanceof fs.Stats ? p.path : p;
+
 const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([].concat(patterns));
 	assertPatternsInput(patterns);
@@ -110,7 +112,7 @@ const globby = (patterns, options) => {
 			return getTasks
 				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.options))))
 				.then(paths => arrayUnion(...paths))
-				.then(paths => paths.filter(p => !filter(p)));
+				.then(paths => paths.filter(p => !filter(getPathString(p))));
 		});
 };
 
