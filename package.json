@@ -19,7 +19,8 @@
 	"files": [
 		"index.js",
 		"gitignore.js",
-		"index.d.ts"
+		"index.d.ts",
+		"stream-utils.js"
 	],
 	"keywords": [
 		"all",
