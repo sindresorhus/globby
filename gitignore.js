@@ -8,7 +8,6 @@ const slash = require('slash');
 
 const DEFAULT_IGNORE = [
 	'**/node_modules/**',
-	'**/bower_components/**',
 	'**/flow-typed/**',
 	'**/coverage/**',
 	'**/.git'
