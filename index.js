@@ -11,7 +11,7 @@ const DEFAULT_FILTER = () => false;
 const isNegative = pattern => pattern[0] === '!';
 
 const assertPatternsInput = patterns => {
-	if (!patterns.every(x => typeof x === 'string')) {
+	if (!patterns.every(pattern => typeof pattern === 'string')) {
 		throw new TypeError('Patterns must be a string or an array of strings');
 	}
 };
@@ -31,27 +31,29 @@ const generateGlobTasks = (patterns, taskOptions) => {
 
 	const globTasks = [];
 
-	taskOptions = Object.assign({
+	taskOptions = {
 		ignore: [],
-		expandDirectories: true
-	}, taskOptions);
+		expandDirectories: true,
+		...taskOptions
+	};
 
-	patterns.forEach((pattern, i) => {
+	for (const [index, pattern] of patterns.entries()) {
 		if (isNegative(pattern)) {
-			return;
+			continue;
 		}
 
 		const ignore = patterns
-			.slice(i)
+			.slice(index)
 			.filter(isNegative)
 			.map(pattern => pattern.slice(1));
 
-		const options = Object.assign({}, taskOptions, {
+		const options = {
+			...taskOptions,
 			ignore: taskOptions.ignore.concat(ignore)
-		});
+		};
 
 		globTasks.push({pattern, options});
-	});
+	}
 
 	return globTasks;
 };
@@ -63,9 +65,15 @@ const globDirs = (task, fn) => {
 	}
 
 	if (Array.isArray(task.options.expandDirectories)) {
-		options = Object.assign(options, {files: task.options.expandDirectories});
+		options = {
+			...options,
+			files: task.options.expandDirectories
+		};
 	} else if (typeof task.options.expandDirectories === 'object') {
-		options = Object.assign(options, task.options.expandDirectories);
+		options = {
+			...options,
+			...task.options.expandDirectories
+		};
 	}
 
 	return fn(task.pattern, options);
@@ -85,40 +93,29 @@ const globToTask = task => glob => {
 	};
 };
 
-const globby = (patterns, options) => {
-	let globTasks;
+module.exports = async (patterns, options) => {
+	const globTasks = generateGlobTasks(patterns, options);
 
-	try {
-		globTasks = generateGlobTasks(patterns, options);
-	} catch (error) {
-		return Promise.reject(error);
-	}
-
-	const getTasks = Promise.all(globTasks.map(task => Promise.resolve(getPattern(task, dirGlob))
-		.then(globs => Promise.all(globs.map(globToTask(task))))
-	))
-		.then(tasks => arrayUnion(...tasks));
-
-	const getFilter = () => {
-		return Promise.resolve(
-			options && options.gitignore ?
-				gitignore({cwd: options.cwd, ignore: options.ignore}) :
-				DEFAULT_FILTER
-		);
+	const getFilter = async () => {
+		return options && options.gitignore ?
+			gitignore({cwd: options.cwd, ignore: options.ignore}) :
+			DEFAULT_FILTER;
 	};
 
-	return getFilter()
-		.then(filter => {
-			return getTasks
-				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.options))))
-				.then(paths => arrayUnion(...paths))
-				.then(paths => paths.filter(p => !filter(getPathString(p))));
-		});
-};
+	const getTasks = async () => {
+		const tasks = await Promise.all(globTasks.map(async task => {
+			const globs = await getPattern(task, dirGlob);
+			return Promise.all(globs.map(globToTask(task)));
+		}));
 
-module.exports = globby;
-// TODO: Remove this for the next major release
-module.exports.default = globby;
+		return arrayUnion(...tasks);
+	};
+
+	const [filter, tasks] = await Promise.all([getFilter(), getTasks()]);
+	const paths = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
+
+	return arrayUnion(...paths).filter(path_ => !filter(getPathString(path_)));
+};
 
 module.exports.sync = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
@@ -138,7 +135,7 @@ module.exports.sync = (patterns, options) => {
 	return tasks.reduce(
 		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.options)),
 		[]
-	).filter(p => !filter(p));
+	).filter(path_ => !filter(path_));
 };
 
 module.exports.generateGlobTasks = generateGlobTasks;

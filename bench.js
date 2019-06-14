@@ -11,13 +11,15 @@ const BENCH_DIR = 'bench';
 
 const runners = [{
 	name: 'globby async (working directory)',
-	run: (patterns, cb) => {
-		globby(patterns).then(cb.bind(null, null), cb);
+	run: async (patterns, callback) => {
+		await globby(patterns);
+		callback();
 	}
 }, {
 	name: 'globby async (upstream/master)',
-	run: (patterns, cb) => {
-		globbyMaster(patterns).then(cb.bind(null, null), cb);
+	run: async (patterns, callback) => {
+		await globbyMaster(patterns);
+		callback();
 	}
 }, {
 	name: 'globby sync (working directory)',
@@ -36,8 +38,9 @@ const runners = [{
 	}
 }, {
 	name: 'fast-glob async',
-	run: (patterns, cb) => {
-		fastGlob(patterns).then(cb.bind(null, null), cb);
+	run: async (patterns, callback) => {
+		await fastGlob(patterns);
+		callback();
 	}
 }, {
 	name: 'fast-glob sync',
@@ -47,13 +50,22 @@ const runners = [{
 }];
 const benchs = [{
 	name: 'negative globs (some files inside dir)',
-	patterns: ['a/*', '!a/c*']
+	patterns: [
+		'a/*',
+		'!a/c*'
+	]
 }, {
 	name: 'negative globs (whole dir)',
-	patterns: ['a/*', '!a/**']
+	patterns: [
+		'a/*',
+		'!a/**'
+	]
 }, {
 	name: 'multiple positive globs',
-	patterns: ['a/*', 'b/*']
+	patterns: [
+		'a/*',
+		'b/*'
+	]
 }];
 
 before(() => {
@@ -62,11 +74,11 @@ before(() => {
 	fs.mkdirSync(BENCH_DIR);
 	process.chdir(BENCH_DIR);
 	['a', 'b']
-		.map(dir => `${dir}/`)
-		.forEach(dir => {
-			fs.mkdirSync(dir);
+		.map(directory => `${directory}/`)
+		.forEach(directory => {
+			fs.mkdirSync(directory);
 			for (let i = 0; i < 500; i++) {
-				fs.writeFileSync(dir + (i < 100 ? 'c' : 'd') + i, '');
+				fs.writeFileSync(directory + (i < 100 ? 'c' : 'd') + i, '');
 			}
 		});
 });

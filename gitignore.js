@@ -1,9 +1,9 @@
 'use strict';
+const {promisify} = require('util');
 const fs = require('fs');
 const path = require('path');
 const fastGlob = require('fast-glob');
 const gitIgnore = require('ignore');
-const pify = require('pify');
 const slash = require('slash');
 
 const DEFAULT_IGNORE = [
@@ -14,7 +14,7 @@ const DEFAULT_IGNORE = [
 	'**/.git'
 ];
 
-const readFileP = pify(fs.readFile);
+const readFileP = promisify(fs.readFile);
 
 const mapGitIgnorePatternTo = base => ignore => {
 	if (ignore.startsWith('!')) {
@@ -30,7 +30,7 @@ const parseGitIgnore = (content, options) => {
 	return content
 		.split(/\r?\n/)
 		.filter(Boolean)
-		.filter(line => line.charAt(0) !== '#')
+		.filter(line => !line.startsWith('#'))
 		.map(mapGitIgnorePatternTo(base));
 };
 
@@ -60,14 +60,15 @@ const getIsIgnoredPredecate = (ignores, cwd) => {
 	return p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, p))));
 };
 
-const getFile = (file, cwd) => {
+const getFile = async (file, cwd) => {
 	const filePath = path.join(cwd, file);
-	return readFileP(filePath, 'utf8')
-		.then(content => ({
-			content,
-			cwd,
-			filePath
-		}));
+	const content = await readFileP(filePath, 'utf8');
+
+	return {
+		cwd,
+		filePath,
+		content
+	};
 };
 
 const getFileSync = (file, cwd) => {
@@ -75,28 +76,31 @@ const getFileSync = (file, cwd) => {
 	const content = fs.readFileSync(filePath, 'utf8');
 
 	return {
-		content,
 		cwd,
-		filePath
+		filePath,
+		content
 	};
 };
 
-const normalizeOptions = (options = {}) => {
-	const ignore = options.ignore || [];
-	const cwd = options.cwd || process.cwd();
+const normalizeOptions = ({
+	ignore = [],
+	cwd = process.cwd()
+} = {}) => {
 	return {ignore, cwd};
 };
 
-module.exports = options => {
+module.exports = async options => {
 	options = normalizeOptions(options);
 
-	return fastGlob('**/.gitignore', {
+	const paths = await fastGlob('**/.gitignore', {
 		ignore: DEFAULT_IGNORE.concat(options.ignore),
 		cwd: options.cwd
-	})
-		.then(paths => Promise.all(paths.map(file => getFile(file, options.cwd))))
-		.then(files => reduceIgnore(files))
-		.then(ignores => getIsIgnoredPredecate(ignores, options.cwd));
+	});
+
+	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
+	const ignores = reduceIgnore(files);
+
+	return getIsIgnoredPredecate(ignores, options.cwd);
 };
 
 module.exports.sync = options => {
@@ -106,6 +110,7 @@ module.exports.sync = options => {
 		ignore: DEFAULT_IGNORE.concat(options.ignore),
 		cwd: options.cwd
 	});
+
 	const files = paths.map(file => getFileSync(file, options.cwd));
 	const ignores = reduceIgnore(files);
 

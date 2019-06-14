@@ -138,9 +138,6 @@ declare const globby: {
 	): boolean;
 
 	readonly gitignore: Gitignore;
-
-	// TODO: Remove this for the next major release
-	default: typeof globby;
 };
 
 export = globby;
