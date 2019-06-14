@@ -264,7 +264,7 @@ test('gitignore option defaults to false - sync', t => {
 
 test('gitignore option defaults to false - stream', async t => {
 	const actual = await getStream.array(globby.stream('*', {onlyFiles: false}));
-	t.true(actual.indexOf('node_modules') > -1);
+	t.true(actual.includes('node_modules'));
 });
 
 test('respects gitignore option true - async', async t => {
@@ -279,7 +279,7 @@ test('respects gitignore option true - sync', t => {
 
 test('respects gitignore option true - stream', async t => {
 	const actual = await getStream.array(globby.stream('*', {gitignore: true, onlyFiles: false}));
-	t.false(actual.indexOf('node_modules') > -1);
+	t.false(actual.includes('node_modules'));
 });
 
 test('respects gitignore option false - async', async t => {
@@ -300,7 +300,7 @@ test('gitignore option with stats option', async t => {
 
 test('respects gitignore option false - stream', async t => {
 	const actual = await getStream.array(globby.stream('*', {gitignore: false, onlyFiles: false}));
-	t.true(actual.indexOf('node_modules') > -1);
+	t.true(actual.includes('node_modules'));
 });
 
 // https://github.com/sindresorhus/globby/issues/97
