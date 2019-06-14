@@ -95,7 +95,7 @@ Returns `string[]` of matching paths.
 
 ### globby.stream(patterns, options?)
 
-Returns a `ReadableStream` of matching paths.
+Returns a [`stream.Readable`](https://nodejs.org/api/stream.html#stream_readable_streams) of matching paths.
 
 ### globby.generateGlobTasks(patterns, options?)
 
