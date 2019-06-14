@@ -112,6 +112,16 @@ declare const globby: {
 	): string[];
 
 	/**
+	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
+	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
+	@returns The stream of matching paths.
+	*/
+	stream(
+		patterns: string | readonly string[],
+		options?: globby.GlobbyOptions
+	): NodeJS.ReadableStream;
+
+	/**
 	Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
 	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
