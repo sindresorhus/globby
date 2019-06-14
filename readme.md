@@ -97,6 +97,14 @@ Returns `string[]` of matching paths.
 
 Returns a [`stream.Readable`](https://nodejs.org/api/stream.html#stream_readable_streams) of matching paths.
 
+Since Node v10 [readable streams are iterable](https://nodejs.org/api/stream.html#stream_readable_symbol_asynciterator), so you can loop over glob matches in a [`for await...of` loop](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) like this:
+
+```js
+for await (const path of globby.stream('*.tmp')) {
+	console.log({ path });
+}
+```
+
 ### globby.generateGlobTasks(patterns, options?)
 
 Returns an `object[]` in the format `{pattern: string, options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
