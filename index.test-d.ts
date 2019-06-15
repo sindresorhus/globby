@@ -4,6 +4,7 @@ import {
 	GlobTask,
 	FilterFunction,
 	sync as globbySync,
+	stream as globbyStream,
 	generateGlobTasks,
 	hasMagic,
 	gitignore
@@ -44,6 +45,33 @@ expectType<string[]>(
 );
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
+
+// Globby (stream)
+expectType<NodeJS.ReadableStream>(globbyStream('*.tmp'));
+expectType<NodeJS.ReadableStream>(globbyStream(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
+
+expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {expandDirectories: false}));
+expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {expandDirectories: ['a*', 'b*']}));
+expectType<NodeJS.ReadableStream>(
+	globbyStream('*.tmp', {
+		expandDirectories: {
+			files: ['a', 'b'],
+			extensions: ['tmp']
+		}
+	})
+);
+expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {gitignore: true}));
+expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
+
+(async () => {
+	const streamResult = [];
+	for await (const path of globbyStream('*.tmp')) {
+		streamResult.push(path);
+	}
+	// `NodeJS.ReadableStream` is not generic, unfortunately,
+	// so it seems `(string | Buffer)[]` is the best we can get here
+	expectType<(string | Buffer)[]>(streamResult);
+})();
 
 // GenerateGlobTasks
 expectType<GlobTask[]>(generateGlobTasks('*.tmp'));
