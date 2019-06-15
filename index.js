@@ -22,13 +22,28 @@ const checkCwdOption = options => {
 	}
 };
 
+// https://github.com/sindresorhus/globby/issues/97
+const checkExtensionOptions = options => {
+	if (
+		options &&
+		(options.noext === true || options.extension === false) &&
+		options.expandDirectories.extensions &&
+		options.expandDirectories.extensions.length !== 0
+	) {
+		throw new Error(
+			'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
+		);
+	}
+};
+
 const getPathString = p => p instanceof fs.Stats ? p.path : p;
 
 const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([].concat(patterns));
 	assertPatternsInput(patterns);
 	checkCwdOption(taskOptions);
-
+	checkExtensionOptions(taskOptions)
+	
 	const globTasks = [];
 
 	taskOptions = {
