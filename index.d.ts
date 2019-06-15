@@ -115,6 +115,17 @@ declare const globby: {
 	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
 	@returns The stream of matching paths.
+
+	@example
+	```
+	import {stream} from 'globby';
+
+	(async () => {
+		for await (const path of stream('*.tmp')) {
+			console.log(path);
+		}
+	})();
+	```
 	*/
 	stream(
 		patterns: string | readonly string[],
