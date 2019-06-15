@@ -20,32 +20,16 @@ const checkCwdOption = options => {
 	}
 };
 
-// https://github.com/sindresorhus/globby/issues/97
-const checkExtensionOptions = options => {
-	if (
-		options &&
-		(options.noext === true || options.extension === false) &&
-		options.expandDirectories.extensions &&
-		options.expandDirectories.extensions.length !== 0
-	) {
-		throw new Error(
-			'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
-		);
-	}
-};
-
 function gitPatterns(cb, sync = true) {
 	return function (patterns, options) {
 		patterns = arrayUnion([].concat(patterns));
 		if (sync) {
 			assertPatternsInput(patterns);
 			checkCwdOption(options);
-			checkExtensionOptions(options);
 		} else {
 			try {
 				assertPatternsInput(patterns);
 				checkCwdOption(options);
-				checkExtensionOptions(options);
 			} catch (error) {
 				return Promise.reject(error);
 			}
