@@ -34,6 +34,10 @@ const parseGitIgnore = (content, options) => {
 		.map(mapGitIgnorePatternTo(base));
 };
 
+const getIsIgnoredPredecate = (ignores, cwd) => {
+	return p => ignores.ignores(slash(path.relative(cwd, p)));
+};
+
 const reduceIgnore = files => {
 	return files.reduce((ignores, file) => {
 		ignores.add(parseGitIgnore(file.content, {
@@ -44,8 +48,10 @@ const reduceIgnore = files => {
 	}, gitIgnore());
 };
 
-const getIsIgnoredPredecate = (ignores, cwd) => {
-	return p => ignores.ignores(slash(path.relative(cwd, p)));
+const invseredIgnore = files => {
+	return reduceIgnore(files)._rules.map(({origin, negative}) => {
+		return negative ? origin.slice(1) : '!' + origin;
+	});
 };
 
 const getFile = (file, cwd) => {
@@ -99,3 +105,29 @@ module.exports.sync = options => {
 
 	return getIsIgnoredPredecate(ignores, options.cwd);
 };
+
+const getPatterns = options => {
+	options = normalizeOptions(options);
+
+	return fastGlob('**/.gitignore', {
+		ignore: DEFAULT_IGNORE.concat(options.ignore),
+		cwd: options.cwd
+	})
+		.then(paths => Promise.all(paths.map(file => getFile(file, options.cwd))))
+		.then(files => invseredIgnore(files));
+};
+
+getPatterns.sync = options => {
+	options = normalizeOptions(options);
+
+	const paths = fastGlob.sync('**/.gitignore', {
+		ignore: DEFAULT_IGNORE.concat(options.ignore),
+		cwd: options.cwd
+	});
+	const files = paths.map(file => getFileSync(file, options.cwd));
+	const ignores = invseredIgnore(files);
+
+	return ignores;
+};
+
+module.exports.getPatterns = getPatterns;

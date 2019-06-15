@@ -6,8 +6,6 @@ const fastGlob = require('fast-glob');
 const dirGlob = require('dir-glob');
 const gitignore = require('./gitignore');
 
-const DEFAULT_FILTER = () => false;
-
 const isNegative = pattern => pattern[0] === '!';
 
 const assertPatternsInput = patterns => {
@@ -22,11 +20,68 @@ const checkCwdOption = options => {
 	}
 };
 
-const generateGlobTasks = (patterns, taskOptions) => {
-	patterns = arrayUnion([].concat(patterns));
-	assertPatternsInput(patterns);
-	checkCwdOption(taskOptions);
+// https://github.com/sindresorhus/globby/issues/97
+const checkExtensionOptions = options => {
+	if (
+		options &&
+		(options.noext === true || options.extension === false) &&
+		options.expandDirectories.extensions &&
+		options.expandDirectories.extensions.length !== 0
+	) {
+		throw new Error(
+			'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
+		);
+	}
+};
 
+function gitPatterns(cb, sync = true) {
+	return function (patterns, options) {
+		patterns = arrayUnion([].concat(patterns));
+		if (sync) {
+			assertPatternsInput(patterns);
+			checkCwdOption(options);
+			checkExtensionOptions(options);
+		} else {
+			try {
+				assertPatternsInput(patterns);
+				checkCwdOption(options);
+				checkExtensionOptions(options);
+			} catch (error) {
+				return Promise.reject(error);
+			}
+		}
+
+		if (!options || (options && !options.gitignore)) {
+			return cb(patterns, options);
+		}
+
+		const gitignoreStrings = () => {
+			return Promise.resolve(
+				gitignore.getPatterns({
+					cwd: options.cwd,
+					ignore: options.ignore
+				})
+			);
+		};
+
+		if (!sync) {
+			return gitignoreStrings()
+				.then(x => patterns.concat(x))
+				.then(cb);
+		}
+
+		patterns = patterns.concat(
+			gitignore.getPatterns.sync({
+				cwd: options.cwd,
+				ignore: options.ignore
+			})
+		);
+
+		return cb(patterns, options);
+	};
+}
+
+const generateGlobTasks = (patterns, taskOptions) => {
 	const globTasks = [];
 
 	taskOptions = Object.assign({
@@ -98,51 +153,45 @@ const globby = (patterns, options) => {
 		.then(tasks => arrayUnion(...tasks));
 
 	const getFilter = () => {
-		return Promise.resolve(
-			options && options.gitignore ?
-				gitignore({cwd: options.cwd, ignore: options.ignore}) :
-				DEFAULT_FILTER
-		);
-	};
 
-	return getFilter()
-		.then(filter => {
-			return getTasks
-				.then(tasks => Promise.all(tasks.map(task => fastGlob(task.pattern, task.options))))
-				.then(paths => arrayUnion(...paths))
-				.then(paths => paths.filter(p => !filter(p)));
+	return getTasks
+		.then(tasks =>
+			Promise.all(
+				tasks.map(task => fastGlob(task.pattern, task.options))
+			)
+		)
+		.then(paths => arrayUnion(...paths))
+		.then(res => {
+			return res;
 		});
 };
 
-module.exports = globby;
+module.exports = gitPatterns(globby, false);
 // TODO: Remove this for the next major release
-module.exports.default = globby;
+module.exports.default = gitPatterns(globby, false);
 
-module.exports.sync = (patterns, options) => {
+module.exports.sync = gitPatterns((patterns, options) => {
+	patterns = arrayUnion([].concat(patterns));
+	assertPatternsInput(patterns);
+	checkCwdOption(options);
+
 	const globTasks = generateGlobTasks(patterns, options);
-
-	const getFilter = () => {
-		return options && options.gitignore ?
-			gitignore.sync({cwd: options.cwd, ignore: options.ignore}) :
-			DEFAULT_FILTER;
-	};
-
 	const tasks = globTasks.reduce((tasks, task) => {
 		const newTask = getPattern(task, dirGlob.sync).map(globToTask(task));
 		return tasks.concat(newTask);
 	}, []);
 
-	const filter = getFilter();
 	return tasks.reduce(
-		(matches, task) => arrayUnion(matches, fastGlob.sync(task.pattern, task.options)),
+		(matches, task) =>
+			arrayUnion(matches, fastGlob.sync(task.pattern, task.options)),
 		[]
-	).filter(p => !filter(p));
-};
+	);
+});
 
-module.exports.generateGlobTasks = generateGlobTasks;
+module.exports.generateGlobTasks = gitPatterns(generateGlobTasks);
 
-module.exports.hasMagic = (patterns, options) => []
-	.concat(patterns)
-	.some(pattern => glob.hasMagic(pattern, options));
+module.exports.hasMagic = gitPatterns((patterns, options) =>
+	[].concat(patterns).some(pattern => glob.hasMagic(pattern, options))
+);
 
 module.exports.gitignore = gitignore;
