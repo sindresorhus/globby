@@ -259,6 +259,30 @@ test.failing('`{extension: false}` and `expandDirectories.extensions` option', t
 	);
 });
 
+test('`{extension: false}` and `expandDirectories.extensions` option throws error', async t => {
+	await t.throwsAsync(globby(tmp, {
+		extension: false,
+		expandDirectories: {
+			extensions: ['md', 'tmp']
+		}
+	}),
+	'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
+	);
+});
+
+test('`{extension: false}` and `expandDirectories.extensions` option throws error - sync', t => {
+	t.throws(
+		() =>
+			globby.sync(tmp, {
+				extension: false,
+				expandDirectories: {
+					extensions: ['md', 'tmp']
+				}
+			}),
+		'Using noext and expandDirectories.extensions together will fail due to upstream bugs. #97'
+	);
+});
+
 test('throws when specifying a file as cwd - async', async t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
 
