@@ -64,10 +64,13 @@ function gitPatterns(cb, sync = true) {
 			);
 		};
 
+		async function nonSync() {
+			const res = await gitignoreStrings();
+			return cb(patterns.concat(res));
+		}
+
 		if (!sync) {
-			return gitignoreStrings()
-				.then(x => patterns.concat(x))
-				.then(cb);
+			return nonSync();
 		}
 
 		patterns = patterns.concat(
@@ -148,14 +151,8 @@ const globToTask = task => glob => {
 	};
 };
 
-module.exports = async (patterns, options) => {
+const globby = async (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
-
-	const getFilter = async () => {
-		return options && options.gitignore ?
-			gitignore({cwd: options.cwd, ignore: options.ignore}) :
-			DEFAULT_FILTER;
-	};
 
 	const getTasks = async () => {
 		const tasks = await Promise.all(globTasks.map(async task => {
@@ -163,28 +160,18 @@ module.exports = async (patterns, options) => {
 			return Promise.all(globs.map(globToTask(task)));
 		}));
 
-	const getFilter = () => {
+		return arrayUnion(...tasks);
+	};
 
-	return getTasks
-		.then(tasks =>
-			Promise.all(
-				tasks.map(task => fastGlob(task.pattern, task.options))
-			)
-		)
-		.then(paths => arrayUnion(...paths))
-		.then(res => {
-			return res;
-		});
+	const tasks = await getTasks();
+	const paths = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
+	return arrayUnion(...paths).map(getPathString);
 };
 
 module.exports = gitPatterns(globby, false);
-// TODO: Remove this for the next major release
-module.exports.default = gitPatterns(globby, false);
 
 module.exports.sync = gitPatterns((patterns, options) => {
 	patterns = arrayUnion([].concat(patterns));
-	assertPatternsInput(patterns);
-	checkCwdOption(options);
 
 	const globTasks = generateGlobTasks(patterns, options);
 	const tasks = globTasks.reduce((tasks, task) => {

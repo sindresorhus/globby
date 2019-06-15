@@ -47,7 +47,8 @@ const invseredIgnore = files => {
 	return reduceIgnore(files)._rules.map(({origin, negative}) => {
 		return negative ? origin.slice(1) : '!' + origin;
 	});
-}
+};
+
 const ensureAbsolutePathForCwd = (cwd, p) => {
 	if (path.isAbsolute(p)) {
 		if (p.startsWith(cwd)) {
@@ -121,15 +122,15 @@ module.exports.sync = options => {
 	return getIsIgnoredPredecate(ignores, options.cwd);
 };
 
-const getPatterns = options => {
+const getPatterns = async options => {
 	options = normalizeOptions(options);
 
-	return fastGlob('**/.gitignore', {
+	const paths = await fastGlob('**/.gitignore', {
 		ignore: DEFAULT_IGNORE.concat(options.ignore),
 		cwd: options.cwd
-	})
-		.then(paths => Promise.all(paths.map(file => getFile(file, options.cwd))))
-		.then(files => invseredIgnore(files));
+	});
+	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
+	return invseredIgnore(files);
 };
 
 getPatterns.sync = options => {
