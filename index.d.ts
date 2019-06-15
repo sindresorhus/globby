@@ -118,10 +118,10 @@ declare const globby: {
 
 	@example
 	```
-	import {stream} from 'globby';
+	import globby = require('globby');
 
 	(async () => {
-		for await (const path of stream('*.tmp')) {
+		for await (const path of globby.stream('*.tmp')) {
 			console.log(path);
 		}
 	})();
