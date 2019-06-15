@@ -171,54 +171,70 @@ test.failing('relative paths and ignores option', t => {
 	[5],
 	function () {},
 	[function () {}]
-].forEach(v => {
-	const valstring = util.format(v);
-	const msg = 'Patterns must be a string or an array of strings';
+].forEach(value => {
+	const valueString = util.format(value);
+	const message = 'Patterns must be a string or an array of strings';
 
-	test(`rejects the promise for invalid patterns input: ${valstring} - async`, async t => {
-		await t.throwsAsync(globby(v), TypeError);
-		await t.throwsAsync(globby(v), msg);
+	test(`rejects the promise for invalid patterns input: ${valueString} - async`, async t => {
+		await t.throwsAsync(globby(value), TypeError);
+		await t.throwsAsync(globby(value), message);
 	});
 
-	test(`throws for invalid patterns input: ${valstring}`, t => {
-		t.throws(() => globby.sync(v), TypeError);
-		t.throws(() => globby.sync(v), msg);
+	test(`throws for invalid patterns input: ${valueString}`, t => {
+		t.throws(() => {
+			globby.sync(value);
+		}, TypeError);
+
+		t.throws(() => {
+			globby.sync(value);
+		}, message);
 	});
 
-	test(`generateGlobTasks throws for invalid patterns input: ${valstring}`, t => {
-		t.throws(() => globby.generateGlobTasks(v), TypeError);
-		t.throws(() => globby.generateGlobTasks(v), msg);
+	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
+		t.throws(() => {
+			globby.generateGlobTasks(value);
+		}, TypeError);
+
+		t.throws(() => {
+			globby.generateGlobTasks(value);
+		}, message);
 	});
 });
 
 test('gitignore option defaults to false', async t => {
 	const actual = await globby('*', {onlyFiles: false});
-	t.true(actual.indexOf('node_modules') > -1);
+	t.true(actual.includes('node_modules'));
 });
 
 test('gitignore option defaults to false - sync', t => {
 	const actual = globby.sync('*', {onlyFiles: false});
-	t.true(actual.indexOf('node_modules') > -1);
+	t.true(actual.includes('node_modules'));
 });
 
 test('respects gitignore option true', async t => {
 	const actual = await globby('*', {gitignore: true, onlyFiles: false});
-	t.false(actual.indexOf('node_modules') > -1);
+	t.false(actual.includes('node_modules'));
 });
 
 test('respects gitignore option true - sync', t => {
 	const actual = globby.sync('*', {gitignore: true, onlyFiles: false});
-	t.false(actual.indexOf('node_modules') > -1);
+	t.false(actual.includes('node_modules'));
 });
 
 test('respects gitignore option false', async t => {
 	const actual = await globby('*', {gitignore: false, onlyFiles: false});
-	t.true(actual.indexOf('node_modules') > -1);
+	t.true(actual.includes('node_modules'));
 });
 
 test('respects gitignore option false - sync', t => {
 	const actual = globby.sync('*', {gitignore: false, onlyFiles: false});
-	t.true(actual.indexOf('node_modules') > -1);
+	t.true(actual.includes('node_modules'));
+});
+
+test('gitignore option with stats option', async t => {
+	const result = await globby('*', {gitignore: true, stats: true});
+	const actual = result.map(x => x.path);
+	t.false(actual.includes('node_modules'));
 });
 
 // https://github.com/sindresorhus/globby/issues/97

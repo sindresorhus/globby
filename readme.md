@@ -43,28 +43,28 @@ const globby = require('globby');
 
 ## API
 
-### globby(patterns, [options])
+### globby(patterns, options?)
 
-Returns a `Promise<Array>` of matching paths.
+Returns a `Promise<string[]>` of matching paths.
 
 #### patterns
 
-Type: `string` `Array`
+Type: `string | string[]`
 
 See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 #### options
 
-Type: `Object`
+Type: `object`
 
 See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones below.
 
 ##### expandDirectories
 
-Type: `boolean` `Array` `Object`<br>
+Type: `boolean | string[] | object`<br>
 Default: `true`
 
-If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `Object` with `files` and `extensions` like below:
+If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `object` with `files` and `extensions` like below:
 
 ```js
 (async () => {
@@ -89,17 +89,17 @@ Default: `false`
 
 Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
-### globby.sync(patterns, [options])
+### globby.sync(patterns, options?)
 
-Returns an `Array` of matching paths.
+Returns `string[]` of matching paths.
 
-### globby.generateGlobTasks(patterns, [options])
+### globby.generateGlobTasks(patterns, options?)
 
-Returns an `Array<Object>` in the format `{pattern: string, options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
+Returns an `object[]` in the format `{pattern: string, options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
-### globby.hasMagic(patterns, [options])
+### globby.hasMagic(patterns, options?)
 
 Returns a `boolean` of whether there are any special glob characters in the `patterns`.
 
@@ -107,7 +107,7 @@ Note that the options affect the results. If `noext: true` is set, then `+(a|b)`
 
 This function is backed by [`node-glob`](https://github.com/isaacs/node-glob#globhasmagicpattern-options)
 
-### globby.gitignore([options])
+### globby.gitignore(options?)
 
 Returns a `Promise<(path: string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
@@ -123,7 +123,7 @@ const {gitignore} = require('globby');
 })();
 ```
 
-### globby.gitignore.sync([options])
+### globby.gitignore.sync(options?)
 
 Returns a `(path: string) => boolean` indicating whether a given path is ignored via a `.gitignore` file.
 
@@ -151,6 +151,14 @@ Just a quick overview.
 - [make-dir](https://github.com/sindresorhus/make-dir) - Make a directory and its parents if needed
 
 
-## License
+---
 
-MIT © [Sindre Sorhus](https://sindresorhus.com)
+<div align="center">
+	<b>
+		<a href="https://tidelift.com/subscription/pkg/npm-globby?utm_source=npm-globby&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
+	</b>
+	<br>
+	<sub>
+		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
+	</sub>
+</div>
