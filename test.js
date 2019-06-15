@@ -77,7 +77,7 @@ test('glob - stream', async t => {
 	t.deepEqual((await getStream.array(globby.stream('*.tmp'))).sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-// Readable streams are iterable since node version 10, but this test runs on 6 and 8 too.
+// Readable streams are iterable since Node.js 10, but this test runs on 6 and 8 too.
 // So we define the test only if async iteration is supported.
 if (Symbol.asyncIterator) {
 	// For the reason behind `eslint-disable` below see https://github.com/avajs/eslint-plugin-ava/issues/216
