@@ -42,8 +42,8 @@ const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([].concat(patterns));
 	assertPatternsInput(patterns);
 	checkCwdOption(taskOptions);
-	checkExtensionOptions(taskOptions)
-	
+	checkExtensionOptions(taskOptions);
+
 	const globTasks = [];
 
 	taskOptions = {
