@@ -67,6 +67,8 @@ Default: `true`
 If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `object` with `files` and `extensions` like below:
 
 ```js
+const globby = require('globby');
+
 (async () => {
 	const paths = await globby('images', {
 		expandDirectories: {
@@ -100,9 +102,13 @@ Returns a [`stream.Readable`](https://nodejs.org/api/stream.html#stream_readable
 Since Node.js 10, [readable streams are iterable](https://nodejs.org/api/stream.html#stream_readable_symbol_asynciterator), so you can loop over glob matches in a [`for await...of` loop](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) like this:
 
 ```js
-for await (const path of globby.stream('*.tmp')) {
-	console.log(path);
-}
+const globby = require('globby');
+
+(async () => {
+	for await (const path of globby.stream('*.tmp')) {
+		console.log(path);
+	}
+})();
 ```
 
 ### globby.generateGlobTasks(patterns, options?)
