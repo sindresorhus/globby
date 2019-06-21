@@ -362,3 +362,13 @@ test('throws when specifying a file as cwd - stream', t => {
 		globby.stream('*', {cwd: isFile});
 	}, 'The `cwd` option must be a path to a directory');
 });
+
+test('don\'t throw when specifying a non-existing cwd directory - async', async t => {
+	const actual = await globby('.', {cwd: '/unknown'});
+	t.is(actual.length, 0);
+});
+
+test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
+	const actual = globby.sync('.', {cwd: '/unknown'});
+	t.is(actual.length, 0);
+});
