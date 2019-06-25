@@ -24,7 +24,7 @@ const checkCwdOption = options => {
 	}
 };
 
-const getPathString = p => p instanceof fs.Stats ? p.path : p;
+const getPathString = p => p.stats instanceof fs.Stats ? p.path : p;
 
 const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([].concat(patterns));
