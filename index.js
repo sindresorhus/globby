@@ -1,6 +1,5 @@
 'use strict';
 const fs = require('fs');
-const path = require('path');
 const arrayUnion = require('array-union');
 const merge2 = require('merge2');
 const glob = require('glob');
@@ -90,16 +89,14 @@ const getFilterSync = options => {
 		DEFAULT_FILTER;
 };
 
-const normalizeGlob = glob => glob.split(path.sep).join(path.posix.sep);
-
 const globToTask = task => glob => {
 	const {options} = task;
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
-		options.ignore = dirGlob.sync(options.ignore).map(normalizeGlob);
+		options.ignore = dirGlob.sync(options.ignore);
 	}
 
 	return {
-		pattern: normalizeGlob(glob),
+		pattern: glob,
 		options
 	};
 };
