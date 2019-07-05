@@ -18,8 +18,19 @@ const assertPatternsInput = patterns => {
 	}
 };
 
-const checkCwdOption = options => {
-	if (options && options.cwd && !fs.statSync(options.cwd).isDirectory()) {
+const checkCwdOption = (options = {}) => {
+	if (!options.cwd) {
+		return;
+	}
+
+	let stat;
+	try {
+		stat = fs.statSync(options.cwd);
+	} catch (_) {
+		return;
+	}
+
+	if (!stat.isDirectory()) {
 		throw new Error('The `cwd` option must be a path to a directory');
 	}
 };
