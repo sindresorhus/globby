@@ -80,7 +80,11 @@ interface Gitignore {
 
 declare const globby: {
 	/**
-	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
+	Find files and directories using glob patterns.
+
+	Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
+
+	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
 	@returns The matching paths.
 
@@ -102,7 +106,11 @@ declare const globby: {
 	): Promise<string[]>;
 
 	/**
-	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
+	Find files and directories using glob patterns.
+
+	Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
+
+	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
 	@returns The matching paths.
 	*/
@@ -112,7 +120,11 @@ declare const globby: {
 	): string[];
 
 	/**
-	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
+	Find files and directories using glob patterns.
+
+	Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
+
+	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
 	@returns The stream of matching paths.
 
@@ -135,9 +147,9 @@ declare const globby: {
 	/**
 	Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
-	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
+	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
-	@returns Object in the format `{ pattern: string, options: Object }`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
+	@returns An object in the format `{pattern: string, options: object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 	*/
 	generateGlobTasks(
 		patterns: string | readonly string[],
@@ -149,7 +161,7 @@ declare const globby: {
 
 	This function is backed by [`node-glob`](https://github.com/isaacs/node-glob#globhasmagicpattern-options).
 
-	@param patterns - See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
+	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
 	@param options - See the [`node-glob` options](https://github.com/isaacs/node-glob#globhasmagicpattern-options).
 	@returns Whether there are any special glob characters in the `patterns`.
 	*/

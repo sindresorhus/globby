@@ -43,6 +43,8 @@ const globby = require('globby');
 
 ## API
 
+Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
+
 ### globby(patterns, options?)
 
 Returns a `Promise<string[]>` of matching paths.
