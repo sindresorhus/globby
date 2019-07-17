@@ -5,7 +5,7 @@ declare namespace globby {
 	type ExpandDirectoriesOption =
 		| boolean
 		| ReadonlyArray<string>
-		| {files: readonly string[]; extensions: readonly string[]};
+		| {readonly files: string[]; readonly extensions: string[]};
 
 	interface GlobbyOptions extends FastGlobOptions {
 		/**
@@ -48,7 +48,7 @@ declare namespace globby {
 
 	interface GitignoreOptions {
 		readonly cwd?: string;
-		readonly ignore?: readonly string[];
+		readonly ignore?: string[];
 	}
 
 	type FilterFunction = (path: string) => boolean;
@@ -101,7 +101,7 @@ declare const globby: {
 	```
 	*/
 	(
-		patterns: string | readonly string[],
+		patterns: string | ReadonlyArray<string>,
 		options?: globby.GlobbyOptions
 	): Promise<string[]>;
 
@@ -115,7 +115,7 @@ declare const globby: {
 	@returns The matching paths.
 	*/
 	sync(
-		patterns: string | readonly string[],
+		patterns: string | ReadonlyArray<string>,
 		options?: globby.GlobbyOptions
 	): string[];
 
@@ -140,7 +140,7 @@ declare const globby: {
 	```
 	*/
 	stream(
-		patterns: string | readonly string[],
+		patterns: string | ReadonlyArray<string>,
 		options?: globby.GlobbyOptions
 	): NodeJS.ReadableStream;
 
@@ -152,7 +152,7 @@ declare const globby: {
 	@returns An object in the format `{pattern: string, options: object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 	*/
 	generateGlobTasks(
-		patterns: string | readonly string[],
+		patterns: string | ReadonlyArray<string>,
 		options?: globby.GlobbyOptions
 	): globby.GlobTask[];
 
@@ -166,7 +166,7 @@ declare const globby: {
 	@returns Whether there are any special glob characters in the `patterns`.
 	*/
 	hasMagic(
-		patterns: string | readonly string[],
+		patterns: string | ReadonlyArray<string>,
 		options?: NodeGlobOptions
 	): boolean;
 
