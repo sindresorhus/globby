@@ -2,7 +2,6 @@
 const fs = require('fs');
 const arrayUnion = require('array-union');
 const merge2 = require('merge2');
-const glob = require('glob');
 const fastGlob = require('fast-glob');
 const dirGlob = require('dir-glob');
 const gitignore = require('./gitignore');
@@ -173,6 +172,6 @@ module.exports.generateGlobTasks = generateGlobTasks;
 
 module.exports.hasMagic = (patterns, options) => []
 	.concat(patterns)
-	.some(pattern => glob.hasMagic(pattern, options));
+	.some(pattern => fastGlob.isDynamicPattern(pattern, options));
 
 module.exports.gitignore = gitignore;

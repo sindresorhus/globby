@@ -1,4 +1,3 @@
-import {IOptions as NodeGlobOptions} from 'glob';
 import {Options as FastGlobOptions} from 'fast-glob';
 
 declare namespace globby {
@@ -157,17 +156,17 @@ declare const globby: {
 	): globby.GlobTask[];
 
 	/**
-	Note that the options affect the results. If `noext: true` is set, then `+(a|b)` will not be considered a magic pattern. If the pattern has a brace expansion, like `a/{b/c,x/y}`, then that is considered magical, unless `nobrace: true` is set.
+	Note that the options affect the results.
 
-	This function is backed by [`node-glob`](https://github.com/isaacs/node-glob#globhasmagicpattern-options).
+	This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isdynamicpatternpattern-options).
 
 	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
-	@param options - See the [`node-glob` options](https://github.com/isaacs/node-glob#globhasmagicpattern-options).
+	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3).
 	@returns Whether there are any special glob characters in the `patterns`.
 	*/
 	hasMagic(
 		patterns: string | readonly string[],
-		options?: NodeGlobOptions
+		options?: FastGlobOptions
 	): boolean;
 
 	readonly gitignore: Gitignore;
