@@ -84,7 +84,7 @@ declare const globby: {
 	Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
 
 	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
-	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
+	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
 	@returns The matching paths.
 
 	@example
@@ -110,7 +110,7 @@ declare const globby: {
 	Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
 
 	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
-	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
+	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
 	@returns The matching paths.
 	*/
 	sync(
@@ -124,7 +124,7 @@ declare const globby: {
 	Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
 
 	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
-	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
+	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
 	@returns The stream of matching paths.
 
 	@example
@@ -147,7 +147,7 @@ declare const globby: {
 	Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
 	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
-	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones in this package.
+	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
 	@returns An object in the format `{pattern: string, options: object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 	*/
 	generateGlobTasks(
