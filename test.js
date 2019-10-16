@@ -298,6 +298,11 @@ test('gitignore option with stats option', async t => {
 	t.false(actual.includes('node_modules'));
 });
 
+test('gitignore option with absolute option', async t => {
+	const result = await globby('*', {gitignore: true, absolute: true});
+	t.false(result.includes('node_modules'));
+});
+
 test('respects gitignore option false - stream', async t => {
 	const actual = await getStream.array(globby.stream('*', {gitignore: false, onlyFiles: false}));
 	t.true(actual.includes('node_modules'));
