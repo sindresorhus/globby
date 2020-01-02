@@ -4,8 +4,8 @@ import {Options as FastGlobOptions} from 'fast-glob';
 declare namespace globby {
 	type ExpandDirectoriesOption =
 		| boolean
-		| ReadonlyArray<string>
-		| {files: readonly string[]; extensions: readonly string[]};
+		| readonly string[]
+		| {files?: readonly string[]; extensions?: readonly string[]};
 
 	interface GlobbyOptions extends FastGlobOptions {
 		/**
