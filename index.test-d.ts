@@ -95,7 +95,7 @@ expectType<GlobTask[]>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
 // HasMagic
 expectType<boolean>(hasMagic('**'));
 expectType<boolean>(hasMagic(['**', 'path1', 'path2']));
-expectType<boolean>(hasMagic(['**', 'path1', 'path2'], {noext: true}));
+expectType<boolean>(hasMagic(['**', 'path1', 'path2'], {extglob: false}));
 
 // Gitignore
 expectType<Promise<FilterFunction>>(gitignore());

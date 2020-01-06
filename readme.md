@@ -59,7 +59,7 @@ See supported `minimatch` [patterns](https://github.com/isaacs/minimatch#usage).
 
 Type: `object`
 
-See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-1) in addition to the ones below.
+See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones below.
 
 ##### expandDirectories
 
@@ -123,9 +123,9 @@ Note that you should avoid running the same tasks multiple times as they contain
 
 Returns a `boolean` of whether there are any special glob characters in the `patterns`.
 
-Note that the options affect the results. If `noext: true` is set, then `+(a|b)` will not be considered a magic pattern. If the pattern has a brace expansion, like `a/{b/c,x/y}`, then that is considered magical, unless `nobrace: true` is set.
+Note that the options affect the results.
 
-This function is backed by [`node-glob`](https://github.com/isaacs/node-glob#globhasmagicpattern-options)
+This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isdynamicpatternpattern-options).
 
 ### globby.gitignore(options?)
 
