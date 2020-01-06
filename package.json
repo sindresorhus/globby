@@ -1,6 +1,6 @@
 {
 	"name": "globby",
-	"version": "10.0.2",
+	"version": "11.0.0",
 	"description": "User-friendly glob matching",
 	"license": "MIT",
 	"repository": "sindresorhus/globby",
