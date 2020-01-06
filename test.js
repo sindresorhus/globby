@@ -303,10 +303,10 @@ test('respects gitignore option false - stream', async t => {
 	t.true(actual.includes('node_modules'));
 });
 
-// https://github.com/sindresorhus/globby/issues/97
-test.failing('`{extension: false}` and `expandDirectories.extensions` option', t => {
+test('`{extension: false}` and `expandDirectories.extensions` option', t => {
 	t.deepEqual(
-		globby.sync(tmp, {
+		globby.sync('*', {
+			cwd: tmp,
 			extension: false,
 			expandDirectories: {
 				extensions: [
