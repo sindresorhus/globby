@@ -7,6 +7,7 @@ import globby from '.';
 
 const cwd = process.cwd();
 const tmp = 'tmp';
+
 const fixture = [
 	'a.tmp',
 	'b.tmp',
@@ -77,20 +78,14 @@ test('glob - stream', async t => {
 	t.deepEqual((await getStream.array(globby.stream('*.tmp'))).sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-// Readable streams are iterable since Node.js 10, but this test runs on 6 and 8 too.
-// So we define the test only if async iteration is supported.
-if (Symbol.asyncIterator) {
-	// For the reason behind `eslint-disable` below see https://github.com/avajs/eslint-plugin-ava/issues/216
-	// eslint-disable-next-line ava/no-async-fn-without-await
-	test('glob - stream async iterator support', async t => {
-		const results = [];
-		for await (const path of globby.stream('*.tmp')) {
-			results.push(path);
-		}
+test('glob - stream async iterator support', async t => {
+	const results = [];
+	for await (const path of globby.stream('*.tmp')) {
+		results.push(path);
+	}
 
-		t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	});
-}
+	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+});
 
 test('glob - stream - multiple file paths', async t => {
 	t.deepEqual(await getStream.array(globby.stream(['a.tmp', 'b.tmp'])), ['a.tmp', 'b.tmp']);

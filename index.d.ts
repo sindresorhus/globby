@@ -25,6 +25,7 @@ declare namespace globby {
 					extensions: ['png']
 				}
 			});
+
 			console.log(paths);
 			//=> ['cat.png', 'unicorn.png', 'cow.jpg', 'rainbow.jpg']
 		})();

@@ -2,24 +2,21 @@
 
 > User-friendly glob matching
 
-Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob), but adds a bunch of useful features and a nicer API.
-
+Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob) but adds a bunch of useful features.
 
 ## Features
 
 - Promise API
 - Multiple patterns
 - Negated patterns: `['foo*', '!foobar']`
-- Expands directories: `dir` → `dir/**/*`
+- Expands directories: `foo` → `foo/**/*`
 - Supports `.gitignore`
-
 
 ## Install
 
 ```
 $ npm install globby
 ```
-
 
 ## Usage
 
@@ -39,7 +36,6 @@ const globby = require('globby');
 	//=> ['unicorn', 'rainbow']
 })();
 ```
-
 
 ## API
 
@@ -63,7 +59,7 @@ See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in 
 
 ##### expandDirectories
 
-Type: `boolean | string[] | object`<br>
+Type: `boolean | string[] | object`\
 Default: `true`
 
 If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `object` with `files` and `extensions` like below:
@@ -88,7 +84,7 @@ Note that if you set this option to `false`, you won't get back matched director
 
 ##### gitignore
 
-Type: `boolean`<br>
+Type: `boolean`\
 Default: `false`
 
 Respect ignore patterns in `.gitignore` files that apply to the globbed files.
@@ -131,8 +127,7 @@ This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isd
 
 Returns a `Promise<(path: string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
-Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not
-used for the resulting filter function.
+Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not used for the resulting filter function.
 
 ```js
 const {gitignore} = require('globby');
@@ -149,7 +144,6 @@ Returns a `(path: string) => boolean` indicating whether a given path is ignored
 
 Takes the same options as `globby.gitignore`.
 
-
 ## Globbing patterns
 
 Just a quick overview.
@@ -162,13 +156,11 @@ Just a quick overview.
 
 [Various patterns and expected matches.](https://github.com/sindresorhus/multimatch/blob/master/test/test.js)
 
-
 ## globby for enterprise
 
 Available as part of the Tidelift Subscription.
 
 The maintainers of globby and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. [Learn more.](https://tidelift.com/subscription/pkg/npm-globby?utm_source=npm-globby&utm_medium=referral&utm_campaign=enterprise&utm_term=repo)
-
 
 ## Related
 
