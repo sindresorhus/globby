@@ -58,8 +58,8 @@ const ensureAbsolutePathForCwd = (cwd, p) => {
 };
 
 const getIsIgnoredPredecate = (ignores, gitRoot, cwd) => {
-	return p => {
-		const pathWithCwd = ensureAbsolutePathForCwd(cwd, p);
+	return givenPath => {
+		const pathWithCwd = ensureAbsolutePathForCwd(cwd, givenPath);
 		const pathRelativeToGitRoot = path.relative(gitRoot, pathWithCwd);
 		return ignores.ignores(slash(pathRelativeToGitRoot));
 	};
@@ -98,8 +98,8 @@ module.exports = async options => {
 	options = normalizeOptions(options);
 	const {cwd} = options;
 
-	const gitDir = await findUp('.git', {cwd});
-	const gitRoot = gitDir ? path.dirname(gitDir) : '';
+	const gitDirectory = await findUp('.git', {cwd});
+	const gitRoot = gitDirectory ? path.dirname(gitDirectory) : '';
 
 	const gitIgnoreFilePaths = await Promise.all([
 		findUpAll('.gitignore', {
@@ -114,6 +114,7 @@ module.exports = async options => {
 	]);
 
 	const gitIgnoreFileContents = await Promise.all(
+		// TODO: Use .flat() once Node.js 12 is targetted
 		[].concat(...gitIgnoreFilePaths)
 			.map(p => path.relative(gitRoot, p))
 			.map(file => getFile(file, gitRoot))
@@ -127,8 +128,8 @@ module.exports.sync = options => {
 	options = normalizeOptions(options);
 	const {cwd} = options;
 
-	const gitDir = findUp.sync('.git', {cwd});
-	const gitRoot = gitDir ? path.dirname(gitDir) : '';
+	const gitDirectory = findUp.sync('.git', {cwd});
+	const gitRoot = gitDirectory ? path.dirname(gitDirectory) : '';
 
 	const gitIgnoreFilePaths = [
 		...findUpAll.sync('.gitignore', {

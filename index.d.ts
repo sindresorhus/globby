@@ -36,6 +36,8 @@ declare namespace globby {
 		/**
 		Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
+		`globby` will include patterns in `.gitignore` files found in the current directory, subdirectories and in any parent directory up to where the `.git` directory is found or the root of the filesystem if none exists.
+
 		@default false
 		*/
 		readonly gitignore?: boolean;

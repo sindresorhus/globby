@@ -372,3 +372,18 @@ test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
 	const actual = globby.sync('.', {cwd: '/unknown'});
 	t.is(actual.length, 0);
 });
+test('respects gitignore files from parent directories - async', async t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore/nested-1/nested-2');
+	const actual = await globby('*', {cwd, gitignore: true});
+	const expected = [];
+
+	t.deepEqual(actual, expected);
+});
+
+test('respects gitignore files from parent directories - sync', t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore/nested-1/nested-2');
+	const actual = globby.sync('*', {cwd, gitignore: true});
+	const expected = [];
+
+	t.deepEqual(actual, expected);
+});
