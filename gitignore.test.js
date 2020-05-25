@@ -1,5 +1,6 @@
 import path from 'path';
 import test from 'ava';
+import slash from 'slash';
 import gitignore from './gitignore';
 
 test('gitignore', async t => {
@@ -8,6 +9,12 @@ test('gitignore', async t => {
 	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 	const expected = ['bar.js'];
 	t.deepEqual(actual, expected);
+});
+
+test('gitignore - mixed path styles', async t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore');
+	const isIgnored = await gitignore({cwd});
+	t.true(isIgnored(slash(path.resolve(cwd, 'foo.js'))));
 });
 
 test('gitignore - sync', t => {
