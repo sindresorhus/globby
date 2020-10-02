@@ -6,7 +6,7 @@ import getStream from 'get-stream';
 import globby from '.';
 
 const cwd = process.cwd();
-const tmp = 'tmp';
+const temporary = 'tmp';
 
 const fixture = [
 	'a.tmp',
@@ -17,23 +17,23 @@ const fixture = [
 ];
 
 test.before(() => {
-	if (!fs.existsSync(tmp)) {
-		fs.mkdirSync(tmp);
+	if (!fs.existsSync(temporary)) {
+		fs.mkdirSync(temporary);
 	}
 
 	for (const element of fixture) {
 		fs.writeFileSync(element);
-		fs.writeFileSync(path.join(__dirname, tmp, element));
+		fs.writeFileSync(path.join(__dirname, temporary, element));
 	}
 });
 
 test.after(() => {
 	for (const element of fixture) {
 		fs.unlinkSync(element);
-		fs.unlinkSync(path.join(__dirname, tmp, element));
+		fs.unlinkSync(path.join(__dirname, temporary, element));
 	}
 
-	fs.rmdirSync(tmp);
+	fs.rmdirSync(temporary);
 });
 
 test('glob - async', async t => {
@@ -104,7 +104,7 @@ test('return [] for all negative patterns - stream', async t => {
 });
 
 test('cwd option', t => {
-	process.chdir(tmp);
+	process.chdir(temporary);
 	t.deepEqual(globby.sync('*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
@@ -140,16 +140,16 @@ test('expose hasMagic', t => {
 });
 
 test('expandDirectories option', t => {
-	t.deepEqual(globby.sync(tmp), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	t.deepEqual(globby.sync('**', {cwd: tmp}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globby.sync(tmp, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globby.sync(tmp, {
+	t.deepEqual(globby.sync(temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync('**', {cwd: temporary}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(globby.sync(temporary, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(globby.sync(temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp']
 		}
 	}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globby.sync(tmp, {
+	t.deepEqual(globby.sync(temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp']
@@ -159,14 +159,14 @@ test('expandDirectories option', t => {
 });
 
 test('expandDirectories:true and onlyFiles:true option', t => {
-	t.deepEqual(globby.sync(tmp, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync(temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// See https://github.com/mrmlnc/fast-glob/issues/47
-	t.deepEqual(globby.sync(tmp, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync(temporary, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test('expandDirectories and ignores option', t => {
@@ -181,7 +181,7 @@ test('expandDirectories and ignores option', t => {
 });
 
 test.failing('relative paths and ignores option', t => {
-	process.chdir(tmp);
+	process.chdir(temporary);
 	t.deepEqual(globby.sync('../tmp', {
 		cwd: process.cwd(),
 		ignore: ['tmp']
@@ -306,7 +306,7 @@ test('respects gitignore option false - stream', async t => {
 test('`{extension: false}` and `expandDirectories.extensions` option', t => {
 	t.deepEqual(
 		globby.sync('*', {
-			cwd: tmp,
+			cwd: temporary,
 			extension: false,
 			expandDirectories: {
 				extensions: [
