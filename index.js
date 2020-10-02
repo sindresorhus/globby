@@ -56,7 +56,7 @@ const generateGlobTasks = (patterns, taskOptions) => {
 
 		const ignore = patterns
 			.slice(index)
-			.filter(x => isNegative(x))
+			.filter(pattern => isNegative(pattern))
 			.map(pattern => pattern.slice(1));
 
 		const options = {
