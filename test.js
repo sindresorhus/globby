@@ -1,9 +1,9 @@
-import fs from 'fs';
-import util from 'util';
-import path from 'path';
-import test from 'ava';
-import getStream from 'get-stream';
-import globby from '.';
+const fs = require('fs');
+const util = require('util');
+const path = require('path');
+const test = require('ava');
+const getStream = require('get-stream');
+const globby = require('.');
 
 const cwd = process.cwd();
 const temporary = 'tmp';
@@ -22,8 +22,8 @@ test.before(() => {
 	}
 
 	for (const element of fixture) {
-		fs.writeFileSync(element);
-		fs.writeFileSync(path.join(__dirname, temporary, element));
+		fs.writeFileSync(element, '');
+		fs.writeFileSync(path.join(__dirname, temporary, element), '');
 	}
 });
 
@@ -201,8 +201,8 @@ test.failing('relative paths and ignores option', t => {
 	[null],
 	undefined,
 	[undefined],
-	NaN,
-	[NaN],
+	Number.NaN,
+	[Number.NaN],
 	5,
 	[5],
 	function () {},
@@ -212,38 +212,38 @@ test.failing('relative paths and ignores option', t => {
 	const message = 'Patterns must be a string or an array of strings';
 
 	test(`rejects the promise for invalid patterns input: ${valueString} - async`, async t => {
-		await t.throwsAsync(globby(value), TypeError);
-		await t.throwsAsync(globby(value), message);
+		await t.throwsAsync(globby(value), {instanceOf: TypeError});
+		await t.throwsAsync(globby(value), {message});
 	});
 
 	test(`throws for invalid patterns input: ${valueString} - sync`, t => {
 		t.throws(() => {
 			globby.sync(value);
-		}, TypeError);
+		}, {instanceOf: TypeError});
 
 		t.throws(() => {
 			globby.sync(value);
-		}, message);
+		}, {message});
 	});
 
 	test(`throws for invalid patterns input: ${valueString} - stream`, t => {
 		t.throws(() => {
 			globby.stream(value);
-		}, TypeError);
+		}, {instanceOf: TypeError});
 
 		t.throws(() => {
 			globby.stream(value);
-		}, message);
+		}, {message});
 	});
 
 	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
 		t.throws(() => {
 			globby.generateGlobTasks(value);
-		}, TypeError);
+		}, {instanceOf: TypeError});
 
 		t.throws(() => {
 			globby.generateGlobTasks(value);
-		}, message);
+		}, {message});
 	});
 });
 
@@ -330,12 +330,12 @@ test('throws when specifying a file as cwd - async', async t => {
 
 	await t.throwsAsync(
 		globby('.', {cwd: isFile}),
-		'The `cwd` option must be a path to a directory'
+		{message: 'The `cwd` option must be a path to a directory'}
 	);
 
 	await t.throwsAsync(
 		globby('*', {cwd: isFile}),
-		'The `cwd` option must be a path to a directory'
+		{message: 'The `cwd` option must be a path to a directory'}
 	);
 });
 
@@ -344,11 +344,11 @@ test('throws when specifying a file as cwd - sync', t => {
 
 	t.throws(() => {
 		globby.sync('.', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 
 	t.throws(() => {
 		globby.sync('*', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 });
 
 test('throws when specifying a file as cwd - stream', t => {
@@ -356,11 +356,11 @@ test('throws when specifying a file as cwd - stream', t => {
 
 	t.throws(() => {
 		globby.stream('.', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 
 	t.throws(() => {
 		globby.stream('*', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 });
 
 test('don\'t throw when specifying a non-existing cwd directory - async', async t => {

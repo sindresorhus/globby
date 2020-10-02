@@ -1,7 +1,7 @@
-import path from 'path';
-import test from 'ava';
-import slash from 'slash';
-import gitignore from './gitignore';
+const path = require('path');
+const test = require('ava');
+const slash = require('slash');
+const gitignore = require('./gitignore');
 
 test('gitignore', async t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
