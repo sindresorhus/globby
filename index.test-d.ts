@@ -68,9 +68,10 @@ expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}))
 	for await (const path of globbyStream('*.tmp')) {
 		streamResult.push(path);
 	}
+
 	// `NodeJS.ReadableStream` is not generic, unfortunately,
 	// so it seems `(string | Buffer)[]` is the best we can get here
-	expectType<(string | Buffer)[]>(streamResult);
+	expectType<Array<string | Buffer>>(streamResult);
 })();
 
 // GenerateGlobTasks

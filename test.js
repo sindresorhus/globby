@@ -1,12 +1,12 @@
-import fs from 'fs';
-import util from 'util';
-import path from 'path';
-import test from 'ava';
-import getStream from 'get-stream';
-import globby from '.';
+const fs = require('fs');
+const util = require('util');
+const path = require('path');
+const test = require('ava');
+const getStream = require('get-stream');
+const globby = require('.');
 
 const cwd = process.cwd();
-const tmp = 'tmp';
+const temporary = 'tmp';
 
 const fixture = [
 	'a.tmp',
@@ -17,23 +17,23 @@ const fixture = [
 ];
 
 test.before(() => {
-	if (!fs.existsSync(tmp)) {
-		fs.mkdirSync(tmp);
+	if (!fs.existsSync(temporary)) {
+		fs.mkdirSync(temporary);
 	}
 
 	for (const element of fixture) {
-		fs.writeFileSync(element);
-		fs.writeFileSync(path.join(__dirname, tmp, element));
+		fs.writeFileSync(element, '');
+		fs.writeFileSync(path.join(__dirname, temporary, element), '');
 	}
 });
 
 test.after(() => {
 	for (const element of fixture) {
 		fs.unlinkSync(element);
-		fs.unlinkSync(path.join(__dirname, tmp, element));
+		fs.unlinkSync(path.join(__dirname, temporary, element));
 	}
 
-	fs.rmdirSync(tmp);
+	fs.rmdirSync(temporary);
 });
 
 test('glob - async', async t => {
@@ -104,7 +104,7 @@ test('return [] for all negative patterns - stream', async t => {
 });
 
 test('cwd option', t => {
-	process.chdir(tmp);
+	process.chdir(temporary);
 	t.deepEqual(globby.sync('*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
@@ -140,16 +140,16 @@ test('expose hasMagic', t => {
 });
 
 test('expandDirectories option', t => {
-	t.deepEqual(globby.sync(tmp), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	t.deepEqual(globby.sync('**', {cwd: tmp}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globby.sync(tmp, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globby.sync(tmp, {
+	t.deepEqual(globby.sync(temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync('**', {cwd: temporary}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(globby.sync(temporary, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(globby.sync(temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp']
 		}
 	}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globby.sync(tmp, {
+	t.deepEqual(globby.sync(temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp']
@@ -159,14 +159,14 @@ test('expandDirectories option', t => {
 });
 
 test('expandDirectories:true and onlyFiles:true option', t => {
-	t.deepEqual(globby.sync(tmp, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync(temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// See https://github.com/mrmlnc/fast-glob/issues/47
-	t.deepEqual(globby.sync(tmp, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(globby.sync(temporary, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test('expandDirectories and ignores option', t => {
@@ -181,7 +181,7 @@ test('expandDirectories and ignores option', t => {
 });
 
 test.failing('relative paths and ignores option', t => {
-	process.chdir(tmp);
+	process.chdir(temporary);
 	t.deepEqual(globby.sync('../tmp', {
 		cwd: process.cwd(),
 		ignore: ['tmp']
@@ -201,8 +201,8 @@ test.failing('relative paths and ignores option', t => {
 	[null],
 	undefined,
 	[undefined],
-	NaN,
-	[NaN],
+	Number.NaN,
+	[Number.NaN],
 	5,
 	[5],
 	function () {},
@@ -212,38 +212,38 @@ test.failing('relative paths and ignores option', t => {
 	const message = 'Patterns must be a string or an array of strings';
 
 	test(`rejects the promise for invalid patterns input: ${valueString} - async`, async t => {
-		await t.throwsAsync(globby(value), TypeError);
-		await t.throwsAsync(globby(value), message);
+		await t.throwsAsync(globby(value), {instanceOf: TypeError});
+		await t.throwsAsync(globby(value), {message});
 	});
 
 	test(`throws for invalid patterns input: ${valueString} - sync`, t => {
 		t.throws(() => {
 			globby.sync(value);
-		}, TypeError);
+		}, {instanceOf: TypeError});
 
 		t.throws(() => {
 			globby.sync(value);
-		}, message);
+		}, {message});
 	});
 
 	test(`throws for invalid patterns input: ${valueString} - stream`, t => {
 		t.throws(() => {
 			globby.stream(value);
-		}, TypeError);
+		}, {instanceOf: TypeError});
 
 		t.throws(() => {
 			globby.stream(value);
-		}, message);
+		}, {message});
 	});
 
 	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
 		t.throws(() => {
 			globby.generateGlobTasks(value);
-		}, TypeError);
+		}, {instanceOf: TypeError});
 
 		t.throws(() => {
 			globby.generateGlobTasks(value);
-		}, message);
+		}, {message});
 	});
 });
 
@@ -306,7 +306,7 @@ test('respects gitignore option false - stream', async t => {
 test('`{extension: false}` and `expandDirectories.extensions` option', t => {
 	t.deepEqual(
 		globby.sync('*', {
-			cwd: tmp,
+			cwd: temporary,
 			extension: false,
 			expandDirectories: {
 				extensions: [
@@ -330,12 +330,12 @@ test('throws when specifying a file as cwd - async', async t => {
 
 	await t.throwsAsync(
 		globby('.', {cwd: isFile}),
-		'The `cwd` option must be a path to a directory'
+		{message: 'The `cwd` option must be a path to a directory'}
 	);
 
 	await t.throwsAsync(
 		globby('*', {cwd: isFile}),
-		'The `cwd` option must be a path to a directory'
+		{message: 'The `cwd` option must be a path to a directory'}
 	);
 });
 
@@ -344,11 +344,11 @@ test('throws when specifying a file as cwd - sync', t => {
 
 	t.throws(() => {
 		globby.sync('.', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 
 	t.throws(() => {
 		globby.sync('*', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 });
 
 test('throws when specifying a file as cwd - stream', t => {
@@ -356,11 +356,11 @@ test('throws when specifying a file as cwd - stream', t => {
 
 	t.throws(() => {
 		globby.stream('.', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 
 	t.throws(() => {
 		globby.stream('*', {cwd: isFile});
-	}, 'The `cwd` option must be a path to a directory');
+	}, {message: 'The `cwd` option must be a path to a directory'});
 });
 
 test('don\'t throw when specifying a non-existing cwd directory - async', async t => {
