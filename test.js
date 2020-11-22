@@ -7,6 +7,7 @@ const globby = require('.');
 
 const cwd = process.cwd();
 const temporary = 'tmp';
+const temporaryAbsolute = path.resolve(temporary);
 
 const fixture = [
 	'a.tmp',
@@ -41,8 +42,6 @@ test('glob - async', async t => {
 });
 
 test('glob - async - absolute', async t => {
-	const temporaryAbsolute = path.resolve(temporary);
-
 	const result = (await globby(path.join(temporaryAbsolute, '*.tmp'))).sort();
 
 	t.true(result.length === 5);
@@ -74,8 +73,6 @@ test('glob - sync', t => {
 });
 
 test('glob - sync - absolute', t => {
-	const temporaryAbsolute = path.resolve(temporary);
-
 	const result = globby.sync(path.join(temporaryAbsolute, '*.tmp')).sort();
 
 	t.true(result.length === 5);
@@ -153,6 +150,13 @@ test('expose generateGlobTasks', t => {
 	t.is(tasks.length, 1);
 	t.is(tasks[0].pattern, '*.tmp');
 	t.deepEqual(tasks[0].options.ignore, ['c.tmp', 'b.tmp']);
+});
+
+test('generateGlobTasks windows fix', t => {
+	const tasks = globby.generateGlobTasks('C:\\foo\\bar\\*.tmp');
+
+	t.is(tasks.length, 1);
+	t.is(tasks[0].pattern, 'C:/foo/bar/*.tmp');
 });
 
 test('expose hasMagic', t => {
