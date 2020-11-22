@@ -40,6 +40,17 @@ test('glob - async', async t => {
 	t.deepEqual((await globby('*.tmp')).sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
+test('glob - async - absolute', async t => {
+	const temporaryAbsolute = path.resolve(temporary);
+
+	const result = (await globby(path.join(temporaryAbsolute, '*.tmp'))).sort();
+
+	t.true(result.length === 5);
+	for (const [i, element] of fixture.entries()) {
+		t.true(result[i].endsWith(element));
+	}
+});
+
 test('glob - async - multiple file paths', t => {
 	t.deepEqual(globby.sync(['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
@@ -60,6 +71,17 @@ test('glob - sync', t => {
 	t.deepEqual(globby.sync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(globby.sync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 	t.deepEqual(globby.sync(['!*.tmp', 'a.tmp']), ['a.tmp']);
+});
+
+test('glob - sync - absolute', t => {
+	const temporaryAbsolute = path.resolve(temporary);
+
+	const result = globby.sync(path.join(temporaryAbsolute, '*.tmp')).sort();
+
+	t.true(result.length === 5);
+	for (const [i, element] of fixture.entries()) {
+		t.true(result[i].endsWith(element));
+	}
 });
 
 test('glob - sync - multiple file paths', t => {

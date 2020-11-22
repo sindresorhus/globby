@@ -49,7 +49,7 @@ const generateGlobTasks = (patterns, taskOptions) => {
 		...taskOptions
 	};
 
-	for (const [index, pattern] of patterns.entries()) {
+	for (const [index, pattern] of patterns.map(pattern => pattern.replace(/\\/g, '//')).entries()) {
 		if (isNegative(pattern)) {
 			continue;
 		}
