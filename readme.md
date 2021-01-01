@@ -1,4 +1,4 @@
-# globby [![Build Status](https://github.com/sindresorhus/globby/workflows/CI/badge.svg?branch=master)](https://github.com/sindresorhus/globby/actions?query=branch%3Amaster+workflow%3ACI)
+# globby
 
 > User-friendly glob matching
 
