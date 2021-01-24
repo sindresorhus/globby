@@ -2,7 +2,7 @@
 /* global after, before, bench, suite */
 const fs = require('fs');
 const rimraf = require('rimraf');
-const globbyMaster = require('globby');
+const globbyMainBranch = require('globby');
 const gs = require('glob-stream');
 const fastGlob = require('fast-glob');
 const globby = require('.');
@@ -16,9 +16,9 @@ const runners = [{
 		callback();
 	}
 }, {
-	name: 'globby async (upstream/master)',
+	name: 'globby async (upstream/main)',
 	run: async (patterns, callback) => {
-		await globbyMaster(patterns);
+		await globbyMainBranch(patterns);
 		callback();
 	}
 }, {
@@ -27,9 +27,9 @@ const runners = [{
 		globby.sync(patterns);
 	}
 }, {
-	name: 'globby sync (upstream/master)',
+	name: 'globby sync (upstream/main)',
 	run: patterns => {
-		globbyMaster.sync(patterns);
+		globbyMainBranch.sync(patterns);
 	}
 }, {
 	name: 'glob-stream',
