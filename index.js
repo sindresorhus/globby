@@ -25,7 +25,7 @@ const checkCwdOption = (options = {}) => {
 	let stat;
 	try {
 		stat = fs.statSync(options.cwd);
-	} catch {
+	} catch (err) {
 		return;
 	}
 
