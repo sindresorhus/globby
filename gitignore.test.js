@@ -17,6 +17,12 @@ test('gitignore - mixed path styles', async t => {
 	t.true(isIgnored(slash(path.resolve(cwd, 'foo.js'))));
 });
 
+test('gitignore - os paths', async t => {
+	const cwd = path.join(__dirname, 'fixtures/gitignore');
+	const isIgnored = await gitignore({cwd});
+	t.true(isIgnored(path.resolve(cwd, 'foo.js')));
+});
+
 test('gitignore - sync', t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
 	const isIgnored = gitignore.sync({cwd});
