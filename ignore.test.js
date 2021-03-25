@@ -1,67 +1,69 @@
 const path = require('path');
 const test = require('ava');
 const slash = require('slash');
-const gitignore = require('./gitignore');
+const ignoreFiles = require('./ignore');
 
-test('gitignore', async t => {
+const gitignorePattern = '**/.gitignore';
+
+test('ignore', async t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
-	const isIgnored = await gitignore({cwd});
+	const isIgnored = await ignoreFiles(gitignorePattern, {cwd});
 	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 	const expected = ['bar.js'];
 	t.deepEqual(actual, expected);
 });
 
-test('gitignore - mixed path styles', async t => {
+test('ignore - mixed path styles', async t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
-	const isIgnored = await gitignore({cwd});
+	const isIgnored = await ignoreFiles(gitignorePattern, {cwd});
 	t.true(isIgnored(slash(path.resolve(cwd, 'foo.js'))));
 });
 
-test('gitignore - os paths', async t => {
+test('ignore - os paths', async t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
-	const isIgnored = await gitignore({cwd});
+	const isIgnored = await ignoreFiles(gitignorePattern, {cwd});
 	t.true(isIgnored(path.resolve(cwd, 'foo.js')));
 });
 
-test('gitignore - sync', t => {
+test('ignore - sync', t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
-	const isIgnored = gitignore.sync({cwd});
+	const isIgnored = ignoreFiles.sync(gitignorePattern, {cwd});
 	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 	const expected = ['bar.js'];
 	t.deepEqual(actual, expected);
 });
 
-test('ignore ignored .gitignore', async t => {
+test('ignore ignored .ignore', async t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
 	const ignore = ['**/.gitignore'];
 
-	const isIgnored = await gitignore({cwd, ignore});
+	const isIgnored = await ignoreFiles(gitignorePattern, {cwd, ignore});
 	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 	const expected = ['foo.js', 'bar.js'];
 	t.deepEqual(actual, expected);
 });
 
-test('ignore ignored .gitignore - sync', t => {
+test('ignore ignored .ignore - sync', t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
 	const ignore = ['**/.gitignore'];
 
-	const isIgnored = gitignore.sync({cwd, ignore});
+	const isIgnored = ignoreFiles.sync(gitignorePattern, {cwd, ignore});
 	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 	const expected = ['foo.js', 'bar.js'];
 	t.deepEqual(actual, expected);
 });
 
-test('negative gitignore', async t => {
+test('negative ignore', async t => {
 	const cwd = path.join(__dirname, 'fixtures/negative');
-	const isIgnored = await gitignore({cwd});
+	const isIgnored = await ignoreFiles(gitignorePattern, {cwd});
 	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 	const expected = ['foo.js'];
 	t.deepEqual(actual, expected);
 });
 
-test('negative gitignore - sync', t => {
+test('negative ignore - sync', t => {
 	const cwd = path.join(__dirname, 'fixtures/negative');
-	const isIgnored = gitignore.sync({cwd});
+	const isIgnored = ignoreFiles.sync(gitignorePattern, {cwd});
 	const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 	const expected = ['foo.js'];
 	t.deepEqual(actual, expected);
@@ -69,7 +71,7 @@ test('negative gitignore - sync', t => {
 
 test('multiple negation', async t => {
 	const cwd = path.join(__dirname, 'fixtures/multiple-negation');
-	const isIgnored = await gitignore({cwd});
+	const isIgnored = await ignoreFiles(gitignorePattern, {cwd});
 
 	const actual = [
 		'!!!unicorn.js',
@@ -84,7 +86,7 @@ test('multiple negation', async t => {
 
 test('multiple negation - sync', t => {
 	const cwd = path.join(__dirname, 'fixtures/multiple-negation');
-	const isIgnored = gitignore.sync({cwd});
+	const isIgnored = ignoreFiles.sync(gitignorePattern, {cwd});
 
 	const actual = [
 		'!!!unicorn.js',

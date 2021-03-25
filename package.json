@@ -20,7 +20,7 @@
 	"files": [
 		"index.js",
 		"index.d.ts",
-		"gitignore.js",
+		"ignore.js",
 		"stream-utils.js"
 	],
 	"keywords": [

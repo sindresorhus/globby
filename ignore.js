@@ -91,10 +91,10 @@ const normalizeOptions = ({
 	return {ignore, cwd};
 };
 
-module.exports = async options => {
+module.exports = async (pattern, options) => {
 	options = normalizeOptions(options);
 
-	const paths = await fastGlob('**/.gitignore', {
+	const paths = await fastGlob(pattern, {
 		ignore: DEFAULT_IGNORE.concat(options.ignore),
 		cwd: options.cwd
 	});
@@ -105,10 +105,10 @@ module.exports = async options => {
 	return getIsIgnoredPredecate(ignores, options.cwd);
 };
 
-module.exports.sync = options => {
+module.exports.sync = (pattern, options) => {
 	options = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', {
+	const paths = fastGlob.sync(pattern, {
 		ignore: DEFAULT_IGNORE.concat(options.ignore),
 		cwd: options.cwd
 	});
