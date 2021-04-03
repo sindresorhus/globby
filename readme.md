@@ -43,7 +43,7 @@ Note that glob patterns can only contain forward-slashes, not backward-slashes, 
 
 ### globby(patterns, options?)
 
-Returns a `Promise<string[]>` of matching paths.
+Returns a `Promise<string[]|Stats[]>` of matching paths.
 
 #### patterns
 
@@ -91,7 +91,7 @@ Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
 ### globby.sync(patterns, options?)
 
-Returns `string[]` of matching paths.
+Returns `string[]|Stats[]` of matching paths.
 
 ### globby.stream(patterns, options?)
 
