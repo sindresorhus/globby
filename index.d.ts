@@ -91,8 +91,8 @@ declare const globby: {
 	*/
 	sync: (
 		patterns: string | readonly string[],
-		options?: globby.GlobbyOptions
-	) => string[];
+		options?: {stats: true} & globby.GlobbyOptions
+	) => Stats[];
 
 	/**
 	Find files and directories using glob patterns.
@@ -170,8 +170,8 @@ declare const globby: {
 	*/
 	(
 		patterns: string | readonly string[],
-		options?: globby.GlobbyOptions
-	): Promise<string[] | Stats[]>;
+		options?: {stats: true} & globby.GlobbyOptions
+	): Promise<Stats[]>;
 };
 
 export = globby;

@@ -12,15 +12,15 @@ import {
 } from '.';
 
 // Globby
-expectType<Promise<string[]|Stats[]>>(globby('*.tmp'));
-expectType<Promise<string[]|Stats[]>>(globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
-expectType<Promise<string[]|Stats[]>>(globby('*.tmp', {stats: true}));
+expectType<Promise<string[]>>(globby('*.tmp'));
+expectType<Promise<string[]>>(globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
+expectType<Promise<Stats[]>>(globby('*.tmp', {stats: true}));
 
-expectType<Promise<string[]|Stats[]>>(globby('*.tmp', {expandDirectories: false}));
-expectType<Promise<string[]|Stats[]>>(
+expectType<Promise<string[]>>(globby('*.tmp', {expandDirectories: false}));
+expectType<Promise<string[]>>(
 	globby('*.tmp', {expandDirectories: ['a*', 'b*']})
 );
-expectType<Promise<string[]|Stats[]>>(
+expectType<Promise<string[]>>(
 	globby('*.tmp', {
 		expandDirectories: {
 			files: ['a', 'b'],
@@ -28,12 +28,13 @@ expectType<Promise<string[]|Stats[]>>(
 		}
 	})
 );
-expectType<Promise<string[]|Stats[]>>(globby('*.tmp', {gitignore: true}));
-expectType<Promise<string[]|Stats[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
+expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
+expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
 
 // Globby (sync)
 expectType<string[]>(globbySync('*.tmp'));
 expectType<string[]>(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
+expectType<Stats[]>(globbySync('*.tmp', {stats: true}));
 
 expectType<string[]>(globbySync('*.tmp', {expandDirectories: false}));
 expectType<string[]>(globbySync('*.tmp', {expandDirectories: ['a*', 'b*']}));
