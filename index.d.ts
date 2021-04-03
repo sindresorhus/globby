@@ -1,4 +1,5 @@
 import {Options as FastGlobOptions} from 'fast-glob';
+import {Stats} from 'fs';
 
 declare namespace globby {
 	type ExpandDirectoriesOption =
@@ -170,7 +171,7 @@ declare const globby: {
 	(
 		patterns: string | readonly string[],
 		options?: globby.GlobbyOptions
-	): Promise<string[]>;
+	): Promise<string[] | Stats[]>;
 };
 
 export = globby;
