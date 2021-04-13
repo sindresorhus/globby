@@ -1,4 +1,5 @@
 import {expectType} from 'tsd';
+import {Stats} from 'fs';
 import globby = require('.');
 import {
 	GlobTask,
@@ -13,6 +14,8 @@ import {
 // Globby
 expectType<Promise<string[]>>(globby('*.tmp'));
 expectType<Promise<string[]>>(globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
+
+expectType<Promise<Stats[]>>(globby('*.tmp', {stats: true}));
 
 expectType<Promise<string[]>>(globby('*.tmp', {expandDirectories: false}));
 expectType<Promise<string[]>>(
@@ -45,6 +48,8 @@ expectType<string[]>(
 );
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
+
+expectType<Stats[]>(globbySync('*.tmp', {stats: true}));
 
 // Globby (stream)
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp'));

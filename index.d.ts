@@ -1,10 +1,11 @@
 import {Options as FastGlobOptions} from 'fast-glob';
+import {Stats} from 'fs';
 
 declare namespace globby {
 	type ExpandDirectoriesOption =
 		| boolean
 		| readonly string[]
-		| {files?: readonly string[]; extensions?: readonly string[]};
+		| { files?: readonly string[]; extensions?: readonly string[] };
 
 	interface GlobbyOptions extends FastGlobOptions {
 		/**
@@ -86,12 +87,15 @@ declare const globby: {
 
 	@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
-	@returns The matching paths.
+	@returns The matching paths - or the matching path's stats if the `stats` option is set.
 	*/
-	sync: (
+	sync: ((
+		patterns: string | readonly string[],
+		options: globby.GlobbyOptions & { stats: true }
+	) => Stats[]) & ((
 		patterns: string | readonly string[],
 		options?: globby.GlobbyOptions
-	) => string[];
+	) => string[]);
 
 	/**
 	Find files and directories using glob patterns.
@@ -167,6 +171,12 @@ declare const globby: {
 	})();
 	```
 	*/
+
+	(
+		patterns: string | readonly string[],
+		options: globby.GlobbyOptions & { stats: true }
+	): Promise<Stats[]>;
+
 	(
 		patterns: string | readonly string[],
 		options?: globby.GlobbyOptions
