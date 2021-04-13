@@ -89,10 +89,13 @@ declare const globby: {
 	@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
 	@returns The matching paths.
 	*/
-	sync: (
+	sync: ((
 		patterns: string | readonly string[],
-		options?: {stats: true} & globby.GlobbyOptions
-	) => Stats[];
+		options: globby.GlobbyOptions & { stats: true }
+	) => Stats[]) & ((
+		patterns: string | readonly string[],
+		options?: globby.GlobbyOptions
+	) => string[]);
 
 	/**
 	Find files and directories using glob patterns.
@@ -168,10 +171,13 @@ declare const globby: {
 	})();
 	```
 	*/
-	(
+	((
 		patterns: string | readonly string[],
-		options?: {stats: true} & globby.GlobbyOptions
-	): Promise<Stats[]>;
+		options: globby.GlobbyOptions & { stats: true }
+	) => Promise<Stats[]>) & ((
+		patterns: string | readonly string[],
+		options?: globby.GlobbyOptions
+	) => Promise<string[]>);
 };
 
 export = globby;
