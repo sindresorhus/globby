@@ -95,7 +95,7 @@ declare const globby: {
 		options?: globby.GlobbyOptions
 	) => string[]) & ((
 		patterns: string | readonly string[],
-		options: globby.GlobbyOptions & { objectMode: true }
+		options: globby.GlobbyOptions & {objectMode: true}
 	) => globby.Entry[]);
 
 	/**
@@ -178,7 +178,7 @@ declare const globby: {
 	): Promise<string[]>;
 	(
 		patterns: string | readonly string[],
-		options: globby.GlobbyOptions & { objectMode: true }
+		options: globby.GlobbyOptions & {objectMode: true}
 	): Promise<globby.Entry[]>;
 };
 
