@@ -92,11 +92,11 @@ declare const globby: {
 	*/
 	sync: ((
 		patterns: string | readonly string[],
-		options?: globby.GlobbyOptions
-	) => string[]) & ((
+		options: globby.GlobbyOptions & { objectMode: true }
+	) => globby.Entry[]) & ((
 		patterns: string | readonly string[],
-		options: globby.GlobbyOptions & {objectMode: true}
-	) => globby.Entry[]);
+		options?: globby.GlobbyOptions
+	) => string[]);
 
 	/**
 	Find files and directories using glob patterns.
@@ -151,6 +151,11 @@ declare const globby: {
 
 	readonly gitignore: Gitignore;
 
+	(
+		patterns: string | readonly string[],
+		options: globby.GlobbyOptions & { objectMode: true }
+	): Promise<globby.Entry[]>;
+
 	/**
 	Find files and directories using glob patterns.
 
@@ -176,10 +181,6 @@ declare const globby: {
 		patterns: string | readonly string[],
 		options?: globby.GlobbyOptions
 	): Promise<string[]>;
-	(
-		patterns: string | readonly string[],
-		options: globby.GlobbyOptions & {objectMode: true}
-	): Promise<globby.Entry[]>;
 };
 
 export = globby;
