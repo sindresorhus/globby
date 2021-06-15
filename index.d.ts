@@ -5,7 +5,7 @@ declare namespace globby {
 	type ExpandDirectoriesOption =
 		| boolean
 		| readonly string[]
-		| { files?: readonly string[]; extensions?: readonly string[] };
+		| {files?: readonly string[]; extensions?: readonly string[]};
 
 	interface GlobbyOptions extends FastGlobOptions {
 		/**
