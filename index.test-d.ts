@@ -28,6 +28,7 @@ expectType<Promise<string[]>>(
 );
 expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
 expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
+expectType<Promise<globby.Entry[]>>(globby('*.tmp', {objectMode: true}));
 
 // Globby (sync)
 expectType<string[]>(globbySync('*.tmp'));
@@ -45,6 +46,7 @@ expectType<string[]>(
 );
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
+expectType<globby.Entry[]>(globbySync('*.tmp', {objectMode: true}));
 
 // Globby (stream)
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp'));
