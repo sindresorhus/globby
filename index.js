@@ -4,7 +4,7 @@ const arrayUnion = require('array-union');
 const merge2 = require('merge2');
 const fastGlob = require('fast-glob');
 const dirGlob = require('dir-glob');
-const gitignore = require('./gitignore');
+const ignore = require('./ignore');
 const {FilterStream, UniqueStream} = require('./stream-utils');
 
 const DEFAULT_FILTER = () => false;
@@ -91,11 +91,14 @@ const globDirs = (task, fn) => {
 	return fn(task.pattern, options);
 };
 
+const getIgnoreFiles = options => options && options.gitignore ? '**/.gitignore' : options && options.ignoreFiles;
+
 const getPattern = (task, fn) => task.options.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
 const getFilterSync = options => {
-	return options && options.gitignore ?
-		gitignore.sync({cwd: options.cwd, ignore: options.ignore}) :
+	const ignoreFiles = getIgnoreFiles(options);
+	return ignoreFiles ?
+		ignore.sync(ignoreFiles, {cwd: options.cwd, ignore: options.ignore}) :
 		DEFAULT_FILTER;
 };
 
@@ -115,8 +118,9 @@ module.exports = async (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const getFilter = async () => {
-		return options && options.gitignore ?
-			gitignore({cwd: options.cwd, ignore: options.ignore}) :
+		const ignoreFiles = getIgnoreFiles(options);
+		return ignoreFiles ?
+			ignore(ignoreFiles, {cwd: options.cwd, ignore: options.ignore}) :
 			DEFAULT_FILTER;
 	};
 
@@ -178,4 +182,6 @@ module.exports.hasMagic = (patterns, options) => []
 	.concat(patterns)
 	.some(pattern => fastGlob.isDynamicPattern(pattern, options));
 
-module.exports.gitignore = gitignore;
+module.exports.ignoreFiles = ignore;
+module.exports.gitignore = options => ignore('**/.gitignore', options);
+module.exports.gitignore.sync = options => ignore.sync('**/.gitignore', options);
