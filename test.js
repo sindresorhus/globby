@@ -1,10 +1,12 @@
-const fs = require('fs');
-const util = require('util');
-const path = require('path');
-const test = require('ava');
-const getStream = require('get-stream');
-const globby = require('.');
+import fs from 'node:fs';
+import path from 'node:path';
+import util from 'node:util';
+import {fileURLToPath} from 'node:url';
+import test from 'ava';
+import getStream from 'get-stream';
+import globby from './index.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = process.cwd();
 const temporary = 'tmp';
 
@@ -13,7 +15,7 @@ const fixture = [
 	'b.tmp',
 	'c.tmp',
 	'd.tmp',
-	'e.tmp'
+	'e.tmp',
 ];
 
 test.before(() => {
@@ -146,15 +148,15 @@ test('expandDirectories option', t => {
 	t.deepEqual(globby.sync(temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
-			extensions: ['tmp']
-		}
+			extensions: ['tmp'],
+		},
 	}), ['tmp/a.tmp', 'tmp/b.tmp']);
 	t.deepEqual(globby.sync(temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
-			extensions: ['tmp']
+			extensions: ['tmp'],
 		},
-		ignore: ['**/b.tmp']
+		ignore: ['**/b.tmp'],
 	}), ['tmp/a.tmp']);
 });
 
@@ -171,12 +173,12 @@ test.failing('expandDirectories:true and onlyFiles:false option', t => {
 
 test('expandDirectories and ignores option', t => {
 	t.deepEqual(globby.sync('tmp', {
-		ignore: ['tmp']
+		ignore: ['tmp'],
 	}), []);
 
 	t.deepEqual(globby.sync('tmp/**', {
 		expandDirectories: false,
-		ignore: ['tmp']
+		ignore: ['tmp'],
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
@@ -184,13 +186,13 @@ test.failing('relative paths and ignores option', t => {
 	process.chdir(temporary);
 	t.deepEqual(globby.sync('../tmp', {
 		cwd: process.cwd(),
-		ignore: ['tmp']
+		ignore: ['tmp'],
 	}), []);
 	process.chdir(cwd);
 });
 
 // Rejected for being an invalid pattern
-[
+for (const value of [
 	{},
 	[{}],
 	true,
@@ -206,8 +208,8 @@ test.failing('relative paths and ignores option', t => {
 	5,
 	[5],
 	function () {},
-	[function () {}]
-].forEach(value => {
+	[function () {}],
+]) {
 	const valueString = util.format(value);
 	const message = 'Patterns must be a string or an array of strings';
 
@@ -245,7 +247,7 @@ test.failing('relative paths and ignores option', t => {
 			globby.generateGlobTasks(value);
 		}, {message});
 	});
-});
+}
 
 test('gitignore option defaults to false - async', async t => {
 	const actual = await globby('*', {onlyFiles: false});
@@ -323,17 +325,17 @@ test('`{extension: false}` and `expandDirectories.extensions` option', t => {
 			expandDirectories: {
 				extensions: [
 					'md',
-					'tmp'
-				]
-			}
+					'tmp',
+				],
+			},
 		}),
 		[
 			'a.tmp',
 			'b.tmp',
 			'c.tmp',
 			'd.tmp',
-			'e.tmp'
-		]
+			'e.tmp',
+		],
 	);
 });
 
@@ -342,12 +344,12 @@ test('throws when specifying a file as cwd - async', async t => {
 
 	await t.throwsAsync(
 		globby('.', {cwd: isFile}),
-		{message: 'The `cwd` option must be a path to a directory'}
+		{message: 'The `cwd` option must be a path to a directory'},
 	);
 
 	await t.throwsAsync(
 		globby('*', {cwd: isFile}),
-		{message: 'The `cwd` option must be a path to a directory'}
+		{message: 'The `cwd` option must be a path to a directory'},
 	);
 });
 

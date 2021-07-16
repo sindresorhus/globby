@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-require-imports, unicorn/prefer-module, @typescript-eslint/no-unsafe-member-access */
+
 import {expectType} from 'tsd';
-import globby = require('.');
+import globby = require('./index.js');
 import {
 	GlobTask,
 	FilterFunction,
@@ -7,7 +9,7 @@ import {
 	stream as globbyStream,
 	generateGlobTasks,
 	hasMagic,
-	gitignore
+	gitignore,
 } from '.';
 
 // Globby
@@ -16,15 +18,15 @@ expectType<Promise<string[]>>(globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
 expectType<Promise<string[]>>(globby('*.tmp', {expandDirectories: false}));
 expectType<Promise<string[]>>(
-	globby('*.tmp', {expandDirectories: ['a*', 'b*']})
+	globby('*.tmp', {expandDirectories: ['a*', 'b*']}),
 );
 expectType<Promise<string[]>>(
 	globby('*.tmp', {
 		expandDirectories: {
 			files: ['a', 'b'],
-			extensions: ['tmp']
-		}
-	})
+			extensions: ['tmp'],
+		},
+	}),
 );
 expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
 expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
@@ -40,9 +42,9 @@ expectType<string[]>(
 	globbySync('*.tmp', {
 		expandDirectories: {
 			files: ['a', 'b'],
-			extensions: ['tmp']
-		}
-	})
+			extensions: ['tmp'],
+		},
+	}),
 );
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
@@ -58,9 +60,9 @@ expectType<NodeJS.ReadableStream>(
 	globbyStream('*.tmp', {
 		expandDirectories: {
 			files: ['a', 'b'],
-			extensions: ['tmp']
-		}
-	})
+			extensions: ['tmp'],
+		},
+	}),
 );
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {gitignore: true}));
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
@@ -82,15 +84,15 @@ expectType<GlobTask[]>(generateGlobTasks(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
 expectType<GlobTask[]>(generateGlobTasks('*.tmp', {expandDirectories: false}));
 expectType<GlobTask[]>(
-	generateGlobTasks('*.tmp', {expandDirectories: ['a*', 'b*']})
+	generateGlobTasks('*.tmp', {expandDirectories: ['a*', 'b*']}),
 );
 expectType<GlobTask[]>(
 	generateGlobTasks('*.tmp', {
 		expandDirectories: {
 			files: ['a', 'b'],
-			extensions: ['tmp']
-		}
-	})
+			extensions: ['tmp'],
+		},
+	}),
 );
 expectType<GlobTask[]>(generateGlobTasks('*.tmp', {gitignore: true}));
 expectType<GlobTask[]>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
@@ -104,24 +106,24 @@ expectType<boolean>(hasMagic(['**', 'path1', 'path2'], {extglob: false}));
 expectType<Promise<FilterFunction>>(gitignore());
 expectType<Promise<FilterFunction>>(
 	gitignore({
-		cwd: __dirname
-	})
+		cwd: __dirname,
+	}),
 );
 expectType<Promise<FilterFunction>>(
 	gitignore({
-		ignore: ['**/b.tmp']
-	})
+		ignore: ['**/b.tmp'],
+	}),
 );
 
 // Gitignore (sync)
 expectType<FilterFunction>(gitignore.sync());
 expectType<FilterFunction>(
 	gitignore.sync({
-		cwd: __dirname
-	})
+		cwd: __dirname,
+	}),
 );
 expectType<FilterFunction>(
 	gitignore.sync({
-		ignore: ['**/b.tmp']
-	})
+		ignore: ['**/b.tmp'],
+	}),
 );

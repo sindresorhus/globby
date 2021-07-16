@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/member-ordering, @typescript-eslint/no-redeclare */
+
 import {Options as FastGlobOptions, Entry as FastGlobEntry} from 'fast-glob';
 
 declare namespace globby {

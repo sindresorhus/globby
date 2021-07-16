@@ -1,7 +1,10 @@
-const path = require('path');
-const test = require('ava');
-const slash = require('slash');
-const gitignore = require('./gitignore');
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import test from 'ava';
+import slash from 'slash';
+import {gitignore} from './gitignore.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 test('gitignore', async t => {
 	const cwd = path.join(__dirname, 'fixtures/gitignore');
@@ -75,7 +78,7 @@ test('multiple negation', async t => {
 		'!!!unicorn.js',
 		'!!unicorn.js',
 		'!unicorn.js',
-		'unicorn.js'
+		'unicorn.js',
 	].filter(file => !isIgnored(file));
 
 	const expected = ['!!unicorn.js', '!unicorn.js'];
@@ -90,7 +93,7 @@ test('multiple negation - sync', t => {
 		'!!!unicorn.js',
 		'!!unicorn.js',
 		'!unicorn.js',
-		'unicorn.js'
+		'unicorn.js',
 	].filter(file => !isIgnored(file));
 
 	const expected = ['!!unicorn.js', '!unicorn.js'];
