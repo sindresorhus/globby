@@ -75,8 +75,10 @@ before(() => {
 	rimraf.sync(BENCH_DIR);
 	fs.mkdirSync(BENCH_DIR);
 	process.chdir(BENCH_DIR);
-	for (const directory of ['a', 'b']
-		.map(directory => `${directory}/`)) {
+	const directories = ['a', 'b']
+		.map(directory => `${directory}/`);
+
+	for (const directory of directories) {
 		fs.mkdirSync(directory);
 		for (let i = 0; i < 500; i++) {
 			fs.writeFileSync(directory + (i < 100 ? 'c' : 'd') + i, '');
