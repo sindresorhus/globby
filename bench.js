@@ -6,7 +6,7 @@ import rimraf from 'rimraf';
 import globbyMainBranch from 'globby';
 import gs from 'glob-stream';
 import fastGlob from 'fast-glob';
-import globby from './index.js';
+import {globby, globbySync} from './index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BENCH_DIR = 'bench';
@@ -26,7 +26,7 @@ const runners = [{
 }, {
 	name: 'globby sync (working directory)',
 	run: patterns => {
-		globby.sync(patterns);
+		globbySync(patterns);
 	},
 }, {
 	name: 'globby sync (upstream/main)',

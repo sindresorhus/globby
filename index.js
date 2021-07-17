@@ -3,7 +3,7 @@ import arrayUnion from 'array-union';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
-import {gitignore, gitignoreSync} from './gitignore.js';
+import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
 import {FilterStream, UniqueStream} from './stream-utils.js';
 
 const DEFAULT_FILTER = () => false;
@@ -93,7 +93,7 @@ const globDirs = (task, fn) => {
 const getPattern = (task, fn) => task.options.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
 const getFilterSync = options => options && options.gitignore
-	? gitignoreSync({cwd: options.cwd, ignore: options.ignore})
+	? isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore})
 	: DEFAULT_FILTER;
 
 const globToTask = task => glob => {
@@ -108,11 +108,11 @@ const globToTask = task => glob => {
 	};
 };
 
-export const globby = async (patterns, options) => {
+export const globbyAsync = async (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const getFilter = async () => options && options.gitignore
-		? gitignore({cwd: options.cwd, ignore: options.ignore})
+		? isGitIgnored({cwd: options.cwd, ignore: options.ignore})
 		: DEFAULT_FILTER;
 
 	const getTasks = async () => {
@@ -130,7 +130,9 @@ export const globby = async (patterns, options) => {
 	return arrayUnion(...paths).filter(path_ => !filter(getPathString(path_)));
 };
 
-export const sync = (patterns, options) => {
+export const globby = globbyAsync;
+
+export const globbySync = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const tasks = [];
@@ -149,7 +151,7 @@ export const sync = (patterns, options) => {
 	return matches.filter(path_ => !filter(path_));
 };
 
-export const stream = (patterns, options) => {
+export const globbyStream = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const tasks = [];
@@ -167,21 +169,10 @@ export const stream = (patterns, options) => {
 		.pipe(uniqueStream);
 };
 
-export const hasMagic = (patterns, options) => [patterns].flat()
+export const isDynamicPattern = (patterns, options) => [patterns].flat()
 	.some(pattern => fastGlob.isDynamicPattern(pattern, options));
 
 export {
-	gitignore,
-	gitignoreSync,
+	isGitIgnored,
+	isGitIgnoredSync,
 };
-
-// Legacy API
-Object.assign(globby, {
-	hasMagic,
-	generateGlobTasks,
-	gitignore,
-	stream,
-	sync,
-});
-
-export default globby;

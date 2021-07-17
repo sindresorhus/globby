@@ -57,7 +57,7 @@ const ensureAbsolutePathForCwd = (cwd, p) => {
 	return path.join(cwd, p);
 };
 
-const getIsIgnoredPredecate = (ignores, cwd) => p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, p.path || p))));
+const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, p.path || p))));
 
 const getFile = async (file, cwd) => {
 	const filePath = path.join(cwd, file);
@@ -86,7 +86,7 @@ const normalizeOptions = ({
 	cwd = slash(process.cwd()),
 } = {}) => ({ignore, cwd});
 
-export const gitignore = async options => {
+export const isGitIgnored = async options => {
 	options = normalizeOptions(options);
 
 	const paths = await fastGlob('**/.gitignore', {
@@ -97,10 +97,10 @@ export const gitignore = async options => {
 	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
 	const ignores = reduceIgnore(files);
 
-	return getIsIgnoredPredecate(ignores, options.cwd);
+	return getIsIgnoredPredicate(ignores, options.cwd);
 };
 
-export const gitignoreSync = options => {
+export const isGitIgnoredSync = options => {
 	options = normalizeOptions(options);
 
 	const paths = fastGlob.sync('**/.gitignore', {
@@ -111,11 +111,6 @@ export const gitignoreSync = options => {
 	const files = paths.map(file => getFileSync(file, options.cwd));
 	const ignores = reduceIgnore(files);
 
-	return getIsIgnoredPredecate(ignores, options.cwd);
+	return getIsIgnoredPredicate(ignores, options.cwd);
 };
-
-// Legacy API
-gitignore.sync = gitignoreSync;
-
-export default gitignore;
 

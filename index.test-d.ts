@@ -1,16 +1,18 @@
-/* eslint-disable @typescript-eslint/no-require-imports, unicorn/prefer-module, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable unicorn/prefer-module */
 
 import {expectType} from 'tsd';
-import globby = require('./index.js');
 import {
 	GlobTask,
-	FilterFunction,
-	sync as globbySync,
-	stream as globbyStream,
+	GlobbyEntry,
+	GlobbyFilterFunction,
+	globby,
+	globbySync,
+	globbyStream,
 	generateGlobTasks,
-	hasMagic,
-	gitignore,
-} from '.';
+	isDynamicPattern,
+	isGitIgnored,
+	isGitIgnoredSync,
+} from './index.js';
 
 // Globby
 expectType<Promise<string[]>>(globby('*.tmp'));
@@ -30,7 +32,7 @@ expectType<Promise<string[]>>(
 );
 expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
 expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
-expectType<Promise<globby.Entry[]>>(globby('*.tmp', {objectMode: true}));
+expectType<Promise<GlobbyEntry[]>>(globby('*.tmp', {objectMode: true}));
 
 // Globby (sync)
 expectType<string[]>(globbySync('*.tmp'));
@@ -48,7 +50,7 @@ expectType<string[]>(
 );
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
-expectType<globby.Entry[]>(globbySync('*.tmp', {objectMode: true}));
+expectType<GlobbyEntry[]>(globbySync('*.tmp', {objectMode: true}));
 
 // Globby (stream)
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp'));
@@ -97,33 +99,33 @@ expectType<GlobTask[]>(
 expectType<GlobTask[]>(generateGlobTasks('*.tmp', {gitignore: true}));
 expectType<GlobTask[]>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
 
-// HasMagic
-expectType<boolean>(hasMagic('**'));
-expectType<boolean>(hasMagic(['**', 'path1', 'path2']));
-expectType<boolean>(hasMagic(['**', 'path1', 'path2'], {extglob: false}));
+// IsDynamicPattern
+expectType<boolean>(isDynamicPattern('**'));
+expectType<boolean>(isDynamicPattern(['**', 'path1', 'path2']));
+expectType<boolean>(isDynamicPattern(['**', 'path1', 'path2'], {extglob: false}));
 
-// Gitignore
-expectType<Promise<FilterFunction>>(gitignore());
-expectType<Promise<FilterFunction>>(
-	gitignore({
+// IsGitIgnored
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored());
+expectType<Promise<GlobbyFilterFunction>>(
+	isGitIgnored({
 		cwd: __dirname,
 	}),
 );
-expectType<Promise<FilterFunction>>(
-	gitignore({
+expectType<Promise<GlobbyFilterFunction>>(
+	isGitIgnored({
 		ignore: ['**/b.tmp'],
 	}),
 );
 
-// Gitignore (sync)
-expectType<FilterFunction>(gitignore.sync());
-expectType<FilterFunction>(
-	gitignore.sync({
+// IsGitIgnoredSync
+expectType<GlobbyFilterFunction>(isGitIgnoredSync());
+expectType<GlobbyFilterFunction>(
+	isGitIgnoredSync({
 		cwd: __dirname,
 	}),
 );
-expectType<FilterFunction>(
-	gitignore.sync({
+expectType<GlobbyFilterFunction>(
+	isGitIgnoredSync({
 		ignore: ['**/b.tmp'],
 	}),
 );
