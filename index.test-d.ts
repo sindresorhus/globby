@@ -1,5 +1,5 @@
-/* eslint-disable unicorn/prefer-module */
-
+import {dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {expectType} from 'tsd';
 import {
 	GlobTask,
@@ -13,6 +13,8 @@ import {
 	isGitIgnored,
 	isGitIgnoredSync,
 } from './index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Globby
 expectType<Promise<string[]>>(globby('*.tmp'));

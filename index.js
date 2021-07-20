@@ -108,7 +108,7 @@ const globToTask = task => glob => {
 	};
 };
 
-export const globbyAsync = async (patterns, options) => {
+export const globby = async (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const getFilter = async () => options && options.gitignore
@@ -129,8 +129,6 @@ export const globbyAsync = async (patterns, options) => {
 
 	return arrayUnion(...paths).filter(path_ => !filter(getPathString(path_)));
 };
-
-export const globby = globbyAsync;
 
 export const globbySync = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);

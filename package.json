@@ -78,6 +78,11 @@
 		"tsd": "^0.17.0",
 		"xo": "^0.42.0"
 	},
+	"tsd": {
+		"compilerOptions": {
+			"module": "es2020"
+		}
+	},
 	"xo": {
 		"ignores": [
 			"fixtures"

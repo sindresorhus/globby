@@ -144,7 +144,7 @@ declare const isDynamicPattern: (
 	options?: FastGlobOptions
 ) => boolean;
 
-declare const globbyAsync: {
+declare const globby: {
 	(
 		patterns: string | readonly string[],
 		options: GlobbyOptions & {objectMode: true}
@@ -176,5 +176,3 @@ declare const globbyAsync: {
 		options?: GlobbyOptions
 	): Promise<string[]>;
 };
-
-export const globby: typeof globbyAsync;
