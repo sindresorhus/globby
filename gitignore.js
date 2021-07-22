@@ -113,4 +113,3 @@ export const isGitIgnoredSync = options => {
 
 	return getIsIgnoredPredicate(ignores, options.cwd);
 };
-

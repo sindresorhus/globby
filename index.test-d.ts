@@ -1,9 +1,7 @@
-import {dirname} from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {expectType} from 'tsd';
 import {
 	GlobTask,
-	GlobbyEntry,
+	GlobEntry,
 	GlobbyFilterFunction,
 	globby,
 	globbySync,
@@ -14,7 +12,7 @@ import {
 	isGitIgnoredSync,
 } from './index.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = '';
 
 // Globby
 expectType<Promise<string[]>>(globby('*.tmp'));
@@ -34,7 +32,7 @@ expectType<Promise<string[]>>(
 );
 expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
 expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
-expectType<Promise<GlobbyEntry[]>>(globby('*.tmp', {objectMode: true}));
+expectType<Promise<GlobEntry[]>>(globby('*.tmp', {objectMode: true}));
 
 // Globby (sync)
 expectType<string[]>(globbySync('*.tmp'));
@@ -52,7 +50,7 @@ expectType<string[]>(
 );
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
-expectType<GlobbyEntry[]>(globbySync('*.tmp', {objectMode: true}));
+expectType<GlobEntry[]>(globbySync('*.tmp', {objectMode: true}));
 
 // Globby (stream)
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp'));

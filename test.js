@@ -5,11 +5,11 @@ import {fileURLToPath} from 'node:url';
 import test from 'ava';
 import getStream from 'get-stream';
 import {
-	isDynamicPattern,
-	generateGlobTasks,
 	globby,
 	globbySync,
 	globbyStream,
+	isDynamicPattern,
+	generateGlobTasks,
 } from './index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

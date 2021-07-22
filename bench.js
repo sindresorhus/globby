@@ -11,70 +11,84 @@ import {globby, globbySync} from './index.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BENCH_DIR = 'bench';
 
-const runners = [{
-	name: 'globby async (working directory)',
-	run: async (patterns, callback) => {
-		await globby(patterns);
-		callback();
+const runners = [
+	{
+		name: 'globby async (working directory)',
+		run: async (patterns, callback) => {
+			await globby(patterns);
+			callback();
+		},
 	},
-}, {
-	name: 'globby async (upstream/main)',
-	run: async (patterns, callback) => {
-		await globbyMainBranch(patterns);
-		callback();
+	{
+		name: 'globby async (upstream/main)',
+		run: async (patterns, callback) => {
+			await globbyMainBranch(patterns);
+			callback();
+		},
 	},
-}, {
-	name: 'globby sync (working directory)',
-	run: patterns => {
-		globbySync(patterns);
+	{
+		name: 'globby sync (working directory)',
+		run: patterns => {
+			globbySync(patterns);
+		},
 	},
-}, {
-	name: 'globby sync (upstream/main)',
-	run: patterns => {
-		globbyMainBranch.sync(patterns);
+	{
+		name: 'globby sync (upstream/main)',
+		run: patterns => {
+			globbyMainBranch.sync(patterns);
+		},
 	},
-}, {
-	name: 'glob-stream',
-	run: (patterns, cb) => {
-		gs(patterns).on('data', () => {}).on('end', cb);
+	{
+		name: 'glob-stream',
+		run: (patterns, cb) => {
+			gs(patterns).on('data', () => {}).on('end', cb);
+		},
 	},
-}, {
-	name: 'fast-glob async',
-	run: async (patterns, callback) => {
-		await fastGlob(patterns);
-		callback();
+	{
+		name: 'fast-glob async',
+		run: async (patterns, callback) => {
+			await fastGlob(patterns);
+			callback();
+		},
 	},
-}, {
-	name: 'fast-glob sync',
-	run: patterns => {
-		fastGlob.sync(patterns);
+	{
+		name: 'fast-glob sync',
+		run: patterns => {
+			fastGlob.sync(patterns);
+		},
+	}
+];
+
+const benchs = [
+	{
+		name: 'negative globs (some files inside dir)',
+		patterns: [
+			'a/*',
+			'!a/c*',
+		],
 	},
-}];
-const benchs = [{
-	name: 'negative globs (some files inside dir)',
-	patterns: [
-		'a/*',
-		'!a/c*',
-	],
-}, {
-	name: 'negative globs (whole dir)',
-	patterns: [
-		'a/*',
-		'!a/**',
-	],
-}, {
-	name: 'multiple positive globs',
-	patterns: [
-		'a/*',
-		'b/*',
-	],
-}];
+	{
+		name: 'negative globs (whole dir)',
+		patterns: [
+			'a/*',
+			'!a/**',
+		],
+	},
+	{
+		name: 'multiple positive globs',
+		patterns: [
+			'a/*',
+			'b/*',
+		],
+	}
+];
 
 before(() => {
 	process.chdir(__dirname);
 	rimraf.sync(BENCH_DIR);
 	fs.mkdirSync(BENCH_DIR);
 	process.chdir(BENCH_DIR);
+
 	const directories = ['a', 'b']
 		.map(directory => `${directory}/`);
 

@@ -69,7 +69,7 @@ export const generateGlobTasks = (patterns, taskOptions) => {
 	return globTasks;
 };
 
-const globDirs = (task, fn) => {
+const globDirectories = (task, fn) => {
 	let options = {};
 	if (task.options.cwd) {
 		options.cwd = task.options.cwd;
@@ -90,7 +90,7 @@ const globDirs = (task, fn) => {
 	return fn(task.pattern, options);
 };
 
-const getPattern = (task, fn) => task.options.expandDirectories ? globDirs(task, fn) : [task.pattern];
+const getPattern = (task, fn) => task.options.expandDirectories ? globDirectories(task, fn) : [task.pattern];
 
 const getFilterSync = options => options && options.gitignore
 	? isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore})
@@ -173,4 +173,4 @@ export const isDynamicPattern = (patterns, options) => [patterns].flat()
 export {
 	isGitIgnored,
 	isGitIgnoredSync,
-};
+} from './gitignore.js';

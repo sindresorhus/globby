@@ -29,12 +29,10 @@ $ npm install globby
 ```js
 import {globby} from 'globby';
 
-(async () => {
-	const paths = await globby(['*', '!cake']);
+const paths = await globby(['*', '!cake']);
 
-	console.log(paths);
-	//=> ['unicorn', 'rainbow']
-})();
+console.log(paths);
+//=> ['unicorn', 'rainbow']
 ```
 
 ## API
@@ -132,10 +130,9 @@ Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matc
 ```js
 import {isGitIgnored} from 'globby';
 
-(async () => {
-	const isIgnored = await isGitIgnored();
-	console.log(isIgnored('some/file'));
-})();
+const isIgnored = await isGitIgnored();
+
+console.log(isIgnored('some/file'));
 ```
 
 ### isGitIgnoredSync(options?)

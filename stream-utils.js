@@ -8,7 +8,7 @@ class ObjectTransform extends Transform {
 	}
 }
 
-class FilterStream extends ObjectTransform {
+export class FilterStream extends ObjectTransform {
 	constructor(filter) {
 		super();
 		this._filter = filter;
@@ -23,7 +23,7 @@ class FilterStream extends ObjectTransform {
 	}
 }
 
-class UniqueStream extends ObjectTransform {
+export class UniqueStream extends ObjectTransform {
 	constructor() {
 		super();
 		this._pushed = new Set();
@@ -38,8 +38,3 @@ class UniqueStream extends ObjectTransform {
 		callback();
 	}
 }
-
-export {
-	FilterStream,
-	UniqueStream,
-};
