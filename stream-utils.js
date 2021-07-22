@@ -1,10 +1,9 @@
-'use strict';
-const {Transform} = require('stream');
+import {Transform} from 'node:stream';
 
 class ObjectTransform extends Transform {
 	constructor() {
 		super({
-			objectMode: true
+			objectMode: true,
 		});
 	}
 }
@@ -40,7 +39,7 @@ class UniqueStream extends ObjectTransform {
 	}
 }
 
-module.exports = {
+export {
 	FilterStream,
-	UniqueStream
+	UniqueStream,
 };

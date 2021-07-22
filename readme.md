@@ -27,7 +27,7 @@ $ npm install globby
 ```
 
 ```js
-const globby = require('globby');
+import {globby} from 'globby';
 
 (async () => {
 	const paths = await globby(['*', '!cake']);
@@ -65,7 +65,7 @@ Default: `true`
 If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `object` with `files` and `extensions` like below:
 
 ```js
-const globby = require('globby');
+import {globby} from 'globby';
 
 (async () => {
 	const paths = await globby('images', {
@@ -89,33 +89,33 @@ Default: `false`
 
 Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
-### globby.sync(patterns, options?)
+### globbySync(patterns, options?)
 
 Returns `string[]` of matching paths.
 
-### globby.stream(patterns, options?)
+### globbyStream(patterns, options?)
 
 Returns a [`stream.Readable`](https://nodejs.org/api/stream.html#stream_readable_streams) of matching paths.
 
 Since Node.js 10, [readable streams are iterable](https://nodejs.org/api/stream.html#stream_readable_symbol_asynciterator), so you can loop over glob matches in a [`for await...of` loop](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) like this:
 
 ```js
-const globby = require('globby');
+import {globbyStream} from 'globby';
 
 (async () => {
-	for await (const path of globby.stream('*.tmp')) {
+	for await (const path of globbyStream('*.tmp')) {
 		console.log(path);
 	}
 })();
 ```
 
-### globby.generateGlobTasks(patterns, options?)
+### generateGlobTasks(patterns, options?)
 
 Returns an `object[]` in the format `{pattern: string, options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
 
-### globby.hasMagic(patterns, options?)
+### isDynamicPattern(patterns, options?)
 
 Returns a `boolean` of whether there are any special glob characters in the `patterns`.
 
@@ -123,26 +123,26 @@ Note that the options affect the results.
 
 This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isdynamicpatternpattern-options).
 
-### globby.gitignore(options?)
+### isGitIgnored(options?)
 
 Returns a `Promise<(path: string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
 Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not used for the resulting filter function.
 
 ```js
-const {gitignore} = require('globby');
+import {isGitIgnored} from 'globby';
 
 (async () => {
-	const isIgnored = await gitignore();
+	const isIgnored = await isGitIgnored();
 	console.log(isIgnored('some/file'));
 })();
 ```
 
-### globby.gitignore.sync(options?)
+### isGitIgnoredSync(options?)
 
 Returns a `(path: string) => boolean` indicating whether a given path is ignored via a `.gitignore` file.
 
-Takes the same options as `globby.gitignore`.
+Takes the same options as `isGitIgnored`.
 
 ## Globbing patterns
 

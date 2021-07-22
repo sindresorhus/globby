@@ -1,11 +1,10 @@
-'use strict';
-const fs = require('fs');
-const arrayUnion = require('array-union');
-const merge2 = require('merge2');
-const fastGlob = require('fast-glob');
-const dirGlob = require('dir-glob');
-const gitignore = require('./gitignore');
-const {FilterStream, UniqueStream} = require('./stream-utils');
+import fs from 'node:fs';
+import arrayUnion from 'array-union';
+import merge2 from 'merge2';
+import fastGlob from 'fast-glob';
+import dirGlob from 'dir-glob';
+import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
+import {FilterStream, UniqueStream} from './stream-utils.js';
 
 const DEFAULT_FILTER = () => false;
 
@@ -36,8 +35,8 @@ const checkCwdOption = (options = {}) => {
 
 const getPathString = p => p.stats instanceof fs.Stats ? p.path : p;
 
-const generateGlobTasks = (patterns, taskOptions) => {
-	patterns = arrayUnion([].concat(patterns));
+export const generateGlobTasks = (patterns, taskOptions) => {
+	patterns = arrayUnion([patterns].flat());
 	assertPatternsInput(patterns);
 	checkCwdOption(taskOptions);
 
@@ -46,7 +45,7 @@ const generateGlobTasks = (patterns, taskOptions) => {
 	taskOptions = {
 		ignore: [],
 		expandDirectories: true,
-		...taskOptions
+		...taskOptions,
 	};
 
 	for (const [index, pattern] of patterns.entries()) {
@@ -61,7 +60,7 @@ const generateGlobTasks = (patterns, taskOptions) => {
 
 		const options = {
 			...taskOptions,
-			ignore: taskOptions.ignore.concat(ignore)
+			ignore: [...taskOptions.ignore, ...ignore],
 		};
 
 		globTasks.push({pattern, options});
@@ -79,12 +78,12 @@ const globDirs = (task, fn) => {
 	if (Array.isArray(task.options.expandDirectories)) {
 		options = {
 			...options,
-			files: task.options.expandDirectories
+			files: task.options.expandDirectories,
 		};
 	} else if (typeof task.options.expandDirectories === 'object') {
 		options = {
 			...options,
-			...task.options.expandDirectories
+			...task.options.expandDirectories,
 		};
 	}
 
@@ -93,11 +92,9 @@ const globDirs = (task, fn) => {
 
 const getPattern = (task, fn) => task.options.expandDirectories ? globDirs(task, fn) : [task.pattern];
 
-const getFilterSync = options => {
-	return options && options.gitignore ?
-		gitignore.sync({cwd: options.cwd, ignore: options.ignore}) :
-		DEFAULT_FILTER;
-};
+const getFilterSync = options => options && options.gitignore
+	? isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore})
+	: DEFAULT_FILTER;
 
 const globToTask = task => glob => {
 	const {options} = task;
@@ -107,18 +104,16 @@ const globToTask = task => glob => {
 
 	return {
 		pattern: glob,
-		options
+		options,
 	};
 };
 
-module.exports = async (patterns, options) => {
+export const globby = async (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
-	const getFilter = async () => {
-		return options && options.gitignore ?
-			gitignore({cwd: options.cwd, ignore: options.ignore}) :
-			DEFAULT_FILTER;
-	};
+	const getFilter = async () => options && options.gitignore
+		? isGitIgnored({cwd: options.cwd, ignore: options.ignore})
+		: DEFAULT_FILTER;
 
 	const getTasks = async () => {
 		const tasks = await Promise.all(globTasks.map(async task => {
@@ -135,7 +130,7 @@ module.exports = async (patterns, options) => {
 	return arrayUnion(...paths).filter(path_ => !filter(getPathString(path_)));
 };
 
-module.exports.sync = (patterns, options) => {
+export const globbySync = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const tasks = [];
@@ -154,7 +149,7 @@ module.exports.sync = (patterns, options) => {
 	return matches.filter(path_ => !filter(path_));
 };
 
-module.exports.stream = (patterns, options) => {
+export const globbyStream = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const tasks = [];
@@ -172,10 +167,10 @@ module.exports.stream = (patterns, options) => {
 		.pipe(uniqueStream);
 };
 
-module.exports.generateGlobTasks = generateGlobTasks;
-
-module.exports.hasMagic = (patterns, options) => []
-	.concat(patterns)
+export const isDynamicPattern = (patterns, options) => [patterns].flat()
 	.some(pattern => fastGlob.isDynamicPattern(pattern, options));
 
-module.exports.gitignore = gitignore;
+export {
+	isGitIgnored,
+	isGitIgnoredSync,
+};
