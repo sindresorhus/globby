@@ -13,7 +13,7 @@
 	"type": "module",
 	"exports": "./index.js",
 	"engines": {
-		"node": "^12.20.0 || ^14.13.1 || >=16.0.0"
+		"node": "^12.20.0 || ^14.13.1 || ^15.0.0 || >=16.0.0"
 	},
 	"scripts": {
 		"bench": "npm update glob-stream fast-glob && matcha bench.js",
