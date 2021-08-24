@@ -96,7 +96,19 @@ const getFilterSync = options => options && options.gitignore
 	? isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore})
 	: DEFAULT_FILTER;
 
-const globToTask = task => glob => {
+const globToTask = task => async glob => {
+	const {options} = task;
+	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
+		options.ignore = await dirGlob(options.ignore);
+	}
+
+	return {
+		pattern: glob,
+		options,
+	};
+};
+
+const globToTaskSync = task => glob => {
 	const {options} = task;
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
 		options.ignore = dirGlob.sync(options.ignore);
@@ -135,7 +147,7 @@ export const globbySync = (patterns, options) => {
 
 	const tasks = [];
 	for (const task of globTasks) {
-		const newTask = getPattern(task, dirGlob.sync).map(globToTask(task));
+		const newTask = getPattern(task, dirGlob.sync).map(globToTaskSync(task));
 		tasks.push(...newTask);
 	}
 
@@ -154,7 +166,7 @@ export const globbyStream = (patterns, options) => {
 
 	const tasks = [];
 	for (const task of globTasks) {
-		const newTask = getPattern(task, dirGlob.sync).map(globToTask(task));
+		const newTask = getPattern(task, dirGlob.sync).map(globToTaskSync(task));
 		tasks.push(...newTask);
 	}
 
