@@ -12,6 +12,10 @@ Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob) but adds a bunch of 
 - Expands directories: `foo` → `foo/**/*`
 - Supports `.gitignore`
 
+## Limitations
+
+- Spotty Windows support
+
 ## Install
 
 ```
