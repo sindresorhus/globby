@@ -1,4 +1,4 @@
-import {Transform} from 'node:stream';
+import {Transform} from 'stream';
 
 class ObjectTransform extends Transform {
 	constructor() {
