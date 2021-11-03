@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import fs from 'fs';
 import arrayUnion from 'array-union';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
