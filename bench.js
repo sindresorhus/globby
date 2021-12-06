@@ -1,6 +1,7 @@
 /* global after, before, bench, suite */
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import rimraf from 'rimraf';
 import globbyMainBranch from 'globby';
@@ -56,7 +57,7 @@ const runners = [
 		run: patterns => {
 			fastGlob.sync(patterns);
 		},
-	}
+	},
 ];
 
 const benchs = [
@@ -80,7 +81,7 @@ const benchs = [
 			'a/*',
 			'b/*',
 		],
-	}
+	},
 ];
 
 before(() => {

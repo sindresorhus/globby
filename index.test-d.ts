@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer';
 import {expectType} from 'tsd';
 import {
 	GlobTask,
