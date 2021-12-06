@@ -1,4 +1,5 @@
 /* global after, before, bench, suite */
+import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -56,7 +57,7 @@ const runners = [
 		run: patterns => {
 			fastGlob.sync(patterns);
 		},
-	}
+	},
 ];
 
 const benchs = [
@@ -80,7 +81,7 @@ const benchs = [
 			'a/*',
 			'b/*',
 		],
-	}
+	},
 ];
 
 before(() => {

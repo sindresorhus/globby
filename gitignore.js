@@ -1,3 +1,4 @@
+import process from 'node:process';
 import {promisify} from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -90,7 +91,10 @@ export const isGitIgnored = async options => {
 	options = normalizeOptions(options);
 
 	const paths = await fastGlob('**/.gitignore', {
-		ignore: DEFAULT_IGNORE.concat(options.ignore),
+		ignore: [
+			...DEFAULT_IGNORE,
+			...options.ignore,
+		],
 		cwd: options.cwd,
 	});
 
@@ -104,7 +108,10 @@ export const isGitIgnoredSync = options => {
 	options = normalizeOptions(options);
 
 	const paths = fastGlob.sync('**/.gitignore', {
-		ignore: DEFAULT_IGNORE.concat(options.ignore),
+		ignore: [
+			...DEFAULT_IGNORE,
+			...options.ignore,
+		],
 		cwd: options.cwd,
 	});
 

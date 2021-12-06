@@ -1,3 +1,4 @@
+import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
@@ -45,7 +46,8 @@ test.after(() => {
 });
 
 test('glob - async', async t => {
-	t.deepEqual((await globby('*.tmp')).sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	const result = await globby('*.tmp');
+	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
 test('glob - async - multiple file paths', t => {
@@ -83,7 +85,8 @@ test('return [] for all negative patterns - async', async t => {
 });
 
 test('glob - stream', async t => {
-	t.deepEqual((await getStream.array(globbyStream('*.tmp'))).sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	const result = await getStream.array(globbyStream('*.tmp'));
+	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
 test('glob - stream async iterator support', async t => {
