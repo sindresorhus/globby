@@ -184,10 +184,9 @@ export const globbyStream = (patterns, options) => {
 export const isDynamicPattern = (patterns, options = {}) => {
 	if (options.cwd) {
 		options = {...options, cwd: toPath(options.cwd)};
-	};
+	}
 
-	return [patterns].flat()
-		.some(pattern => fastGlob.isDynamicPattern(pattern, options));
+	return [patterns].flat().some(pattern => fastGlob.isDynamicPattern(pattern, options));
 };
 
 export {
