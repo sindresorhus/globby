@@ -82,18 +82,12 @@ const getFileSync = (file, cwd) => {
 const normalizeOptions = ({
 	ignore = [],
 	cwd = slash(process.cwd()),
-} = {}) => ({ignore, cwd});
+} = {}) => ({ignore: [...DEFAULT_IGNORE, ...ignore], cwd});
 
 export const isGitIgnored = async options => {
 	options = normalizeOptions(options);
 
-	const paths = await fastGlob('**/.gitignore', {
-		ignore: [
-			...DEFAULT_IGNORE,
-			...options.ignore,
-		],
-		cwd: options.cwd,
-	});
+	const paths = await fastGlob('**/.gitignore', options);
 
 	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
 	const ignores = reduceIgnore(files);
@@ -104,13 +98,7 @@ export const isGitIgnored = async options => {
 export const isGitIgnoredSync = options => {
 	options = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', {
-		ignore: [
-			...DEFAULT_IGNORE,
-			...options.ignore,
-		],
-		cwd: options.cwd,
-	});
+	const paths = fastGlob.sync('**/.gitignore', options);
 
 	const files = paths.map(file => getFileSync(file, options.cwd));
 	const ignores = reduceIgnore(files);
