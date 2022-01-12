@@ -1,5 +1,4 @@
 import process from 'node:process';
-import {promisify} from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';
 import fastGlob from 'fast-glob';
@@ -13,8 +12,6 @@ const DEFAULT_IGNORE = [
 	'**/coverage/**',
 	'**/.git',
 ];
-
-const readFileP = promisify(fs.readFile);
 
 const mapGitIgnorePatternTo = base => ignore => {
 	if (ignore.startsWith('!')) {
@@ -63,7 +60,7 @@ const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.
 
 const getFile = async (file, cwd) => {
 	const filePath = path.join(cwd, file);
-	const content = await readFileP(filePath, 'utf8');
+	const content = await fs.promises.readFile(filePath, 'utf8');
 
 	return {
 		cwd,
@@ -86,18 +83,12 @@ const getFileSync = (file, cwd) => {
 const normalizeOptions = ({
 	ignore = [],
 	cwd = slash(process.cwd()),
-} = {}) => ({ignore, cwd: toPath(cwd)});
+} = {}) => ({ignore: [...DEFAULT_IGNORE, ...ignore], cwd: toPath(cwd)});
 
 export const isGitIgnored = async options => {
 	options = normalizeOptions(options);
 
-	const paths = await fastGlob('**/.gitignore', {
-		ignore: [
-			...DEFAULT_IGNORE,
-			...options.ignore,
-		],
-		cwd: options.cwd,
-	});
+	const paths = await fastGlob('**/.gitignore', options);
 
 	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
 	const ignores = reduceIgnore(files);
@@ -108,13 +99,7 @@ export const isGitIgnored = async options => {
 export const isGitIgnoredSync = options => {
 	options = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', {
-		ignore: [
-			...DEFAULT_IGNORE,
-			...options.ignore,
-		],
-		cwd: options.cwd,
-	});
+	const paths = fastGlob.sync('**/.gitignore', options);
 
 	const files = paths.map(file => getFileSync(file, options.cwd));
 	const ignores = reduceIgnore(files);
