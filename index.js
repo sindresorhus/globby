@@ -100,7 +100,6 @@ const getFilterSync = options => options && options.gitignore
 
 const globToTask = task => async glob => {
 	const {options} = task;
-
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
 		options.ignore = await dirGlob(options.ignore);
 	}
@@ -113,7 +112,6 @@ const globToTask = task => async glob => {
 
 const globToTaskSync = task => glob => {
 	const {options} = task;
-
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
 		options.ignore = dirGlob.sync(options.ignore);
 	}
@@ -183,7 +181,7 @@ export const globbyStream = (patterns, options) => {
 		.pipe(uniqueStream);
 };
 
-export const isDynamicPattern = (patterns, options = {}) => [patterns].flat()
+export const isDynamicPattern = (patterns, options) => [patterns].flat()
 	.some(pattern => fastGlob.isDynamicPattern(pattern, options));
 
 export {
