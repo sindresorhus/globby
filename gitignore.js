@@ -5,6 +5,7 @@ import path from 'node:path';
 import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
+import {toPath} from 'url-or-path';
 
 const DEFAULT_IGNORE = [
 	'**/node_modules/**',
@@ -85,7 +86,7 @@ const getFileSync = (file, cwd) => {
 const normalizeOptions = ({
 	ignore = [],
 	cwd = slash(process.cwd()),
-} = {}) => ({ignore, cwd});
+} = {}) => ({ignore, cwd: toPath(cwd)});
 
 export const isGitIgnored = async options => {
 	options = normalizeOptions(options);

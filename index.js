@@ -3,6 +3,7 @@ import arrayUnion from 'array-union';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
+import {toPath} from 'url-or-path';
 import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
 import {FilterStream, UniqueStream} from './stream-utils.js';
 
@@ -61,6 +62,7 @@ export const generateGlobTasks = (patterns, taskOptions) => {
 		const options = {
 			...taskOptions,
 			ignore: [...taskOptions.ignore, ...ignore],
+			cwd: taskOptions.cwd ? toPath(taskOptions.cwd) : taskOptions.cwd,
 		};
 
 		globTasks.push({pattern, options});
@@ -98,6 +100,11 @@ const getFilterSync = options => options && options.gitignore
 
 const globToTask = task => async glob => {
 	const {options} = task;
+
+	if (options.cwd) {
+		options.cwd = toPath(options.cwd);
+	}
+
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
 		options.ignore = await dirGlob(options.ignore);
 	}
@@ -110,6 +117,11 @@ const globToTask = task => async glob => {
 
 const globToTaskSync = task => glob => {
 	const {options} = task;
+
+	if (options.cwd) {
+		options.cwd = toPath(options.cwd);
+	}
+
 	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
 		options.ignore = dirGlob.sync(options.ignore);
 	}
@@ -179,8 +191,17 @@ export const globbyStream = (patterns, options) => {
 		.pipe(uniqueStream);
 };
 
-export const isDynamicPattern = (patterns, options) => [patterns].flat()
-	.some(pattern => fastGlob.isDynamicPattern(pattern, options));
+export const isDynamicPattern = (patterns, options = {}) => {
+	if (options.cwd) {
+		options = {
+			...options,
+			cwd: toPath(options.cwd),
+		};
+	}
+
+	return [patterns].flat()
+		.some(pattern => fastGlob.isDynamicPattern(pattern, options));
+};
 
 export {
 	isGitIgnored,

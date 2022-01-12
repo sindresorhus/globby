@@ -64,7 +64,8 @@
 		"fast-glob": "^3.2.7",
 		"ignore": "^5.1.9",
 		"merge2": "^1.4.1",
-		"slash": "^4.0.0"
+		"slash": "^4.0.0",
+		"url-or-path": "^1.0.2"
 	},
 	"devDependencies": {
 		"@types/node": "^16.11.11",

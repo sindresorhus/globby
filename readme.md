@@ -11,6 +11,7 @@ Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob) but adds a bunch of 
 - Negated patterns: `['foo*', '!foobar']`
 - Expands directories: `foo` → `foo/**/*`
 - Supports `.gitignore`
+- Supports `URL` as `cwd`
 
 ## Install
 
@@ -125,7 +126,7 @@ This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isd
 
 Returns a `Promise<(path: string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
-Takes `cwd?: string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not used for the resulting filter function.
+Takes `cwd?: URL | string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not used for the resulting filter function.
 
 ```js
 import {isGitIgnored} from 'globby';
