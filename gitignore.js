@@ -1,5 +1,4 @@
 import process from 'node:process';
-import {promisify} from 'node:util';
 import fs from 'node:fs';
 import path from 'node:path';
 import fastGlob from 'fast-glob';
@@ -12,8 +11,6 @@ const DEFAULT_IGNORE = [
 	'**/coverage/**',
 	'**/.git',
 ];
-
-const readFileP = promisify(fs.readFile);
 
 const mapGitIgnorePatternTo = base => ignore => {
 	if (ignore.startsWith('!')) {
@@ -62,7 +59,7 @@ const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.
 
 const getFile = async (file, cwd) => {
 	const filePath = path.join(cwd, file);
-	const content = await readFileP(filePath, 'utf8');
+	const content = await fs.promises.readFile(filePath, 'utf8');
 
 	return {
 		cwd,
