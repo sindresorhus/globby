@@ -25,7 +25,7 @@ const fixture = [
 	'e.tmp',
 ];
 
-const getCwdValues = cwd => [cwd, pathToFileURL(cwd)];
+const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
 
 test.before(() => {
 	if (!fs.existsSync(temporary)) {
