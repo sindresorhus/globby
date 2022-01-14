@@ -27,7 +27,7 @@ $ npm install globby
 ```
 
 ```js
-import {globby} from 'globby';
+import globby from 'globby';
 
 const paths = await globby(['*', '!cake']);
 
