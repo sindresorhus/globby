@@ -36,7 +36,7 @@ const checkCwdOption = options => {
 
 const getPathString = p => p.stats instanceof fs.Stats ? p.path : p;
 
-export const generateGlobTasks = (patterns, taskOptions) => {
+export const generateGlobTasks = (patterns, taskOptions = {}) => {
 	patterns = arrayUnion([patterns].flat());
 	assertPatternsInput(patterns);
 
@@ -46,11 +46,8 @@ export const generateGlobTasks = (patterns, taskOptions) => {
 		ignore: [],
 		expandDirectories: true,
 		...taskOptions,
+		cwd: toPath(taskOptions.cwd),
 	};
-
-	if (taskOptions.cwd) {
-		taskOptions.cwd = toPath(taskOptions.cwd);
-	}
 
 	checkCwdOption(taskOptions);
 
@@ -186,9 +183,10 @@ export const globbyStream = (patterns, options) => {
 };
 
 export const isDynamicPattern = (patterns, options = {}) => {
-	if (options.cwd) {
-		options = {...options, cwd: toPath(options.cwd)};
-	}
+	options = {
+		...options,
+		cwd: toPath(options.cwd),
+	};
 
 	return [patterns].flat().some(pattern => fastGlob.isDynamicPattern(pattern, options));
 };

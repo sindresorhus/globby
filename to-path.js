@@ -1,6 +1,10 @@
 import {fileURLToPath} from 'node:url';
 
 const toPath = urlOrPath => {
+	if (!urlOrPath) {
+		return urlOrPath;
+	}
+
 	if (urlOrPath instanceof URL) {
 		urlOrPath = urlOrPath.href;
 	}
