@@ -9,7 +9,7 @@ const toPath = urlOrPath => {
 		urlOrPath = urlOrPath.href;
 	}
 
-	return urlOrPath.startsWith('file:') ? fileURLToPath(urlOrPath) : urlOrPath;
+	return urlOrPath.startsWith('file://') ? fileURLToPath(urlOrPath) : urlOrPath;
 };
 
 export default toPath;
