@@ -12,7 +12,9 @@ export type ExpandDirectoriesOption =
 	| readonly string[]
 	| {files?: readonly string[]; extensions?: readonly string[]};
 
-export interface Options extends FastGlobOptions {
+type FastGlobOptionsWithoutCwd = Omit<FastGlobOptions, 'cwd'>;
+
+export interface Options extends FastGlobOptionsWithoutCwd {
 	/**
 	If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `Object` with `files` and `extensions` like in the example below.
 
@@ -43,10 +45,17 @@ export interface Options extends FastGlobOptions {
 	@default false
 	*/
 	readonly gitignore?: boolean;
+
+	/**
+	The current working directory in which to search.
+
+	@default process.cwd()
+	*/
+	readonly cwd?: URL | string;
 }
 
 export interface GitignoreOptions {
-	readonly cwd?: string;
+	readonly cwd?: URL | string;
 	readonly ignore?: readonly string[];
 }
 
@@ -144,7 +153,14 @@ This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isd
 */
 export function isDynamicPattern(
 	patterns: string | readonly string[],
-	options?: FastGlobOptions
+	options?: FastGlobOptionsWithoutCwd & {
+		/**
+		The current working directory in which to search.
+
+		@default process.cwd()
+		*/
+		readonly cwd?: URL | string;
+	}
 ): boolean;
 
 /**

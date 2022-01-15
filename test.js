@@ -2,7 +2,7 @@ import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'ava';
 import getStream from 'get-stream';
 import {
@@ -24,6 +24,8 @@ const fixture = [
 	'd.tmp',
 	'e.tmp',
 ];
+
+const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
 
 test.before(() => {
 	if (!fs.existsSync(temporary)) {
@@ -116,8 +118,11 @@ test('return [] for all negative patterns - stream', async t => {
 
 test('cwd option', t => {
 	process.chdir(temporary);
-	t.deepEqual(globbySync('*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
+	for (const cwdDirectory of getCwdValues(cwd)) {
+		t.deepEqual(globbySync('*.tmp', {cwd: cwdDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+		t.deepEqual(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd: cwdDirectory}), ['a.tmp', 'b.tmp']);
+	}
+
 	process.chdir(cwd);
 });
 
@@ -148,11 +153,18 @@ test('expose isDynamicPattern', t => {
 	t.true(isDynamicPattern('**'));
 	t.true(isDynamicPattern(['**', 'path1', 'path2']));
 	t.false(isDynamicPattern(['path1', 'path2']));
+
+	for (const cwdDirectory of getCwdValues(cwd)) {
+		t.true(isDynamicPattern('**', {cwd: cwdDirectory}));
+	}
 });
 
 test('expandDirectories option', t => {
 	t.deepEqual(globbySync(temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	t.deepEqual(globbySync('**', {cwd: temporary}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	for (const temporaryDirectory of getCwdValues(temporary)) {
+		t.deepEqual(globbySync('**', {cwd: temporaryDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	}
+
 	t.deepEqual(globbySync(temporary, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
 	t.deepEqual(globbySync(temporary, {
 		expandDirectories: {
@@ -193,10 +205,13 @@ test('expandDirectories and ignores option', t => {
 
 test.failing('relative paths and ignores option', t => {
 	process.chdir(temporary);
-	t.deepEqual(globbySync('../tmp', {
-		cwd: process.cwd(),
-		ignore: ['tmp'],
-	}), []);
+	for (const cwd of getCwdValues(process.cwd())) {
+		t.deepEqual(globbySync('../tmp', {
+			cwd,
+			ignore: ['tmp'],
+		}), []);
+	}
+
 	process.chdir(cwd);
 });
 
@@ -327,71 +342,86 @@ test('gitingore option and objectMode option - sync', t => {
 });
 
 test('`{extension: false}` and `expandDirectories.extensions` option', t => {
-	t.deepEqual(
-		globbySync('*', {
-			cwd: temporary,
-			extension: false,
-			expandDirectories: {
-				extensions: [
-					'md',
-					'tmp',
-				],
-			},
-		}),
-		[
-			'a.tmp',
-			'b.tmp',
-			'c.tmp',
-			'd.tmp',
-			'e.tmp',
-		],
-	);
+	for (const temporaryDirectory of getCwdValues(temporary)) {
+		t.deepEqual(
+			globbySync('*', {
+				cwd: temporaryDirectory,
+				extension: false,
+				expandDirectories: {
+					extensions: [
+						'md',
+						'tmp',
+					],
+				},
+			}),
+			[
+				'a.tmp',
+				'b.tmp',
+				'c.tmp',
+				'd.tmp',
+				'e.tmp',
+			],
+		);
+	}
 });
 
 test('throws when specifying a file as cwd - async', async t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
 
-	await t.throwsAsync(
-		globby('.', {cwd: isFile}),
-		{message: 'The `cwd` option must be a path to a directory'},
-	);
+	for (const file of getCwdValues(isFile)) {
+		// eslint-disable-next-line no-await-in-loop
+		await t.throwsAsync(
+			globby('.', {cwd: file}),
+			{message: 'The `cwd` option must be a path to a directory'},
+		);
 
-	await t.throwsAsync(
-		globby('*', {cwd: isFile}),
-		{message: 'The `cwd` option must be a path to a directory'},
-	);
+		// eslint-disable-next-line no-await-in-loop
+		await t.throwsAsync(
+			globby('*', {cwd: file}),
+			{message: 'The `cwd` option must be a path to a directory'},
+		);
+	}
 });
 
 test('throws when specifying a file as cwd - sync', t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
 
-	t.throws(() => {
-		globbySync('.', {cwd: isFile});
-	}, {message: 'The `cwd` option must be a path to a directory'});
+	for (const file of getCwdValues(isFile)) {
+		t.throws(() => {
+			globbySync('.', {cwd: file});
+		}, {message: 'The `cwd` option must be a path to a directory'});
 
-	t.throws(() => {
-		globbySync('*', {cwd: isFile});
-	}, {message: 'The `cwd` option must be a path to a directory'});
+		t.throws(() => {
+			globbySync('*', {cwd: file});
+		}, {message: 'The `cwd` option must be a path to a directory'});
+	}
 });
 
 test('throws when specifying a file as cwd - stream', t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
 
-	t.throws(() => {
-		globbyStream('.', {cwd: isFile});
-	}, {message: 'The `cwd` option must be a path to a directory'});
+	for (const file of getCwdValues(isFile)) {
+		t.throws(() => {
+			globbyStream('.', {cwd: file});
+		}, {message: 'The `cwd` option must be a path to a directory'});
 
-	t.throws(() => {
-		globbyStream('*', {cwd: isFile});
-	}, {message: 'The `cwd` option must be a path to a directory'});
+		t.throws(() => {
+			globbyStream('*', {cwd: file});
+		}, {message: 'The `cwd` option must be a path to a directory'});
+	}
 });
 
 test('don\'t throw when specifying a non-existing cwd directory - async', async t => {
-	const actual = await globby('.', {cwd: '/unknown'});
-	t.is(actual.length, 0);
+	for (const cwd of getCwdValues('/unknown')) {
+		// eslint-disable-next-line no-await-in-loop
+		const actual = await globby('.', {cwd});
+		t.is(actual.length, 0);
+	}
 });
 
 test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
-	const actual = globbySync('.', {cwd: '/unknown'});
-	t.is(actual.length, 0);
+	for (const cwd of getCwdValues('/unknown')) {
+		const actual = globbySync('.', {cwd});
+		t.is(actual.length, 0);
+	}
 });
