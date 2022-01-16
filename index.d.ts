@@ -1,3 +1,4 @@
+import {URL} from 'node:url';
 import {Options as FastGlobOptions, Entry} from 'fast-glob';
 
 export type GlobEntry = Entry;
