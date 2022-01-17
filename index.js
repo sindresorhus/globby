@@ -4,9 +4,7 @@ import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
 import toPath from './to-path.js';
 import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
-import {FilterStream, UniqueStream} from './stream-utils.js';
-
-const DEFAULT_FILTER = () => false;
+import {FilterStream} from './stream-utils.js';
 
 const isNegative = pattern => pattern[0] === '!';
 
@@ -33,25 +31,25 @@ const checkCwdOption = options => {
 	}
 };
 
-const getPathString = fastGlobResult => fastGlobResult.path || fastGlobResult;
-const unionFastGlobResults = (results, filter) => {
+const getFilter = async options => createFilterFunction(
+	options.gitignore && await isGitIgnored({cwd: options.cwd, ignore: options.ignore}),
+);
+const getFilterSync = options => createFilterFunction(
+	options.gitignore && isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore}),
+);
+const createFilterFunction = isIgnored => {
 	const seen = new Set();
 
-	return results.flat().filter(fastGlobResult => {
-		if (filter(fastGlobResult)) {
-			return false;
-		}
-
-		const value = getPathString(fastGlobResult);
-		if (seen.has(value)) {
-			return false;
-		}
-
-		seen.add(value);
-
-		return true;
-	});
+	return fastGlobResult => {
+		const path = fastGlobResult.path || fastGlobResult;
+		const seenOrIgnored = seen.has(path) || (isIgnored && isIgnored(path));
+		seen.add(path);
+		return !seenOrIgnored;
+	};
 };
+
+const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
+const unionFastGlobStreams = (streams, filter) => merge2(streams).pipe(new FilterStream(fastGlobResult => filter(fastGlobResult)));
 
 export const generateGlobTasks = (patterns, taskOptions = {}) => {
 	patterns = [...new Set([patterns].flat())];
@@ -111,24 +109,6 @@ const globDirectories = (task, fn) => {
 };
 
 const getPattern = (task, fn) => task.options.expandDirectories ? globDirectories(task, fn) : [task.pattern];
-
-const getFilter = async options => {
-	if (!options.gitignore) {
-		return DEFAULT_FILTER;
-	}
-
-	const filter = await isGitIgnored({cwd: options.cwd, ignore: options.ignore});
-	return fastGlobResult => filter(getPathString(fastGlobResult));
-};
-
-const getFilterSync = options => {
-	if (!options.gitignore) {
-		return DEFAULT_FILTER;
-	}
-
-	const filter = isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore});
-	return fastGlobResult => filter(getPathString(fastGlobResult));
-};
 
 const globToTask = task => async glob => {
 	const {options} = task;
@@ -193,12 +173,9 @@ export const globbyStream = (patterns, options = {}) => {
 	);
 
 	const filter = getFilterSync(options);
-	const filterStream = new FilterStream(fastGlobResult => !filter(fastGlobResult));
-	const uniqueStream = new UniqueStream(fastGlobResult => getPathString(fastGlobResult));
+	const streams = tasks.map(task => fastGlob.stream(task.pattern, task.options));
 
-	return merge2(tasks.map(task => fastGlob.stream(task.pattern, task.options)))
-		.pipe(filterStream)
-		.pipe(uniqueStream);
+	return unionFastGlobStreams(streams, filter);
 };
 
 export const isDynamicPattern = (patterns, options = {}) => {

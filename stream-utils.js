@@ -22,23 +22,3 @@ export class FilterStream extends ObjectTransform {
 		callback();
 	}
 }
-
-export class UniqueStream extends ObjectTransform {
-	constructor(comparator) {
-		super();
-		this._comparator = comparator;
-		this._pushed = new Set();
-	}
-
-	_transform(data, encoding, callback) {
-		const {_comparator: comparator, _pushed: pushed} = this;
-		const value = comparator(data);
-
-		if (!pushed.has(value)) {
-			this.push(data);
-			pushed.add(value);
-		}
-
-		callback();
-	}
-}
