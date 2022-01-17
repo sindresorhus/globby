@@ -124,7 +124,7 @@ This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isd
 
 ### isGitIgnored(options?)
 
-Returns a `Promise<(path: string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
+Returns a `Promise<(path: URL | string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
 Takes `cwd?: URL | string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not used for the resulting filter function.
 
