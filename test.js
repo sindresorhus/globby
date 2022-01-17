@@ -329,13 +329,13 @@ test('respects gitignore option false - stream', async t => {
 	t.true(actual.includes('node_modules'));
 });
 
-test('gitingore option and objectMode option - async', async t => {
+test('gitignore option and objectMode option - async', async t => {
 	const result = await globby('fixtures/gitignore/*', {gitignore: true, objectMode: true});
 	t.is(result.length, 1);
 	t.truthy(result[0].path);
 });
 
-test('gitingore option and objectMode option - sync', t => {
+test('gitignore option and objectMode option - sync', t => {
 	const result = globbySync('fixtures/gitignore/*', {gitignore: true, objectMode: true});
 	t.is(result.length, 1);
 	t.truthy(result[0].path);
