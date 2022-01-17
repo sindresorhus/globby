@@ -35,19 +35,24 @@ const checkCwdOption = options => {
 };
 
 const getPathString = fastGlobResult => fastGlobResult.path || fastGlobResult;
-const unionFastGlobResults = (results, filter) =>
-	results
-		.flat()
-		.filter((fastGlobResult, index, results) => {
-			if (filter(fastGlobResult)) {
-				return false;
-			}
+const unionFastGlobResults = (results, filter) => {
+	const seen = new Set();
 
-			const path = getPathString(fastGlobResult);
-			const firstIndex = results.findIndex(fastGlobResult => getPathString(fastGlobResult) === path);
+	return results.flat().filter(fastGlobResult => {
+		if (filter(fastGlobResult)) {
+			return false;
+		}
 
-			return index === firstIndex;
-		});
+		const value = getPathString(fastGlobResult);
+		if (seen.has(value)) {
+			return false;
+		}
+
+		seen.add(value);
+
+		return true;
+	});
+};
 
 export const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([patterns].flat());

@@ -24,19 +24,19 @@ export class FilterStream extends ObjectTransform {
 }
 
 export class UniqueStream extends ObjectTransform {
-	constructor(uniqueBy) {
+	constructor(comparator) {
 		super();
-		this._uniqueBy = uniqueBy;
+		this._comparator = comparator;
 		this._pushed = new Set();
 	}
 
 	_transform(data, encoding, callback) {
-		const {_uniqueBy: uniqueBy, _pushed: pushed} = this;
-		const key = uniqueBy(data);
+		const {_comparator: comparator, _pushed: pushed} = this;
+		const value = comparator(data);
 
-		if (!pushed.has(key)) {
+		if (!pushed.has(value)) {
 			this.push(data);
-			pushed.add(key);
+			pushed.add(value);
 		}
 
 		callback();
