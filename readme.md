@@ -138,7 +138,7 @@ console.log(isIgnored('some/file'));
 
 ### isGitIgnoredSync(options?)
 
-Returns a `(path: string) => boolean` indicating whether a given path is ignored via a `.gitignore` file.
+Returns a `(path: URL | string) => boolean` indicating whether a given path is ignored via a `.gitignore` file.
 
 Takes the same options as `isGitIgnored`.
 
