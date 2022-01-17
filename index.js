@@ -35,6 +35,19 @@ const checkCwdOption = options => {
 };
 
 const getPathString = fastGlobResult => fastGlobResult.path || fastGlobResult;
+const unionFastGlobResults = (results, filter) =>
+	results
+		.flat()
+		.filter((fastGlobResult, index, results) => {
+			if (filter(fastGlobResult)) {
+				return false;
+			}
+
+			const path = getPathString(fastGlobResult);
+			const firstIndex = results.findIndex(fastGlobResult => getPathString(fastGlobResult) === path);
+
+			return index === firstIndex;
+		});
 
 export const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([patterns].flat());
@@ -150,9 +163,9 @@ export const globby = async (patterns, options = {}) => {
 	};
 
 	const [filter, tasks] = await Promise.all([getFilter(options), getTasks()]);
-	const paths = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
+	const results = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
 
-	return arrayUnion(...paths).filter(path_ => !filter(path_));
+	return unionFastGlobResults(results, filter);
 };
 
 export const globbySync = (patterns, options = {}) => {
@@ -165,13 +178,9 @@ export const globbySync = (patterns, options = {}) => {
 	}
 
 	const filter = getFilterSync(options);
+	const results = tasks.map(task => fastGlob.sync(task.pattern, task.options));
 
-	let matches = [];
-	for (const task of tasks) {
-		matches = arrayUnion(matches, fastGlob.sync(task.pattern, task.options));
-	}
-
-	return matches.filter(path_ => !filter(path_));
+	return unionFastGlobResults(results, filter);
 };
 
 export const globbyStream = (patterns, options = {}) => {
@@ -184,8 +193,8 @@ export const globbyStream = (patterns, options = {}) => {
 	}
 
 	const filter = getFilterSync(options);
-	const filterStream = new FilterStream(p => !filter(p));
-	const uniqueStream = new UniqueStream();
+	const filterStream = new FilterStream(fastGlobResult => !filter(fastGlobResult));
+	const uniqueStream = new UniqueStream(fastGlobResult => getPathString(fastGlobResult));
 
 	return merge2(tasks.map(task => fastGlob.stream(task.pattern, task.options)))
 		.pipe(filterStream)
