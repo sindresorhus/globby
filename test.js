@@ -425,3 +425,23 @@ test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
 		t.is(actual.length, 0);
 	}
 });
+
+test('unique when using objectMode option', async t => {
+	const patterns = ['a.tmp', '*.tmp'];
+	const options = {cwd, objectMode: true};
+	const isUnique = result => [...new Set(result)].length === result.length;
+
+	const syncResult = globbySync(patterns, options).map(({path}) => path);
+	t.true(isUnique(syncResult));
+
+	const result = await globby(patterns, options);
+	t.deepEqual(result.map(({path}) => path), syncResult);
+
+	// TODO: Use `Array.fromAsync` when Node.js supports it
+	const streamResult = [];
+	for await (const {path} of globbyStream(patterns, options)) {
+		streamResult.push(path);
+	}
+
+	t.deepEqual(streamResult, syncResult);
+});

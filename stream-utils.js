@@ -24,15 +24,19 @@ export class FilterStream extends ObjectTransform {
 }
 
 export class UniqueStream extends ObjectTransform {
-	constructor() {
+	constructor(comparator) {
 		super();
+		this._comparator = comparator;
 		this._pushed = new Set();
 	}
 
 	_transform(data, encoding, callback) {
-		if (!this._pushed.has(data)) {
+		const {_comparator: comparator, _pushed: pushed} = this;
+		const value = comparator(data);
+
+		if (!pushed.has(value)) {
 			this.push(data);
-			this._pushed.add(data);
+			pushed.add(value);
 		}
 
 		callback();
