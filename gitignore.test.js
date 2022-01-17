@@ -5,10 +5,10 @@ import slash from 'slash';
 import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
+const getPathValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
 
 test('gitignore', async t => {
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/gitignore'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/gitignore'))) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
@@ -19,7 +19,7 @@ test('gitignore', async t => {
 
 test('gitignore - mixed path styles', async t => {
 	const directory = path.join(__dirname, 'fixtures/gitignore');
-	for (const cwd of getCwdValues(directory)) {
+	for (const cwd of getPathValues(directory)) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd});
 		t.true(isIgnored(slash(path.resolve(directory, 'foo.js'))));
@@ -28,7 +28,7 @@ test('gitignore - mixed path styles', async t => {
 
 test('gitignore - os paths', async t => {
 	const directory = path.join(__dirname, 'fixtures/gitignore');
-	for (const cwd of getCwdValues(directory)) {
+	for (const cwd of getPathValues(directory)) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd});
 		t.true(isIgnored(path.resolve(directory, 'foo.js')));
@@ -36,7 +36,7 @@ test('gitignore - os paths', async t => {
 });
 
 test('gitignore - sync', t => {
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/gitignore'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/gitignore'))) {
 		const isIgnored = isGitIgnoredSync({cwd});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 		const expected = ['bar.js'];
@@ -47,7 +47,7 @@ test('gitignore - sync', t => {
 test('ignore ignored .gitignore', async t => {
 	const ignore = ['**/.gitignore'];
 
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/gitignore'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/gitignore'))) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd, ignore});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
@@ -59,7 +59,7 @@ test('ignore ignored .gitignore', async t => {
 test('ignore ignored .gitignore - sync', t => {
 	const ignore = ['**/.gitignore'];
 
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/gitignore'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/gitignore'))) {
 		const isIgnored = isGitIgnoredSync({cwd, ignore});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 		const expected = ['foo.js', 'bar.js'];
@@ -68,7 +68,7 @@ test('ignore ignored .gitignore - sync', t => {
 });
 
 test('negative gitignore', async t => {
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/negative'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/negative'))) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
@@ -78,7 +78,7 @@ test('negative gitignore', async t => {
 });
 
 test('negative gitignore - sync', t => {
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/negative'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/negative'))) {
 		const isIgnored = isGitIgnoredSync({cwd});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 		const expected = ['foo.js'];
@@ -87,7 +87,7 @@ test('negative gitignore - sync', t => {
 });
 
 test('multiple negation', async t => {
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/multiple-negation'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/multiple-negation'))) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd});
 
@@ -104,7 +104,7 @@ test('multiple negation', async t => {
 });
 
 test('multiple negation - sync', t => {
-	for (const cwd of getCwdValues(path.join(__dirname, 'fixtures/multiple-negation'))) {
+	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/multiple-negation'))) {
 		const isIgnored = isGitIgnoredSync({cwd});
 
 		const actual = [
@@ -116,5 +116,23 @@ test('multiple negation - sync', t => {
 
 		const expected = ['!!unicorn.js', '!unicorn.js'];
 		t.deepEqual(actual, expected);
+	}
+});
+
+test('check file', async t => {
+	const directory = path.join(__dirname, 'fixtures/gitignore');
+	const ignoredFile = path.join(directory, 'foo.js');
+	const isIgnored = await isGitIgnored({cwd: directory});
+	const isIgnoredSync = isGitIgnoredSync({cwd: directory});
+
+	for (const file of getPathValues(ignoredFile)) {
+		t.true(isIgnored(file));
+		t.true(isIgnored({path: file}));
+		t.true(isIgnoredSync(file));
+		t.true(isIgnoredSync({path: file}));
+	}
+
+	for (const file of getPathValues(path.join(directory, 'bar.js'))) {
+		t.false(isIgnored(file));
 	}
 });

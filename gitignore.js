@@ -56,7 +56,7 @@ const ensureAbsolutePathForCwd = (cwd, p) => {
 	return path.join(cwd, p);
 };
 
-const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, p.path || p))));
+const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, toPath(p.path || p)))));
 
 const getFile = async (file, cwd) => {
 	const filePath = path.join(cwd, file);
