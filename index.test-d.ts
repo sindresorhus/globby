@@ -1,4 +1,5 @@
 import {Buffer} from 'node:buffer';
+import {URL} from 'node:url';
 import {expectType} from 'tsd';
 import {
 	GlobTask,
@@ -104,6 +105,8 @@ expectType<GlobTask[]>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<boolean>(isDynamicPattern('**'));
 expectType<boolean>(isDynamicPattern(['**', 'path1', 'path2']));
 expectType<boolean>(isDynamicPattern(['**', 'path1', 'path2'], {extglob: false}));
+expectType<boolean>(isDynamicPattern(['**'], {cwd: new URL('https://example.com')}));
+expectType<boolean>(isDynamicPattern(['**'], {cwd: __dirname}));
 
 // IsGitIgnored
 expectType<Promise<GlobbyFilterFunction>>(isGitIgnored());
