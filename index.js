@@ -36,7 +36,7 @@ const checkCwdOption = options => {
 
 const getPathString = p => p.stats instanceof fs.Stats ? p.path : p;
 
-export const generateGlobTasks = (patterns, taskOptions = {}) => {
+export const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([patterns].flat());
 	assertPatternsInput(patterns);
 
@@ -95,12 +95,23 @@ const globDirectories = (task, fn) => {
 
 const getPattern = (task, fn) => task.options.expandDirectories ? globDirectories(task, fn) : [task.pattern];
 
-const getFilter = options => options && options.gitignore
-	? isGitIgnored({cwd: options.cwd, ignore: options.ignore})
-	: DEFAULT_FILTER;
-const getFilterSync = options => options && options.gitignore
-	? isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore})
-	: DEFAULT_FILTER;
+const getFilter = async options => {
+	if (!options.gitignore) {
+		return DEFAULT_FILTER;
+	}
+
+	const filter = await isGitIgnored({cwd: options.cwd, ignore: options.ignore});
+	return fastGlobResult => filter(fastGlobResult.path || fastGlobResult);
+};
+
+const getFilterSync = options => {
+	if (!options.gitignore) {
+		return DEFAULT_FILTER;
+	}
+
+	const filter = isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore});
+	return fastGlobResult => filter(fastGlobResult.path || fastGlobResult);
+};
 
 const globToTask = task => async glob => {
 	const {options} = task;
@@ -126,7 +137,7 @@ const globToTaskSync = task => glob => {
 	};
 };
 
-export const globby = async (patterns, options) => {
+export const globby = async (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const getTasks = async () => {
@@ -144,7 +155,7 @@ export const globby = async (patterns, options) => {
 	return arrayUnion(...paths).filter(path_ => !filter(getPathString(path_)));
 };
 
-export const globbySync = (patterns, options) => {
+export const globbySync = (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const tasks = [];
@@ -163,7 +174,7 @@ export const globbySync = (patterns, options) => {
 	return matches.filter(path_ => !filter(path_));
 };
 
-export const globbyStream = (patterns, options) => {
+export const globbyStream = (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
 	const tasks = [];

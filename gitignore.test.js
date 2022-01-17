@@ -127,9 +127,7 @@ test('check file', async t => {
 
 	for (const file of getPathValues(ignoredFile)) {
 		t.true(isIgnored(file));
-		t.true(isIgnored({path: file}));
 		t.true(isIgnoredSync(file));
-		t.true(isIgnoredSync({path: file}));
 	}
 
 	for (const file of getPathValues(path.join(directory, 'bar.js'))) {
