@@ -147,8 +147,7 @@ test('expose generateGlobTasks', t => {
 	t.is(tasks.length, 1);
 	t.is(tasks[0].pattern, '*.tmp');
 	t.deepEqual(tasks[0].options.ignore, ['c.tmp', 'b.tmp']);
-
-	t.notThrows(() => generateGlobTasks('*'))
+	t.notThrows(() => generateGlobTasks('*'));
 });
 
 test('expose isDynamicPattern', t => {
