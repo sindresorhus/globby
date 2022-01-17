@@ -34,7 +34,7 @@ const checkCwdOption = options => {
 	}
 };
 
-const getPathString = p => p.stats instanceof fs.Stats ? p.path : p;
+const getPathString = fastGlobResult => fastGlobResult.path || fastGlobResult;
 
 export const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = arrayUnion([patterns].flat());
@@ -101,7 +101,7 @@ const getFilter = async options => {
 	}
 
 	const filter = await isGitIgnored({cwd: options.cwd, ignore: options.ignore});
-	return fastGlobResult => filter(fastGlobResult.path || fastGlobResult);
+	return fastGlobResult => filter(getPathString(fastGlobResult));
 };
 
 const getFilterSync = options => {
@@ -110,7 +110,7 @@ const getFilterSync = options => {
 	}
 
 	const filter = isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore});
-	return fastGlobResult => filter(fastGlobResult.path || fastGlobResult);
+	return fastGlobResult => filter(getPathString(fastGlobResult));
 };
 
 const globToTask = task => async glob => {
@@ -152,7 +152,7 @@ export const globby = async (patterns, options = {}) => {
 	const [filter, tasks] = await Promise.all([getFilter(options), getTasks()]);
 	const paths = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
 
-	return arrayUnion(...paths).filter(path_ => !filter(getPathString(path_)));
+	return arrayUnion(...paths).filter(path_ => !filter(path_));
 };
 
 export const globbySync = (patterns, options = {}) => {
