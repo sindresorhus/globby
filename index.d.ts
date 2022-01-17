@@ -59,7 +59,7 @@ export interface GitignoreOptions {
 	readonly ignore?: readonly string[];
 }
 
-export type GlobbyFilterFunction = (path: string) => boolean;
+export type GlobbyFilterFunction = (path: URL | string) => boolean;
 
 /**
 Find files and directories using glob patterns.
