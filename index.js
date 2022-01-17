@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import arrayUnion from 'array-union';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
@@ -55,7 +54,7 @@ const unionFastGlobResults = (results, filter) => {
 };
 
 export const generateGlobTasks = (patterns, taskOptions = {}) => {
-	patterns = arrayUnion([patterns].flat());
+	patterns = [...new Set([patterns].flat())];
 	assertPatternsInput(patterns);
 
 	const globTasks = [];
@@ -164,7 +163,7 @@ export const globby = async (patterns, options = {}) => {
 			return Promise.all(globs.map(globToTask(task)));
 		}));
 
-		return arrayUnion(...tasks);
+		return tasks.flat();
 	};
 
 	const [filter, tasks] = await Promise.all([getFilter(options), getTasks()]);
@@ -176,11 +175,9 @@ export const globby = async (patterns, options = {}) => {
 export const globbySync = (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
-	const tasks = [];
-	for (const task of globTasks) {
-		const newTask = getPattern(task, dirGlob.sync).map(globToTaskSync(task));
-		tasks.push(...newTask);
-	}
+	const tasks = globTasks.flatMap(
+		task => getPattern(task, dirGlob.sync).map(globToTaskSync(task)),
+	);
 
 	const filter = getFilterSync(options);
 	const results = tasks.map(task => fastGlob.sync(task.pattern, task.options));
@@ -191,11 +188,9 @@ export const globbySync = (patterns, options = {}) => {
 export const globbyStream = (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
-	const tasks = [];
-	for (const task of globTasks) {
-		const newTask = getPattern(task, dirGlob.sync).map(globToTaskSync(task));
-		tasks.push(...newTask);
-	}
+	const tasks = globTasks.flatMap(
+		task => getPattern(task, dirGlob.sync).map(globToTaskSync(task)),
+	);
 
 	const filter = getFilterSync(options);
 	const filterStream = new FilterStream(fastGlobResult => !filter(fastGlobResult));

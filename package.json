@@ -60,7 +60,6 @@
 		"git"
 	],
 	"dependencies": {
-		"array-union": "^3.0.1",
 		"dir-glob": "^3.0.1",
 		"fast-glob": "^3.2.7",
 		"ignore": "^5.1.9",
