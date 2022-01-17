@@ -54,7 +54,7 @@ const unionFastGlobResults = (results, filter) => {
 	});
 };
 
-export const generateGlobTasks = (patterns, taskOptions) => {
+export const generateGlobTasks = (patterns, taskOptions = {}) => {
 	patterns = arrayUnion([patterns].flat());
 	assertPatternsInput(patterns);
 
