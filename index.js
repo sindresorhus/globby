@@ -95,6 +95,9 @@ const globDirectories = (task, fn) => {
 
 const getPattern = (task, fn) => task.options.expandDirectories ? globDirectories(task, fn) : [task.pattern];
 
+const getFilter = options => options && options.gitignore
+	? isGitIgnored({cwd: options.cwd, ignore: options.ignore})
+	: DEFAULT_FILTER;
 const getFilterSync = options => options && options.gitignore
 	? isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore})
 	: DEFAULT_FILTER;
@@ -126,10 +129,6 @@ const globToTaskSync = task => glob => {
 export const globby = async (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
 
-	const getFilter = async () => options && options.gitignore
-		? isGitIgnored({cwd: options.cwd, ignore: options.ignore})
-		: DEFAULT_FILTER;
-
 	const getTasks = async () => {
 		const tasks = await Promise.all(globTasks.map(async task => {
 			const globs = await getPattern(task, dirGlob);
@@ -139,7 +138,7 @@ export const globby = async (patterns, options) => {
 		return arrayUnion(...tasks);
 	};
 
-	const [filter, tasks] = await Promise.all([getFilter(), getTasks()]);
+	const [filter, tasks] = await Promise.all([getFilter(options), getTasks()]);
 	const paths = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
 
 	return arrayUnion(...paths).filter(path_ => !filter(getPathString(path_)));
