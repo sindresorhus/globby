@@ -335,13 +335,13 @@ test('respects gitignore option false', async t => {
 });
 
 test('gitignore option with stats option', async t => {
-	const result = await globby('*', {gitignore: true, stats: true});
+	const result = await runGlobby(t, '*', {gitignore: true, stats: true});
 	const actual = result.map(x => x.path);
 	t.false(actual.includes('node_modules'));
 });
 
 test('gitignore option with absolute option', async t => {
-	const result = await globby('*', {gitignore: true, absolute: true});
+	const result = await runGlobby(t, '*', {gitignore: true, absolute: true});
 	t.false(result.includes('node_modules'));
 });
 
