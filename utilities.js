@@ -1,13 +1,7 @@
 import {fileURLToPath} from 'node:url';
 import {Transform} from 'node:stream';
 
-export const toPath = urlOrPath => {
-	if (!urlOrPath) {
-		return urlOrPath;
-	}
-
-	return urlOrPath instanceof URL ? fileURLToPath(urlOrPath) : urlOrPath;
-};
+export const toPath = urlOrPath => urlOrPath instanceof URL ? fileURLToPath(urlOrPath) : urlOrPath;
 
 export class FilterStream extends Transform {
 	#filter;
@@ -18,10 +12,6 @@ export class FilterStream extends Transform {
 	}
 
 	_transform(data, encoding, callback) {
-		if (this.#filter(data)) {
-			this.push(data);
-		}
-
-		callback();
+		callback(undefined, this.#filter(data) && data);
 	}
 }
