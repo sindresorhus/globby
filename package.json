@@ -23,7 +23,7 @@
 		"index.js",
 		"index.d.ts",
 		"gitignore.js",
-		"utils.js"
+		"utilities.js"
 	],
 	"keywords": [
 		"all",

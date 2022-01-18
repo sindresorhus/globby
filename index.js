@@ -3,7 +3,7 @@ import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
 import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
-import {FilterStream, toPath} from './utils.js';
+import {FilterStream, toPath} from './utilities.js';
 
 const isNegative = pattern => pattern[0] === '!';
 
