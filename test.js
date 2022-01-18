@@ -270,20 +270,8 @@ for (const value of [
 	const valueString = util.format(value);
 	const message = 'Patterns must be a string or an array of strings';
 
-	test(`rejects the promise for invalid patterns input: ${valueString} - async`, async t => {
-		await t.throwsAsync(globby(value), {instanceOf: TypeError, message});
-	});
-
-	test(`throws for invalid patterns input: ${valueString} - sync`, t => {
-		t.throws(() => {
-			globbySync(value);
-		}, {instanceOf: TypeError, message});
-	});
-
-	test(`throws for invalid patterns input: ${valueString} - stream`, t => {
-		t.throws(() => {
-			globbyStream(value);
-		}, {instanceOf: TypeError, message});
+	test(`throws for invalid patterns input: ${valueString}`, async t => {
+		await t.throwsAsync(runGlobby(t, value), {instanceOf: TypeError, message});
 	});
 
 	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
@@ -355,7 +343,7 @@ test('`{extension: false}` and `expandDirectories.extensions` option', async t =
 	}
 });
 
-test('throws when specifying a file as cwd - async', async t => {
+test('throws when specifying a file as cwd', async t => {
 	const isFile = path.resolve('fixtures/gitignore/bar.js');
 
 	for (const file of getCwdValues(isFile)) {
