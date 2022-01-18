@@ -6,11 +6,7 @@ export const toPath = urlOrPath => {
 		return urlOrPath;
 	}
 
-	if (urlOrPath instanceof URL) {
-		urlOrPath = urlOrPath.href;
-	}
-
-	return urlOrPath.startsWith('file://') ? fileURLToPath(urlOrPath) : urlOrPath;
+	return urlOrPath instanceof URL ? fileURLToPath(urlOrPath) : urlOrPath;
 };
 
 export class FilterStream extends Transform {
