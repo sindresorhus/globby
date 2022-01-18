@@ -239,38 +239,31 @@ for (const value of [
 	const message = 'Patterns must be a string or an array of strings';
 
 	test(`rejects the promise for invalid patterns input: ${valueString} - async`, async t => {
-		await t.throwsAsync(globby(value), {instanceOf: TypeError});
-		await t.throwsAsync(globby(value), {message});
+		await t.throwsAsync(globby(value), {instanceOf: TypeError, message});
 	});
 
 	test(`throws for invalid patterns input: ${valueString} - sync`, t => {
 		t.throws(() => {
 			globbySync(value);
-		}, {instanceOf: TypeError});
-
-		t.throws(() => {
-			globbySync(value);
-		}, {message});
+		}, {instanceOf: TypeError, message});
 	});
 
 	test(`throws for invalid patterns input: ${valueString} - stream`, t => {
 		t.throws(() => {
 			globbyStream(value);
-		}, {instanceOf: TypeError});
-
-		t.throws(() => {
-			globbyStream(value);
-		}, {message});
+		}, {instanceOf: TypeError, message});
 	});
 
 	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
 		t.throws(() => {
 			generateGlobTasks(value);
-		}, {instanceOf: TypeError});
+		}, {instanceOf: TypeError, message});
+	});
 
+	test(`isDynamicPattern throws for invalid patterns input: ${valueString}`, t => {
 		t.throws(() => {
-			generateGlobTasks(value);
-		}, {message});
+			isDynamicPattern(value);
+		}, {instanceOf: TypeError, message});
 	});
 }
 
@@ -408,6 +401,18 @@ test('throws when specifying a file as cwd - stream', t => {
 
 		t.throws(() => {
 			globbyStream('*', {cwd: file});
+		}, {message: 'The `cwd` option must be a path to a directory'});
+	}
+});
+
+test('throws when specifying a file as cwd - isDynamicPattern', t => {
+	for (const file of getCwdValues(path.resolve('fixtures/gitignore/bar.js'))) {
+		t.throws(() => {
+			isDynamicPattern('.', {cwd: file});
+		}, {message: 'The `cwd` option must be a path to a directory'});
+
+		t.throws(() => {
+			isDynamicPattern('*', {cwd: file});
 		}, {message: 'The `cwd` option must be a path to a directory'});
 	}
 });
