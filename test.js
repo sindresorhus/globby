@@ -187,10 +187,10 @@ test('expandDirectories and ignores option', async t => {
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test.failing('relative paths and ignores option', t => {
+test.serial.failing('relative paths and ignores option', async t => {
 	process.chdir(temporary);
 	for (const cwd of getCwdValues(process.cwd())) {
-		t.deepEqual(globbySync('../tmp', {
+		t.deepEqual(await runGlobby(t, '../tmp', {
 			cwd,
 			ignore: ['tmp'],
 		}), []);
