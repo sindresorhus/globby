@@ -355,22 +355,16 @@ test('respects gitignore option false - stream', async t => {
 	t.true(actual.includes('node_modules'));
 });
 
-test('gitignore option and objectMode option - async', async t => {
-	const result = await globby('fixtures/gitignore/*', {gitignore: true, objectMode: true});
+test('gitignore option and objectMode option', async t => {
+	const result = await runGlobby(t, 'fixtures/gitignore/*', {gitignore: true, objectMode: true});
 	t.is(result.length, 1);
 	t.truthy(result[0].path);
 });
 
-test('gitignore option and objectMode option - sync', t => {
-	const result = globbySync('fixtures/gitignore/*', {gitignore: true, objectMode: true});
-	t.is(result.length, 1);
-	t.truthy(result[0].path);
-});
-
-test('`{extension: false}` and `expandDirectories.extensions` option', t => {
+test('`{extension: false}` and `expandDirectories.extensions` option', async t => {
 	for (const temporaryDirectory of getCwdValues(temporary)) {
 		t.deepEqual(
-			globbySync('*', {
+			await runGlobby(t, '*', {
 				cwd: temporaryDirectory,
 				extension: false,
 				expandDirectories: {
@@ -397,43 +391,15 @@ test('throws when specifying a file as cwd - async', async t => {
 	for (const file of getCwdValues(isFile)) {
 		// eslint-disable-next-line no-await-in-loop
 		await t.throwsAsync(
-			globby('.', {cwd: file}),
+			runGlobby(t, '.', {cwd: file}),
 			{message: 'The `cwd` option must be a path to a directory'},
 		);
 
 		// eslint-disable-next-line no-await-in-loop
 		await t.throwsAsync(
-			globby('*', {cwd: file}),
+			runGlobby(t, '*', {cwd: file}),
 			{message: 'The `cwd` option must be a path to a directory'},
 		);
-	}
-});
-
-test('throws when specifying a file as cwd - sync', t => {
-	const isFile = path.resolve('fixtures/gitignore/bar.js');
-
-	for (const file of getCwdValues(isFile)) {
-		t.throws(() => {
-			globbySync('.', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
-
-		t.throws(() => {
-			globbySync('*', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
-	}
-});
-
-test('throws when specifying a file as cwd - stream', t => {
-	const isFile = path.resolve('fixtures/gitignore/bar.js');
-
-	for (const file of getCwdValues(isFile)) {
-		t.throws(() => {
-			globbyStream('.', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
-
-		t.throws(() => {
-			globbyStream('*', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
 	}
 });
 
