@@ -329,13 +329,8 @@ test('respects gitignore option true - stream', async t => {
 	t.false(actual.includes('node_modules'));
 });
 
-test('respects gitignore option false - async', async t => {
-	const actual = await globby('*', {gitignore: false, onlyFiles: false});
-	t.true(actual.includes('node_modules'));
-});
-
-test('respects gitignore option false - sync', t => {
-	const actual = globbySync('*', {gitignore: false, onlyFiles: false});
+test('respects gitignore option false', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: false, onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
 
@@ -348,11 +343,6 @@ test('gitignore option with stats option', async t => {
 test('gitignore option with absolute option', async t => {
 	const result = await globby('*', {gitignore: true, absolute: true});
 	t.false(result.includes('node_modules'));
-});
-
-test('respects gitignore option false - stream', async t => {
-	const actual = await getStream.array(globbyStream('*', {gitignore: false, onlyFiles: false}));
-	t.true(actual.includes('node_modules'));
 });
 
 test('gitignore option and objectMode option', async t => {
