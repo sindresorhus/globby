@@ -26,10 +26,11 @@ const fixture = [
 ];
 
 const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
-const excludeDirent = results => results.map(fastGlobResult => {
+const excludeDirentAndStats = results => results.map(fastGlobResult => {
 	// In `objectMode` the `fastGlobResult.dirent` contains function that makes `t.deepEqual` assertion fails.
-	if (typeof fastGlobResult === 'object' && fastGlobResult.dirent) {
-		const {dirent, ...rest} = fastGlobResult;
+	// `fastGlobResult.stats` contains different `atime`
+	if (typeof fastGlobResult === 'object') {
+		const {dirent, stats, ...rest} = fastGlobResult;
 		return rest;
 	}
 
@@ -46,13 +47,13 @@ const runGlobby = async (t, patterns, options) => {
 	}
 
 	t.deepEqual(
-		excludeDirent(syncResult),
-		excludeDirent(promiseResult),
+		excludeDirentAndStats(syncResult),
+		excludeDirentAndStats(promiseResult),
 		'globbySync() result differently than globby()',
 	);
 	t.deepEqual(
-		excludeDirent(streamResult),
-		excludeDirent(promiseResult),
+		excludeDirentAndStats(streamResult),
+		excludeDirentAndStats(promiseResult),
 		'globbyStream() result differently than globby()',
 	);
 
@@ -225,18 +226,8 @@ for (const value of [
 		await t.throwsAsync(globby(t, value), {instanceOf: TypeError, message});
 		t.throws(() => globbySync(value), {instanceOf: TypeError, message});
 		t.throws(() => globbyStream(value), {instanceOf: TypeError, message});
-	});
-
-	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
-		t.throws(() => {
-			generateGlobTasks(value);
-		}, {instanceOf: TypeError, message});
-	});
-
-	test(`isDynamicPattern throws for invalid patterns input: ${valueString}`, t => {
-		t.throws(() => {
-			isDynamicPattern(value);
-		}, {instanceOf: TypeError, message});
+		t.throws(() => generateGlobTasks(value), {instanceOf: TypeError, message});
+		t.throws(() => isDynamicPattern(value), {instanceOf: TypeError, message});
 	});
 }
 
