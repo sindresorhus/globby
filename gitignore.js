@@ -4,7 +4,7 @@ import path from 'node:path';
 import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
-import toPath from './to-path.js';
+import {toPath} from './utils.js';
 
 const DEFAULT_IGNORE = [
 	'**/node_modules/**',

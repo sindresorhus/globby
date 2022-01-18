@@ -2,9 +2,8 @@ import fs from 'node:fs';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
-import toPath from './to-path.js';
 import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
-import {FilterStream} from './stream-utils.js';
+import {FilterStream, toPath} from './utils.js';
 
 const isNegative = pattern => pattern[0] === '!';
 

@@ -23,8 +23,7 @@
 		"index.js",
 		"index.d.ts",
 		"gitignore.js",
-		"stream-utils.js",
-		"to-path.js"
+		"utils.js"
 	],
 	"keywords": [
 		"all",
