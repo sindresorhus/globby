@@ -144,6 +144,7 @@ test('expose isDynamicPattern', t => {
 test('expandDirectories option', async t => {
 	t.deepEqual(await runGlobby(t, temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 	for (const temporaryDirectory of getCwdValues(temporary)) {
+		// eslint-disable-next-line no-await-in-loop
 		t.deepEqual(await runGlobby(t, '**', {cwd: temporaryDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	}
 
@@ -188,6 +189,7 @@ test('expandDirectories and ignores option', async t => {
 test.serial.failing('relative paths and ignores option', async t => {
 	process.chdir(temporary);
 	for (const cwd of getCwdValues(process.cwd())) {
+		// eslint-disable-next-line no-await-in-loop
 		t.deepEqual(await runGlobby(t, '../tmp', {
 			cwd,
 			ignore: ['tmp'],
@@ -263,6 +265,7 @@ test('gitignore option and objectMode option', async t => {
 test('`{extension: false}` and `expandDirectories.extensions` option', async t => {
 	for (const temporaryDirectory of getCwdValues(temporary)) {
 		t.deepEqual(
+			// eslint-disable-next-line no-await-in-loop
 			await runGlobby(t, '*', {
 				cwd: temporaryDirectory,
 				extension: false,
@@ -285,7 +288,7 @@ test('`{extension: false}` and `expandDirectories.extensions` option', async t =
 });
 
 test('throws when specifying a file as cwd', async t => {
-	const error = {message: 'The `cwd` option must be a path to a directory'}
+	const error = {message: 'The `cwd` option must be a path to a directory'};
 
 	for (const file of getCwdValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		// eslint-disable-next-line no-await-in-loop
