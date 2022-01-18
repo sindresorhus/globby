@@ -112,13 +112,10 @@ test('glob - stream async iterator support', async t => {
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-test('cwd option', t => {
+test.serial('cwd option - sync', async t => {
 	process.chdir(temporary);
-	for (const cwdDirectory of getCwdValues(cwd)) {
-		t.deepEqual(globbySync('*.tmp', {cwd: cwdDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-		t.deepEqual(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd: cwdDirectory}), ['a.tmp', 'b.tmp']);
-	}
-
+	t.deepEqual(await runGlobby(t, '*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
 });
 
