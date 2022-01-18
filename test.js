@@ -225,12 +225,12 @@ test.failing('expandDirectories:true and onlyFiles:false option', t => {
 	t.deepEqual(globbySync(temporary, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test('expandDirectories and ignores option', t => {
-	t.deepEqual(globbySync('tmp', {
+test('expandDirectories and ignores option', async t => {
+	t.deepEqual(await runGlobby(t, 'tmp', {
 		ignore: ['tmp'],
 	}), []);
 
-	t.deepEqual(globbySync('tmp/**', {
+	t.deepEqual(await runGlobby(t, 'tmp/**', {
 		expandDirectories: false,
 		ignore: ['tmp'],
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
