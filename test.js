@@ -214,8 +214,8 @@ test('expandDirectories option', t => {
 	}), ['tmp/a.tmp']);
 });
 
-test('expandDirectories:true and onlyFiles:true option', t => {
-	t.deepEqual(globbySync(temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+test('expandDirectories:true and onlyFiles:true option', async t => {
+	t.deepEqual(await runGlobby(t, temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test.failing('expandDirectories:true and onlyFiles:false option', async t => {
