@@ -449,17 +449,10 @@ test('throws when specifying a file as cwd - isDynamicPattern', t => {
 	}
 });
 
-test('don\'t throw when specifying a non-existing cwd directory - async', async t => {
+test('don\'t throw when specifying a non-existing cwd directory', async t => {
 	for (const cwd of getCwdValues('/unknown')) {
 		// eslint-disable-next-line no-await-in-loop
-		const actual = await globby('.', {cwd});
-		t.is(actual.length, 0);
-	}
-});
-
-test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
-	for (const cwd of getCwdValues('/unknown')) {
-		const actual = globbySync('.', {cwd});
+		const actual = await runGlobby(t, '.', {cwd});
 		t.is(actual.length, 0);
 	}
 });
