@@ -27,6 +27,40 @@ const fixture = [
 
 const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
 
+const stabilizeResult = result => result
+	.map(fastGlobResult => {
+		// In `objectMode`, `fastGlobResult.dirent` contains a function that makes `t.deepEqual` assertion fail.
+		// `fastGlobResult.stats` contains different `atime`.
+		if (typeof fastGlobResult === 'object') {
+			const {dirent, stats, ...rest} = fastGlobResult;
+			return rest;
+		}
+
+		return fastGlobResult;
+	})
+	.sort((a, b) => (a.path || a).localeCompare(b.path || b));
+
+const runGlobby = async (t, patterns, options) => {
+	const syncResult = globbySync(patterns, options);
+	const promiseResult = await globby(patterns, options);
+	// TODO: Use `Array.fromAsync` when Node.js supports it
+	const streamResult = await getStream.array(globbyStream(patterns, options));
+
+	const result = stabilizeResult(promiseResult);
+	t.deepEqual(
+		stabilizeResult(syncResult),
+		result,
+		'globbySync() result is different than globby()',
+	);
+	t.deepEqual(
+		stabilizeResult(streamResult),
+		result,
+		'globbyStream() result is different than globby()',
+	);
+
+	return promiseResult;
+};
+
 test.before(() => {
 	if (!fs.existsSync(temporary)) {
 		fs.mkdirSync(temporary);
@@ -47,48 +81,25 @@ test.after(() => {
 	fs.rmdirSync(temporary);
 });
 
-test('glob - async', async t => {
-	const result = await globby('*.tmp');
+test('glob', async t => {
+	const result = await runGlobby(t, '*.tmp');
 	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-test('glob - async - multiple file paths', t => {
-	t.deepEqual(globbySync(['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
+test('glob - multiple file paths', async t => {
+	t.deepEqual(await runGlobby(t, ['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('glob with multiple patterns - async', async t => {
-	t.deepEqual(await globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
+test('glob with multiple patterns', async t => {
+	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('respect patterns order - async', async t => {
-	t.deepEqual(await globby(['!*.tmp', 'a.tmp']), ['a.tmp']);
+test('respect patterns order', async t => {
+	t.deepEqual(await runGlobby(t, ['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-test('respect patterns order - sync', t => {
-	t.deepEqual(globbySync(['!*.tmp', 'a.tmp']), ['a.tmp']);
-});
-
-test('glob - sync', t => {
-	t.deepEqual(globbySync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
-	t.deepEqual(globbySync(['!*.tmp', 'a.tmp']), ['a.tmp']);
-});
-
-test('glob - sync - multiple file paths', t => {
-	t.deepEqual(globbySync(['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
-});
-
-test('return [] for all negative patterns - sync', t => {
-	t.deepEqual(globbySync(['!a.tmp', '!b.tmp']), []);
-});
-
-test('return [] for all negative patterns - async', async t => {
-	t.deepEqual(await globby(['!a.tmp', '!b.tmp']), []);
-});
-
-test('glob - stream', async t => {
-	const result = await getStream.array(globbyStream('*.tmp'));
-	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+test('return [] for all negative patterns', async t => {
+	t.deepEqual(await runGlobby(t, ['!a.tmp', '!b.tmp']), []);
 });
 
 test('glob - stream async iterator support', async t => {
@@ -100,44 +111,15 @@ test('glob - stream async iterator support', async t => {
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-test('glob - stream - multiple file paths', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['a.tmp', 'b.tmp'])), ['a.tmp', 'b.tmp']);
-});
-
-test('glob with multiple patterns - stream', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['a.tmp', '*.tmp', '!{c,d,e}.tmp'])), ['a.tmp', 'b.tmp']);
-});
-
-test('respect patterns order - stream', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['!*.tmp', 'a.tmp'])), ['a.tmp']);
-});
-
-test('return [] for all negative patterns - stream', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['!a.tmp', '!b.tmp'])), []);
-});
-
-test('cwd option', t => {
+test.serial('cwd option - sync', async t => {
 	process.chdir(temporary);
-	for (const cwdDirectory of getCwdValues(cwd)) {
-		t.deepEqual(globbySync('*.tmp', {cwd: cwdDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-		t.deepEqual(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd: cwdDirectory}), ['a.tmp', 'b.tmp']);
-	}
-
+	t.deepEqual(await runGlobby(t, '*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
 });
 
 test('don\'t mutate the options object - async', async t => {
-	await globby(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
-	t.pass();
-});
-
-test('don\'t mutate the options object - sync', t => {
-	globbySync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
-	t.pass();
-});
-
-test('don\'t mutate the options object - stream', async t => {
-	await getStream.array(globbyStream(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])})));
+	await runGlobby(t, ['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 	t.pass();
 });
 
@@ -160,20 +142,21 @@ test('expose isDynamicPattern', t => {
 	}
 });
 
-test('expandDirectories option', t => {
-	t.deepEqual(globbySync(temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+test('expandDirectories option', async t => {
+	t.deepEqual(await runGlobby(t, temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 	for (const temporaryDirectory of getCwdValues(temporary)) {
-		t.deepEqual(globbySync('**', {cwd: temporaryDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+		// eslint-disable-next-line no-await-in-loop
+		t.deepEqual(await runGlobby(t, '**', {cwd: temporaryDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	}
 
-	t.deepEqual(globbySync(temporary, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globbySync(temporary, {
+	t.deepEqual(await runGlobby(t, temporary, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(await runGlobby(t, temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp'],
 		},
 	}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globbySync(temporary, {
+	t.deepEqual(await runGlobby(t, temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp'],
@@ -182,32 +165,33 @@ test('expandDirectories option', t => {
 	}), ['tmp/a.tmp']);
 });
 
-test('expandDirectories:true and onlyFiles:true option', t => {
-	t.deepEqual(globbySync(temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+test('expandDirectories:true and onlyFiles:true option', async t => {
+	t.deepEqual(await runGlobby(t, temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test.failing('expandDirectories:true and onlyFiles:false option', t => {
+test.failing('expandDirectories:true and onlyFiles:false option', async t => {
 	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// See https://github.com/mrmlnc/fast-glob/issues/47
-	t.deepEqual(globbySync(temporary, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+	t.deepEqual(await runGlobby(t, temporary, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test('expandDirectories and ignores option', t => {
-	t.deepEqual(globbySync('tmp', {
+test('expandDirectories and ignores option', async t => {
+	t.deepEqual(await runGlobby(t, 'tmp', {
 		ignore: ['tmp'],
 	}), []);
 
-	t.deepEqual(globbySync('tmp/**', {
+	t.deepEqual(await runGlobby(t, 'tmp/**', {
 		expandDirectories: false,
 		ignore: ['tmp'],
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test.failing('relative paths and ignores option', t => {
+test.serial.failing('relative paths and ignores option', async t => {
 	process.chdir(temporary);
 	for (const cwd of getCwdValues(process.cwd())) {
-		t.deepEqual(globbySync('../tmp', {
+		// eslint-disable-next-line no-await-in-loop
+		t.deepEqual(await runGlobby(t, '../tmp', {
 			cwd,
 			ignore: ['tmp'],
 		}), []);
@@ -238,107 +222,52 @@ for (const value of [
 	const valueString = util.format(value);
 	const message = 'Patterns must be a string or an array of strings';
 
-	test(`rejects the promise for invalid patterns input: ${valueString} - async`, async t => {
-		await t.throwsAsync(globby(value), {instanceOf: TypeError, message});
-	});
-
-	test(`throws for invalid patterns input: ${valueString} - sync`, t => {
-		t.throws(() => {
-			globbySync(value);
-		}, {instanceOf: TypeError, message});
-	});
-
-	test(`throws for invalid patterns input: ${valueString} - stream`, t => {
-		t.throws(() => {
-			globbyStream(value);
-		}, {instanceOf: TypeError, message});
-	});
-
-	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
-		t.throws(() => {
-			generateGlobTasks(value);
-		}, {instanceOf: TypeError, message});
-	});
-
-	test(`isDynamicPattern throws for invalid patterns input: ${valueString}`, t => {
-		t.throws(() => {
-			isDynamicPattern(value);
-		}, {instanceOf: TypeError, message});
+	test(`throws for invalid patterns input: ${valueString}`, async t => {
+		await t.throwsAsync(globby(t, value), {instanceOf: TypeError, message});
+		t.throws(() => globbySync(value), {instanceOf: TypeError, message});
+		t.throws(() => globbyStream(value), {instanceOf: TypeError, message});
+		t.throws(() => generateGlobTasks(value), {instanceOf: TypeError, message});
+		t.throws(() => isDynamicPattern(value), {instanceOf: TypeError, message});
 	});
 }
 
 test('gitignore option defaults to false - async', async t => {
-	const actual = await globby('*', {onlyFiles: false});
+	const actual = await runGlobby(t, '*', {onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
 
-test('gitignore option defaults to false - sync', t => {
-	const actual = globbySync('*', {onlyFiles: false});
-	t.true(actual.includes('node_modules'));
-});
-
-test('gitignore option defaults to false - stream', async t => {
-	const actual = await getStream.array(globbyStream('*', {onlyFiles: false}));
-	t.true(actual.includes('node_modules'));
-});
-
-test('respects gitignore option true - async', async t => {
-	const actual = await globby('*', {gitignore: true, onlyFiles: false});
+test('respects gitignore option true', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: true, onlyFiles: false});
 	t.false(actual.includes('node_modules'));
 });
 
-test('respects gitignore option true - sync', t => {
-	const actual = globbySync('*', {gitignore: true, onlyFiles: false});
-	t.false(actual.includes('node_modules'));
-});
-
-test('respects gitignore option true - stream', async t => {
-	const actual = await getStream.array(globbyStream('*', {gitignore: true, onlyFiles: false}));
-	t.false(actual.includes('node_modules'));
-});
-
-test('respects gitignore option false - async', async t => {
-	const actual = await globby('*', {gitignore: false, onlyFiles: false});
-	t.true(actual.includes('node_modules'));
-});
-
-test('respects gitignore option false - sync', t => {
-	const actual = globbySync('*', {gitignore: false, onlyFiles: false});
+test('respects gitignore option false', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: false, onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
 
 test('gitignore option with stats option', async t => {
-	const result = await globby('*', {gitignore: true, stats: true});
+	const result = await runGlobby(t, '*', {gitignore: true, stats: true});
 	const actual = result.map(x => x.path);
 	t.false(actual.includes('node_modules'));
 });
 
 test('gitignore option with absolute option', async t => {
-	const result = await globby('*', {gitignore: true, absolute: true});
+	const result = await runGlobby(t, '*', {gitignore: true, absolute: true});
 	t.false(result.includes('node_modules'));
 });
 
-test('respects gitignore option false - stream', async t => {
-	const actual = await getStream.array(globbyStream('*', {gitignore: false, onlyFiles: false}));
-	t.true(actual.includes('node_modules'));
-});
-
-test('gitignore option and objectMode option - async', async t => {
-	const result = await globby('fixtures/gitignore/*', {gitignore: true, objectMode: true});
+test('gitignore option and objectMode option', async t => {
+	const result = await runGlobby(t, 'fixtures/gitignore/*', {gitignore: true, objectMode: true});
 	t.is(result.length, 1);
 	t.truthy(result[0].path);
 });
 
-test('gitignore option and objectMode option - sync', t => {
-	const result = globbySync('fixtures/gitignore/*', {gitignore: true, objectMode: true});
-	t.is(result.length, 1);
-	t.truthy(result[0].path);
-});
-
-test('`{extension: false}` and `expandDirectories.extensions` option', t => {
+test('`{extension: false}` and `expandDirectories.extensions` option', async t => {
 	for (const temporaryDirectory of getCwdValues(temporary)) {
 		t.deepEqual(
-			globbySync('*', {
+			// eslint-disable-next-line no-await-in-loop
+			await runGlobby(t, '*', {
 				cwd: temporaryDirectory,
 				extension: false,
 				expandDirectories: {
@@ -359,49 +288,18 @@ test('`{extension: false}` and `expandDirectories.extensions` option', t => {
 	}
 });
 
-test('throws when specifying a file as cwd - async', async t => {
-	const isFile = path.resolve('fixtures/gitignore/bar.js');
+test('throws when specifying a file as cwd', async t => {
+	const error = {message: 'The `cwd` option must be a path to a directory'};
 
-	for (const file of getCwdValues(isFile)) {
+	for (const file of getCwdValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		// eslint-disable-next-line no-await-in-loop
-		await t.throwsAsync(
-			globby('.', {cwd: file}),
-			{message: 'The `cwd` option must be a path to a directory'},
-		);
-
+		await t.throwsAsync(globby('.', {cwd: file}), error);
 		// eslint-disable-next-line no-await-in-loop
-		await t.throwsAsync(
-			globby('*', {cwd: file}),
-			{message: 'The `cwd` option must be a path to a directory'},
-		);
-	}
-});
-
-test('throws when specifying a file as cwd - sync', t => {
-	const isFile = path.resolve('fixtures/gitignore/bar.js');
-
-	for (const file of getCwdValues(isFile)) {
-		t.throws(() => {
-			globbySync('.', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
-
-		t.throws(() => {
-			globbySync('*', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
-	}
-});
-
-test('throws when specifying a file as cwd - stream', t => {
-	const isFile = path.resolve('fixtures/gitignore/bar.js');
-
-	for (const file of getCwdValues(isFile)) {
-		t.throws(() => {
-			globbyStream('.', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
-
-		t.throws(() => {
-			globbyStream('*', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
+		await t.throwsAsync(globby('*', {cwd: file}), error);
+		t.throws(() => globbySync('.', {cwd: file}), error);
+		t.throws(() => globbySync('*', {cwd: file}), error);
+		t.throws(() => globbyStream('.', {cwd: file}), error);
+		t.throws(() => globbyStream('*', {cwd: file}), error);
 	}
 });
 
@@ -417,37 +315,16 @@ test('throws when specifying a file as cwd - isDynamicPattern', t => {
 	}
 });
 
-test('don\'t throw when specifying a non-existing cwd directory - async', async t => {
+test('don\'t throw when specifying a non-existing cwd directory', async t => {
 	for (const cwd of getCwdValues('/unknown')) {
 		// eslint-disable-next-line no-await-in-loop
-		const actual = await globby('.', {cwd});
-		t.is(actual.length, 0);
-	}
-});
-
-test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
-	for (const cwd of getCwdValues('/unknown')) {
-		const actual = globbySync('.', {cwd});
+		const actual = await runGlobby(t, '.', {cwd});
 		t.is(actual.length, 0);
 	}
 });
 
 test('unique when using objectMode option', async t => {
-	const patterns = ['a.tmp', '*.tmp'];
-	const options = {cwd, objectMode: true};
-	const isUnique = result => [...new Set(result)].length === result.length;
-
-	const syncResult = globbySync(patterns, options).map(({path}) => path);
-	t.true(isUnique(syncResult));
-
-	const result = await globby(patterns, options);
-	t.deepEqual(result.map(({path}) => path), syncResult);
-
-	// TODO: Use `Array.fromAsync` when Node.js supports it
-	const streamResult = [];
-	for await (const {path} of globbyStream(patterns, options)) {
-		streamResult.push(path);
-	}
-
-	t.deepEqual(streamResult, syncResult);
+	const result = await runGlobby(t, ['a.tmp', '*.tmp'], {cwd, objectMode: true});
+	const isUnique = array => [...new Set(array)].length === array.length;
+	t.true(isUnique(result.map(({path}) => path)));
 });
