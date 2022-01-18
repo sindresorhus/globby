@@ -102,12 +102,8 @@ test('glob - sync', t => {
 	t.deepEqual(globbySync(['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-test('return [] for all negative patterns - sync', t => {
-	t.deepEqual(globbySync(['!a.tmp', '!b.tmp']), []);
-});
-
-test('return [] for all negative patterns - async', async t => {
-	t.deepEqual(await globby(['!a.tmp', '!b.tmp']), []);
+test('return [] for all negative patterns', async t => {
+	t.deepEqual(await runGlobby(t, ['!a.tmp', '!b.tmp']), []);
 });
 
 test('glob - stream', async t => {
@@ -122,10 +118,6 @@ test('glob - stream async iterator support', async t => {
 	}
 
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-});
-
-test('return [] for all negative patterns - stream', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['!a.tmp', '!b.tmp'])), []);
 });
 
 test('cwd option', t => {
