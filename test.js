@@ -35,7 +35,7 @@ const excludeDirent = results => results.map(fastGlobResult => {
 
 	return fastGlobResult;
 });
-const runGlobby = async (patterns, options, t) => {
+const runGlobby = async (t, patterns, options) => {
 	const syncResult = globbySync(patterns, options);
 	const promiseResult = await globby(patterns, options);
 
@@ -465,7 +465,7 @@ test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
 });
 
 test('unique when using objectMode option', async t => {
-	const result = await runGlobby(['a.tmp', '*.tmp'], {cwd, objectMode: true}, t);
+	const result = await runGlobby(t, ['a.tmp', '*.tmp'], {cwd, objectMode: true});
 	const isUnique = array => [...new Set(array)].length === array.length;
 	t.true(isUnique(result.map(({path}) => path)));
 });
