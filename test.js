@@ -26,10 +26,11 @@ const fixture = [
 ];
 
 const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
+
 const stabilizeResult = result => result
 	.map(fastGlobResult => {
-		// In `objectMode` the `fastGlobResult.dirent` contains function that makes `t.deepEqual` assertion fails.
-		// `fastGlobResult.stats` contains different `atime`
+		// In `objectMode`, `fastGlobResult.dirent` contains a function that makes `t.deepEqual` assertion fail.
+		// `fastGlobResult.stats` contains different `atime`.
 		if (typeof fastGlobResult === 'object') {
 			const {dirent, stats, ...rest} = fastGlobResult;
 			return rest;
@@ -38,6 +39,7 @@ const stabilizeResult = result => result
 		return fastGlobResult;
 	})
 	.sort((a, b) => (a.path || a).localeCompare(b.path || b));
+
 const runGlobby = async (t, patterns, options) => {
 	const syncResult = globbySync(patterns, options);
 	const promiseResult = await globby(patterns, options);
