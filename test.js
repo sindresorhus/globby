@@ -26,6 +26,38 @@ const fixture = [
 ];
 
 const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
+const excludeDirent = results => results.map(fastGlobResult => {
+	// In `objectMode` the `fastGlobResult.dirent` contains function that makes `t.deepEqual` assertion fails.
+	if (typeof fastGlobResult === 'object' && fastGlobResult.dirent) {
+		const {dirent, ...rest} = fastGlobResult;
+		return rest;
+	}
+
+	return fastGlobResult;
+});
+const runGlobby = async (patterns, options, t) => {
+	const syncResult = globbySync(patterns, options);
+	const promiseResult = await globby(patterns, options);
+
+	// TODO: Use `Array.fromAsync` when Node.js supports it
+	const streamResult = [];
+	for await (const file of globbyStream(patterns, options)) {
+		streamResult.push(file);
+	}
+
+	t.deepEqual(
+		excludeDirent(syncResult),
+		excludeDirent(promiseResult),
+		'globbySync() result differently than globby()',
+	);
+	t.deepEqual(
+		excludeDirent(streamResult),
+		excludeDirent(promiseResult),
+		'globbyStream() result differently than globby()',
+	);
+
+	return promiseResult;
+};
 
 test.before(() => {
 	if (!fs.existsSync(temporary)) {
@@ -433,21 +465,7 @@ test('don\'t throw when specifying a non-existing cwd directory - sync', t => {
 });
 
 test('unique when using objectMode option', async t => {
-	const patterns = ['a.tmp', '*.tmp'];
-	const options = {cwd, objectMode: true};
-	const isUnique = result => [...new Set(result)].length === result.length;
-
-	const syncResult = globbySync(patterns, options).map(({path}) => path);
-	t.true(isUnique(syncResult));
-
-	const result = await globby(patterns, options);
-	t.deepEqual(result.map(({path}) => path), syncResult);
-
-	// TODO: Use `Array.fromAsync` when Node.js supports it
-	const streamResult = [];
-	for await (const {path} of globbyStream(patterns, options)) {
-		streamResult.push(path);
-	}
-
-	t.deepEqual(streamResult, syncResult);
+	const result = await runGlobby(['a.tmp', '*.tmp'], {cwd, objectMode: true}, t);
+	const isUnique = array => [...new Set(array)].length === array.length;
+	t.true(isUnique(result.map(({path}) => path)));
 });
