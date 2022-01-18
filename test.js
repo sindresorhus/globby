@@ -88,8 +88,8 @@ test('glob - multiple file paths', async t => {
 	t.deepEqual(await runGlobby(t, ['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('glob with multiple patterns - async', async t => {
-	t.deepEqual(await globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
+test('glob with multiple patterns', async t => {
+	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
 
 test('respect patterns order - async', async t => {
@@ -126,10 +126,6 @@ test('glob - stream async iterator support', async t => {
 	}
 
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-});
-
-test('glob with multiple patterns - stream', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['a.tmp', '*.tmp', '!{c,d,e}.tmp'])), ['a.tmp', 'b.tmp']);
 });
 
 test('respect patterns order - stream', async t => {
