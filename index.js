@@ -36,6 +36,19 @@ const checkCwdOption = options => {
 	}
 };
 
+const normalizeOptions = (options = {}) => {
+	options = {
+		ignore: [],
+		expandDirectories: true,
+		...options,
+		cwd: toPath(options.cwd),
+	};
+
+	checkCwdOption(options);
+
+	return options;
+};
+
 const getFilter = async options => createFilterFunction(
 	options.gitignore && await isGitIgnored({cwd: options.cwd, ignore: options.ignore}),
 );
@@ -56,16 +69,9 @@ const createFilterFunction = isIgnored => {
 const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
 const unionFastGlobStreams = (streams, filter) => merge2(streams).pipe(new FilterStream(fastGlobResult => filter(fastGlobResult)));
 
-export const generateGlobTasks = (patterns, taskOptions = {}) => {
+export const generateGlobTasks = (patterns, taskOptions) => {
 	patterns = toPatternsArray(patterns);
-
-	taskOptions = {
-		ignore: [],
-		expandDirectories: true,
-		...taskOptions,
-		cwd: toPath(taskOptions.cwd),
-	};
-	checkCwdOption(taskOptions);
+	taskOptions = normalizeOptions(taskOptions);
 
 	const globTasks = [];
 	for (const [index, pattern] of patterns.entries()) {
@@ -110,15 +116,14 @@ const globDirectories = (task, fn) => {
 	return fn(task.pattern, options);
 };
 
-const expendTasks = async tasks => {
+const expendTasks = async (tasks, options) => {
+	if (!options.expandDirectories) {
+		return tasks;
+	}
+
 	tasks = await Promise.all(
 		tasks.map(async task => {
 			const {options} = task;
-
-			// TODO: Check the common options instead of task options
-			if (!options.expandDirectories) {
-				return task;
-			}
 
 			const [
 				patterns,
@@ -136,36 +141,37 @@ const expendTasks = async tasks => {
 	return tasks.flat();
 };
 
-const expandTasksSync = tasks => tasks.flatMap(task => {
-	const {options} = task;
+const expandTasksSync = (tasks, options) =>
+	options.expandDirectories
+		? tasks.flatMap(task => {
+			const {options} = task;
+			const patterns = globDirectories(task, dirGlob.sync);
+			options.ignore = dirGlob.sync(options.ignore);
+			return patterns.map(pattern => ({pattern, options}));
+		})
+		: tasks;
 
-	// TODO: Check the common options instead of task options
-	if (!options.expandDirectories) {
-		return task;
-	}
-
-	const patterns = globDirectories(task, dirGlob.sync);
-	options.ignore = dirGlob.sync(options.ignore);
-	return patterns.map(pattern => ({pattern, options}));
-});
-
-export const globby = async (patterns, options = {}) => {
+export const globby = async (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
+
+	options = normalizeOptions(options);
 	const [
 		filter,
 		tasks,
 	] = await Promise.all([
 		getFilter(options),
-		expendTasks(globTasks),
+		expendTasks(globTasks, options),
 	]);
 	const results = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
 
 	return unionFastGlobResults(results, filter);
 };
 
-export const globbySync = (patterns, options = {}) => {
+export const globbySync = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
-	const tasks = expandTasksSync(globTasks);
+
+	options = normalizeOptions(options);
+	const tasks = expandTasksSync(globTasks, options);
 
 	const filter = getFilterSync(options);
 	const results = tasks.map(task => fastGlob.sync(task.pattern, task.options));
@@ -173,9 +179,11 @@ export const globbySync = (patterns, options = {}) => {
 	return unionFastGlobResults(results, filter);
 };
 
-export const globbyStream = (patterns, options = {}) => {
+export const globbyStream = (patterns, options) => {
 	const globTasks = generateGlobTasks(patterns, options);
-	const tasks = expandTasksSync(globTasks);
+
+	options = normalizeOptions(options);
+	const tasks = expandTasksSync(globTasks, options);
 
 	const filter = getFilterSync(options);
 	const streams = tasks.map(task => fastGlob.stream(task.pattern, task.options));
@@ -183,13 +191,9 @@ export const globbyStream = (patterns, options = {}) => {
 	return unionFastGlobStreams(streams, filter);
 };
 
-export const isDynamicPattern = (patterns, options = {}) => {
+export const isDynamicPattern = (patterns, options) => {
 	patterns = toPatternsArray(patterns);
-	options = {
-		...options,
-		cwd: toPath(options.cwd),
-	};
-	checkCwdOption(options);
+	options = normalizeOptions(options);
 
 	return patterns.some(pattern => fastGlob.isDynamicPattern(pattern, options));
 };
