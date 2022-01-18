@@ -41,10 +41,7 @@ const runGlobby = async (t, patterns, options) => {
 	const promiseResult = await globby(patterns, options);
 
 	// TODO: Use `Array.fromAsync` when Node.js supports it
-	const streamResult = [];
-	for await (const file of globbyStream(patterns, options)) {
-		streamResult.push(file);
-	}
+	const streamResult = await getStream.array(globbyStream(patterns, options));
 
 	t.deepEqual(
 		excludeDirentAndStats(syncResult),
