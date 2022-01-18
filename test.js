@@ -84,8 +84,8 @@ test('glob - async', async t => {
 	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-test('glob - async - multiple file paths', t => {
-	t.deepEqual(globbySync(['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
+test('glob - multiple file paths', async t => {
+	t.deepEqual(await runGlobby(t, ['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
 
 test('glob with multiple patterns - async', async t => {
@@ -104,10 +104,6 @@ test('glob - sync', t => {
 	t.deepEqual(globbySync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 	t.deepEqual(globbySync(['!*.tmp', 'a.tmp']), ['a.tmp']);
-});
-
-test('glob - sync - multiple file paths', t => {
-	t.deepEqual(globbySync(['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
 
 test('return [] for all negative patterns - sync', t => {
@@ -130,10 +126,6 @@ test('glob - stream async iterator support', async t => {
 	}
 
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-});
-
-test('glob - stream - multiple file paths', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['a.tmp', 'b.tmp'])), ['a.tmp', 'b.tmp']);
 });
 
 test('glob with multiple patterns - stream', async t => {
