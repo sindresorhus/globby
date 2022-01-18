@@ -159,17 +159,7 @@ test('cwd option', t => {
 });
 
 test('don\'t mutate the options object - async', async t => {
-	await globby(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
-	t.pass();
-});
-
-test('don\'t mutate the options object - sync', t => {
-	globbySync(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
-	t.pass();
-});
-
-test('don\'t mutate the options object - stream', async t => {
-	await getStream.array(globbyStream(['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])})));
+	await runGlobby(t, ['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 	t.pass();
 });
 
