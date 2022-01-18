@@ -92,12 +92,8 @@ test('glob with multiple patterns', async t => {
 	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('respect patterns order - async', async t => {
-	t.deepEqual(await globby(['!*.tmp', 'a.tmp']), ['a.tmp']);
-});
-
-test('respect patterns order - sync', t => {
-	t.deepEqual(globbySync(['!*.tmp', 'a.tmp']), ['a.tmp']);
+test('respect patterns order', async t => {
+	t.deepEqual(await runGlobby(t, ['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
 test('glob - sync', t => {
@@ -126,10 +122,6 @@ test('glob - stream async iterator support', async t => {
 	}
 
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-});
-
-test('respect patterns order - stream', async t => {
-	t.deepEqual(await getStream.array(globbyStream(['!*.tmp', 'a.tmp'])), ['a.tmp']);
 });
 
 test('return [] for all negative patterns - stream', async t => {
