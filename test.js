@@ -26,7 +26,7 @@ const fixture = [
 ];
 
 const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
-const stabilizeResult = results => results
+const stabilizeResult = result => result
 	.map(fastGlobResult => {
 		// In `objectMode` the `fastGlobResult.dirent` contains function that makes `t.deepEqual` assertion fails.
 		// `fastGlobResult.stats` contains different `atime`
