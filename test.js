@@ -288,18 +288,17 @@ test('`{extension: false}` and `expandDirectories.extensions` option', async t =
 });
 
 test('throws when specifying a file as cwd', async t => {
+	const error = {message: 'The `cwd` option must be a path to a directory'}
+
 	for (const file of getCwdValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		// eslint-disable-next-line no-await-in-loop
-		await t.throwsAsync(
-			runGlobby(t, '.', {cwd: file}),
-			{message: 'The `cwd` option must be a path to a directory'},
-		);
-
+		await t.throwsAsync(globby('.', {cwd: file}), error);
 		// eslint-disable-next-line no-await-in-loop
-		await t.throwsAsync(
-			runGlobby(t, '*', {cwd: file}),
-			{message: 'The `cwd` option must be a path to a directory'},
-		);
+		await t.throwsAsync(globby('*', {cwd: file}), error);
+		t.throws(() => globbySync('.', {cwd: file}), error);
+		t.throws(() => globbySync('*', {cwd: file}), error);
+		t.throws(() => globbyStream('.', {cwd: file}), error);
+		t.throws(() => globbyStream('*', {cwd: file}), error);
 	}
 });
 
