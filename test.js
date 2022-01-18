@@ -39,7 +39,6 @@ const excludeDirentAndStats = results => results.map(fastGlobResult => {
 const runGlobby = async (t, patterns, options) => {
 	const syncResult = globbySync(patterns, options);
 	const promiseResult = await globby(patterns, options);
-
 	// TODO: Use `Array.fromAsync` when Node.js supports it
 	const streamResult = await getStream.array(globbyStream(patterns, options));
 
