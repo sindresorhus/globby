@@ -79,9 +79,12 @@ test.after(() => {
 	fs.rmdirSync(temporary);
 });
 
-test('glob - async', async t => {
-	const result = await globby('*.tmp');
+test('glob', async t => {
+	const result = await runGlobby(t, '*.tmp');
 	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(await runGlobby(t, '*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
+	t.deepEqual(await runGlobby(t, ['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
 test('glob - multiple file paths', async t => {
@@ -96,19 +99,8 @@ test('respect patterns order', async t => {
 	t.deepEqual(await runGlobby(t, ['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-test('glob - sync', t => {
-	t.deepEqual(globbySync('*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
-	t.deepEqual(globbySync(['!*.tmp', 'a.tmp']), ['a.tmp']);
-});
-
 test('return [] for all negative patterns', async t => {
 	t.deepEqual(await runGlobby(t, ['!a.tmp', '!b.tmp']), []);
-});
-
-test('glob - stream', async t => {
-	const result = await getStream.array(globbyStream('*.tmp'));
-	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
 test('glob - stream async iterator support', async t => {
