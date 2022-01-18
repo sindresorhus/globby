@@ -50,12 +50,12 @@ const runGlobby = async (t, patterns, options) => {
 	t.deepEqual(
 		stabilizeResult(syncResult),
 		result,
-		'globbySync() result differently than globby()',
+		'globbySync() result is different than globby()',
 	);
 	t.deepEqual(
 		stabilizeResult(streamResult),
 		result,
-		'globbyStream() result differently than globby()',
+		'globbyStream() result is different than globby()',
 	);
 
 	return promiseResult;
