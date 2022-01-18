@@ -80,9 +80,6 @@ test.after(() => {
 test('glob', async t => {
 	const result = await runGlobby(t, '*.tmp');
 	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(await runGlobby(t, '*.tmp'), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
-	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
-	t.deepEqual(await runGlobby(t, ['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
 test('glob - multiple file paths', async t => {
