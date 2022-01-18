@@ -288,9 +288,7 @@ test('`{extension: false}` and `expandDirectories.extensions` option', async t =
 });
 
 test('throws when specifying a file as cwd', async t => {
-	const isFile = path.resolve('fixtures/gitignore/bar.js');
-
-	for (const file of getCwdValues(isFile)) {
+	for (const file of getCwdValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		// eslint-disable-next-line no-await-in-loop
 		await t.throwsAsync(
 			runGlobby(t, '.', {cwd: file}),
