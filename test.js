@@ -300,32 +300,12 @@ for (const value of [
 }
 
 test('gitignore option defaults to false - async', async t => {
-	const actual = await globby('*', {onlyFiles: false});
+	const actual = await runGlobby(t, '*', {onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
 
-test('gitignore option defaults to false - sync', t => {
-	const actual = globbySync('*', {onlyFiles: false});
-	t.true(actual.includes('node_modules'));
-});
-
-test('gitignore option defaults to false - stream', async t => {
-	const actual = await getStream.array(globbyStream('*', {onlyFiles: false}));
-	t.true(actual.includes('node_modules'));
-});
-
-test('respects gitignore option true - async', async t => {
-	const actual = await globby('*', {gitignore: true, onlyFiles: false});
-	t.false(actual.includes('node_modules'));
-});
-
-test('respects gitignore option true - sync', t => {
-	const actual = globbySync('*', {gitignore: true, onlyFiles: false});
-	t.false(actual.includes('node_modules'));
-});
-
-test('respects gitignore option true - stream', async t => {
-	const actual = await getStream.array(globbyStream('*', {gitignore: true, onlyFiles: false}));
+test('respects gitignore option true', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: true, onlyFiles: false});
 	t.false(actual.includes('node_modules'));
 });
 
