@@ -110,45 +110,54 @@ const globDirectories = (task, fn) => {
 	return fn(task.pattern, options);
 };
 
-const getPattern = (task, fn) => task.options.expandDirectories ? globDirectories(task, fn) : [task.pattern];
+const expendTasks = async tasks => {
+	tasks = await Promise.all(
+		tasks.map(async task => {
+			const {options} = task;
 
-const globToTask = task => async glob => {
-	const {options} = task;
-	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
-		options.ignore = await dirGlob(options.ignore);
-	}
+			// TODO: Check the common options instead of task options
+			if (!options.expandDirectories) {
+				return task;
+			}
 
-	return {
-		pattern: glob,
-		options,
-	};
+			const [
+				patterns,
+				ignore,
+			] = await Promise.all([
+				globDirectories(task, dirGlob),
+				dirGlob(options.ignore),
+			]);
+
+			options.ignore = ignore;
+			return patterns.map(pattern => ({pattern, options}));
+		}),
+	);
+
+	return tasks.flat();
 };
 
-const globToTaskSync = task => glob => {
+const expandTasksSync = tasks => tasks.flatMap(task => {
 	const {options} = task;
-	if (options.ignore && Array.isArray(options.ignore) && options.expandDirectories) {
-		options.ignore = dirGlob.sync(options.ignore);
+
+	// TODO: Check the common options instead of task options
+	if (!options.expandDirectories) {
+		return task;
 	}
 
-	return {
-		pattern: glob,
-		options,
-	};
-};
+	const patterns = globDirectories(task, dirGlob.sync);
+	options.ignore = dirGlob.sync(options.ignore);
+	return patterns.map(pattern => ({pattern, options}));
+});
 
 export const globby = async (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
-
-	const getTasks = async () => {
-		const tasks = await Promise.all(globTasks.map(async task => {
-			const globs = await getPattern(task, dirGlob);
-			return Promise.all(globs.map(globToTask(task)));
-		}));
-
-		return tasks.flat();
-	};
-
-	const [filter, tasks] = await Promise.all([getFilter(options), getTasks()]);
+	const [
+		filter,
+		tasks,
+	] = await Promise.all([
+		getFilter(options),
+		expendTasks(globTasks),
+	]);
 	const results = await Promise.all(tasks.map(task => fastGlob(task.pattern, task.options)));
 
 	return unionFastGlobResults(results, filter);
@@ -156,10 +165,7 @@ export const globby = async (patterns, options = {}) => {
 
 export const globbySync = (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
-
-	const tasks = globTasks.flatMap(
-		task => getPattern(task, dirGlob.sync).map(globToTaskSync(task)),
-	);
+	const tasks = expandTasksSync(globTasks);
 
 	const filter = getFilterSync(options);
 	const results = tasks.map(task => fastGlob.sync(task.pattern, task.options));
@@ -169,10 +175,7 @@ export const globbySync = (patterns, options = {}) => {
 
 export const globbyStream = (patterns, options = {}) => {
 	const globTasks = generateGlobTasks(patterns, options);
-
-	const tasks = globTasks.flatMap(
-		task => getPattern(task, dirGlob.sync).map(globToTaskSync(task)),
-	);
+	const tasks = expandTasksSync(globTasks);
 
 	const filter = getFilterSync(options);
 	const streams = tasks.map(task => fastGlob.stream(task.pattern, task.options));
