@@ -12,6 +12,6 @@ export class FilterStream extends Transform {
 	}
 
 	_transform(data, encoding, callback) {
-		callback(undefined, this.#filter(data) && data);
+		callback(undefined, this.#filter(data) ? data : undefined);
 	}
 }
