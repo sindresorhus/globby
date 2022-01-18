@@ -192,20 +192,20 @@ test('expose isDynamicPattern', t => {
 	}
 });
 
-test('expandDirectories option', t => {
-	t.deepEqual(globbySync(temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+test('expandDirectories option', async t => {
+	t.deepEqual(await runGlobby(t, temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 	for (const temporaryDirectory of getCwdValues(temporary)) {
-		t.deepEqual(globbySync('**', {cwd: temporaryDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+		t.deepEqual(await runGlobby(t, '**', {cwd: temporaryDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	}
 
-	t.deepEqual(globbySync(temporary, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globbySync(temporary, {
+	t.deepEqual(await runGlobby(t, temporary, {expandDirectories: ['a*', 'b*']}), ['tmp/a.tmp', 'tmp/b.tmp']);
+	t.deepEqual(await runGlobby(t, temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp'],
 		},
 	}), ['tmp/a.tmp', 'tmp/b.tmp']);
-	t.deepEqual(globbySync(temporary, {
+	t.deepEqual(await runGlobby(t, temporary, {
 		expandDirectories: {
 			files: ['a', 'b'],
 			extensions: ['tmp'],
