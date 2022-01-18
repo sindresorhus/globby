@@ -16,6 +16,12 @@ const assertPatternsInput = patterns => {
 	}
 };
 
+const toPatternsArray = patterns => {
+	patterns = [...new Set([patterns].flat())];
+	assertPatternsInput(patterns);
+	return patterns;
+};
+
 const checkCwdOption = options => {
 	if (!options.cwd) {
 		return;
@@ -54,10 +60,7 @@ const unionFastGlobResults = (results, filter) => {
 };
 
 export const generateGlobTasks = (patterns, taskOptions = {}) => {
-	patterns = [...new Set([patterns].flat())];
-	assertPatternsInput(patterns);
-
-	const globTasks = [];
+	patterns = toPatternsArray(patterns);
 
 	taskOptions = {
 		ignore: [],
@@ -65,9 +68,9 @@ export const generateGlobTasks = (patterns, taskOptions = {}) => {
 		...taskOptions,
 		cwd: toPath(taskOptions.cwd),
 	};
-
 	checkCwdOption(taskOptions);
 
+	const globTasks = [];
 	for (const [index, pattern] of patterns.entries()) {
 		if (isNegative(pattern)) {
 			continue;
@@ -202,12 +205,14 @@ export const globbyStream = (patterns, options = {}) => {
 };
 
 export const isDynamicPattern = (patterns, options = {}) => {
+	patterns = toPatternsArray(patterns);
 	options = {
 		...options,
 		cwd: toPath(options.cwd),
 	};
+	checkCwdOption(options);
 
-	return [patterns].flat().some(pattern => fastGlob.isDynamicPattern(pattern, options));
+	return patterns.some(pattern => fastGlob.isDynamicPattern(pattern, options));
 };
 
 export {
