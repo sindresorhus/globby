@@ -222,7 +222,9 @@ for (const value of [
 	const message = 'Patterns must be a string or an array of strings';
 
 	test(`throws for invalid patterns input: ${valueString}`, async t => {
-		await t.throwsAsync(runGlobby(t, value), {instanceOf: TypeError, message});
+		await t.throwsAsync(globby(t, value), {instanceOf: TypeError, message});
+		t.throws(() => globbySync(value), {instanceOf: TypeError, message});
+		t.throws(() => globbyStream(value), {instanceOf: TypeError, message});
 	});
 
 	test(`generateGlobTasks throws for invalid patterns input: ${valueString}`, t => {
