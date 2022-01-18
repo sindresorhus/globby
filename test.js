@@ -26,30 +26,33 @@ const fixture = [
 ];
 
 const getCwdValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
-const excludeDirentAndStats = results => results.map(fastGlobResult => {
-	// In `objectMode` the `fastGlobResult.dirent` contains function that makes `t.deepEqual` assertion fails.
-	// `fastGlobResult.stats` contains different `atime`
-	if (typeof fastGlobResult === 'object') {
-		const {dirent, stats, ...rest} = fastGlobResult;
-		return rest;
-	}
+const stabilizeResult = results => results
+	.map(fastGlobResult => {
+		// In `objectMode` the `fastGlobResult.dirent` contains function that makes `t.deepEqual` assertion fails.
+		// `fastGlobResult.stats` contains different `atime`
+		if (typeof fastGlobResult === 'object') {
+			const {dirent, stats, ...rest} = fastGlobResult;
+			return rest;
+		}
 
-	return fastGlobResult;
-});
+		return fastGlobResult;
+	})
+	.sort((a, b) => (a.path || a).localeCompare(b.path || b));
 const runGlobby = async (t, patterns, options) => {
 	const syncResult = globbySync(patterns, options);
 	const promiseResult = await globby(patterns, options);
 	// TODO: Use `Array.fromAsync` when Node.js supports it
 	const streamResult = await getStream.array(globbyStream(patterns, options));
 
+	const result = stabilizeResult(promiseResult);
 	t.deepEqual(
-		excludeDirentAndStats(syncResult),
-		excludeDirentAndStats(promiseResult),
+		stabilizeResult(syncResult),
+		result,
 		'globbySync() result differently than globby()',
 	);
 	t.deepEqual(
-		excludeDirentAndStats(streamResult),
-		excludeDirentAndStats(promiseResult),
+		stabilizeResult(streamResult),
+		result,
 		'globbyStream() result differently than globby()',
 	);
 
