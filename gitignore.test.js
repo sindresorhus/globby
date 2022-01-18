@@ -5,7 +5,7 @@ import slash from 'slash';
 import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const getPathValues = cwd => [cwd, pathToFileURL(cwd), pathToFileURL(cwd).href];
+const getPathValues = cwd => [cwd, pathToFileURL(cwd)];
 
 test('gitignore', async t => {
 	for (const cwd of getPathValues(path.join(__dirname, 'fixtures/gitignore'))) {
