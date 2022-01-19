@@ -94,44 +94,31 @@ const generateGlobTasksInternal = (patterns, taskOptions) => {
 	return globTasks;
 };
 
-const globDirectories = (task, fn) => {
-	let options = {};
-	if (task.options.cwd) {
-		options.cwd = task.options.cwd;
-	}
-
-	if (Array.isArray(task.options.expandDirectories)) {
-		options = {
-			...options,
-			files: task.options.expandDirectories,
-		};
-	} else if (typeof task.options.expandDirectories === 'object') {
-		options = {
-			...options,
-			...task.options.expandDirectories,
-		};
-	}
-
-	return fn(task.pattern, options);
-};
+const getDirGlobOptions = (options, cwd) => Array.isArray(options)
+	? {cwd, files: options}
+	: {...options, cwd};
 
 const generateTasks = async (patterns, options) => {
 	const globTasks = generateGlobTasksInternal(patterns, options);
 
-	if (!options.expandDirectories) {
+	const {cwd, expandDirectories} = options;
+
+	if (!expandDirectories) {
 		return globTasks;
 	}
 
+	const dirGlobOptions = getDirGlobOptions(expandDirectories, cwd);
+
 	const tasks = await Promise.all(
 		globTasks.map(async task => {
-			const {options} = task;
+			const {pattern, options} = task;
 
 			const [
 				patterns,
 				ignore,
 			] = await Promise.all([
-				globDirectories(task, dirGlob),
-				dirGlob(options.ignore),
+				dirGlob(pattern, dirGlobOptions),
+				dirGlob(options.ignore, {cwd}),
 			]);
 
 			options.ignore = ignore;
@@ -145,14 +132,18 @@ const generateTasks = async (patterns, options) => {
 const generateTasksSync = (patterns, options) => {
 	const globTasks = generateGlobTasksInternal(patterns, options);
 
-	if (!options.expandDirectories) {
+	const {cwd, expandDirectories} = options;
+
+	if (!expandDirectories) {
 		return globTasks;
 	}
 
+	const dirGlobOptions = getDirGlobOptions(expandDirectories, cwd);
+
 	return globTasks.flatMap(task => {
-		const {options} = task;
-		const patterns = globDirectories(task, dirGlob.sync);
-		options.ignore = dirGlob.sync(options.ignore);
+		const {pattern, options} = task;
+		const patterns = dirGlob.sync(pattern, dirGlobOptions);
+		options.ignore = dirGlob.sync(options.ignore, {cwd});
 		return patterns.map(pattern => ({pattern, options}));
 	});
 };
