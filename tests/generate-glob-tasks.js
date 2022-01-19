@@ -24,6 +24,11 @@ const runGenerateGlobTasks = async (t, patterns, options) => {
 	return promiseResult;
 };
 
+const getTasks = async (t, patterns, options) => {
+	const tasks = await runGenerateGlobTasks(t, patterns, options);
+	return tasks.map(({patterns, options: {ignore}}) => ({patterns, ignore}));
+};
+
 test('generateGlobTasks', async t => {
 	const tasks = await runGenerateGlobTasks(t, ['*.tmp', '!b.tmp'], {ignore: ['c.tmp']});
 
@@ -99,3 +104,37 @@ test('expandDirectories option', async t => {
 		t.deepEqual(tasks[0].options.ignore, ['**/b.tmp']);
 	}
 });
+
+test('combine tasks', async t => {
+	t.deepEqual(
+		await getTasks(t, ['a', 'b']),
+		[{patterns: ['a', 'b'], ignore: []}]
+	);
+	t.deepEqual(
+		await getTasks(t, ['!a', 'b']),
+		[{patterns: ['b'], ignore: []}]
+	);
+	t.deepEqual(
+		await getTasks(t, ['!a']),
+		[]
+	);
+	t.deepEqual(
+		await getTasks(t, ['a', 'b', '!c', '!d']),
+		[{patterns: ['a', 'b'], ignore: ['c', 'd']}]
+	);
+	t.deepEqual(
+		await getTasks(t, ['a', 'b', '!c', '!d', 'e']),
+		[
+			{patterns: ['a', 'b'], ignore: ['c', 'd']},
+			{patterns: ['e'], ignore: []}
+		]
+	);
+	t.deepEqual(
+		await getTasks(t, ['a', 'b', '!c', 'd', 'e', '!f', '!g', 'h']),
+		[
+			{patterns: ['a', 'b'], ignore: ['c', 'f', 'g']},
+			{patterns: ['d', 'e'], ignore: ['f', 'g']},
+			{patterns: ['h'], ignore: []},
+		]
+	);
+})

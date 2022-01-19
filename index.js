@@ -72,27 +72,53 @@ const createFilterFunction = isIgnored => {
 const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
 const unionFastGlobStreams = (streams, filter) => merge2(streams).pipe(new FilterStream(fastGlobResult => filter(fastGlobResult)));
 
-const convertNegativePatterns = (patterns, taskOptions) => {
-	const globTasks = [];
-	for (const [index, pattern] of patterns.entries()) {
-		if (isNegative(pattern)) {
+const getPatternsAndIgnore = (allPatterns, start, index) => ({
+	patterns: allPatterns
+		.slice(Math.max(start, 0), index)
+		.filter(({negated}) => !negated)
+		.map(({pattern}) => pattern),
+	ignore: allPatterns
+		.slice(index)
+		.filter(({negated}) => negated)
+		.map(({pattern}) => pattern)
+});
+
+const convertNegativePatterns = (patterns, options) => {
+	const allPatterns = patterns.map((pattern, index) => {
+		const negated = isNegative(pattern);
+
+		if (negated) {
+			pattern = pattern.slice(1);
+		}
+
+		return {negated, pattern, index};
+	});
+
+	const tasks = [];
+
+	let lastNegativeIndex = -1;
+	for (const {negated, pattern, index} of allPatterns) {
+		if (!negated) {
 			continue;
 		}
 
-		const ignore = patterns
-			.slice(index)
-			.filter(pattern => isNegative(pattern))
-			.map(pattern => pattern.slice(1));
-
-		const options = {
-			...taskOptions,
-			ignore: [...taskOptions.ignore, ...ignore],
-		};
-
-		globTasks.push({patterns: [pattern], options});
+		tasks.push(getPatternsAndIgnore(allPatterns, lastNegativeIndex, index))
+		lastNegativeIndex = index;
 	}
 
-	return globTasks;
+	if (lastNegativeIndex !== allPatterns.length - 1) {
+		tasks.push(getPatternsAndIgnore(allPatterns, lastNegativeIndex, allPatterns.length))
+	}
+
+	return tasks
+		.filter(({patterns}) => patterns.length !== 0)
+		.map(({patterns, ignore}) => ({
+			patterns,
+			options: {
+				...options,
+				ignore: [...options.ignore, ...ignore],
+			}
+		}));
 };
 
 const getDirGlobOptions = (options, cwd) => ({
