@@ -94,9 +94,10 @@ const generateGlobTasksInternal = (patterns, taskOptions) => {
 	return globTasks;
 };
 
-const getDirGlobOptions = (options, cwd) => Array.isArray(options)
-	? {cwd, files: options}
-	: {...options, cwd};
+const getDirGlobOptions = (options, cwd) => ({
+	...(cwd ? {cwd} : {}),
+	...(Array.isArray(options) ? {files: options} : options),
+});
 
 const generateTasks = async (patterns, options) => {
 	const globTasks = generateGlobTasksInternal(patterns, options);
@@ -118,7 +119,7 @@ const generateTasks = async (patterns, options) => {
 				ignore,
 			] = await Promise.all([
 				dirGlob(pattern, dirGlobOptions),
-				dirGlob(options.ignore, {cwd}),
+				dirGlob(options.ignore, cwd ? {cwd} : undefined),
 			]);
 
 			options.ignore = ignore;
@@ -143,7 +144,7 @@ const generateTasksSync = (patterns, options) => {
 	return globTasks.flatMap(task => {
 		const {pattern, options} = task;
 		const patterns = dirGlob.sync(pattern, dirGlobOptions);
-		options.ignore = dirGlob.sync(options.ignore, {cwd});
+		options.ignore = dirGlob.sync(options.ignore, cwd ? {cwd} : undefined);
 		return patterns.map(pattern => ({pattern, options}));
 	});
 };
