@@ -9,6 +9,7 @@ import {
 	globbySync,
 	globbyStream,
 	generateGlobTasks,
+	generateGlobTasksSync,
 	isDynamicPattern,
 	isGitIgnored,
 	isGitIgnoredSync,
@@ -83,14 +84,14 @@ expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}))
 })();
 
 // GenerateGlobTasks
-expectType<GlobTask[]>(generateGlobTasks('*.tmp'));
-expectType<GlobTask[]>(generateGlobTasks(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
+expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp'));
+expectType<Promise<GlobTask[]>>(generateGlobTasks(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
-expectType<GlobTask[]>(generateGlobTasks('*.tmp', {expandDirectories: false}));
-expectType<GlobTask[]>(
+expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {expandDirectories: false}));
+expectType<Promise<GlobTask[]>>(
 	generateGlobTasks('*.tmp', {expandDirectories: ['a*', 'b*']}),
 );
-expectType<GlobTask[]>(
+expectType<Promise<GlobTask[]>>(
 	generateGlobTasks('*.tmp', {
 		expandDirectories: {
 			files: ['a', 'b'],
@@ -98,8 +99,27 @@ expectType<GlobTask[]>(
 		},
 	}),
 );
-expectType<GlobTask[]>(generateGlobTasks('*.tmp', {gitignore: true}));
-expectType<GlobTask[]>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
+expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {gitignore: true}));
+expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
+
+// GenerateGlobTasksSync
+expectType<GlobTask[]>(generateGlobTasksSync('*.tmp'));
+expectType<GlobTask[]>(generateGlobTasksSync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
+
+expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {expandDirectories: false}));
+expectType<GlobTask[]>(
+	generateGlobTasksSync('*.tmp', {expandDirectories: ['a*', 'b*']}),
+);
+expectType<GlobTask[]>(
+	generateGlobTasksSync('*.tmp', {
+		expandDirectories: {
+			files: ['a', 'b'],
+			extensions: ['tmp'],
+		},
+	}),
+);
+expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {gitignore: true}));
+expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {ignore: ['**/b.tmp']}));
 
 // IsDynamicPattern
 expectType<boolean>(isDynamicPattern('**'));
