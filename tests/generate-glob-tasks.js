@@ -57,7 +57,7 @@ test('throws when specifying a file as cwd', async t => {
 
 test('cwd', async t => {
 	const cwd = process.cwd();
-	for (const cwdDirectory of getPathValues()) {
+	for (const cwdDirectory of getPathValues(cwd)) {
 		// eslint-disable-next-line no-await-in-loop
 		const [task] = await runGenerateGlobTasks(t, ['*'], {cwd: cwdDirectory});
 		t.is(task.options.cwd, cwd);
