@@ -2,7 +2,6 @@ import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
-import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'ava';
 import getStream from 'get-stream';
 import {
@@ -10,10 +9,13 @@ import {
 	globbySync,
 	globbyStream,
 	isDynamicPattern,
-	generateGlobTasks,
-} from './index.js';
+} from '../index.js';
+import {
+	PROJECT_ROOT,
+	getPathValues,
+	invalidPatterns,
+} from './utilities.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = process.cwd();
 const temporary = 'tmp';
 
@@ -24,8 +26,6 @@ const fixture = [
 	'd.tmp',
 	'e.tmp',
 ];
-
-const getCwdValues = cwd => [cwd, pathToFileURL(cwd)];
 
 const stabilizeResult = result => result
 	.map(fastGlobResult => {
@@ -68,14 +68,14 @@ test.before(() => {
 
 	for (const element of fixture) {
 		fs.writeFileSync(element, '');
-		fs.writeFileSync(path.join(__dirname, temporary, element), '');
+		fs.writeFileSync(path.join(PROJECT_ROOT, temporary, element), '');
 	}
 });
 
 test.after(() => {
 	for (const element of fixture) {
 		fs.unlinkSync(element);
-		fs.unlinkSync(path.join(__dirname, temporary, element));
+		fs.unlinkSync(path.join(PROJECT_ROOT, temporary, element));
 	}
 
 	fs.rmdirSync(temporary);
@@ -123,28 +123,19 @@ test('don\'t mutate the options object - async', async t => {
 	t.pass();
 });
 
-test('expose generateGlobTasks', t => {
-	const tasks = generateGlobTasks(['*.tmp', '!b.tmp'], {ignore: ['c.tmp']});
-
-	t.is(tasks.length, 1);
-	t.is(tasks[0].pattern, '*.tmp');
-	t.deepEqual(tasks[0].options.ignore, ['c.tmp', 'b.tmp']);
-	t.notThrows(() => generateGlobTasks('*'));
-});
-
 test('expose isDynamicPattern', t => {
 	t.true(isDynamicPattern('**'));
 	t.true(isDynamicPattern(['**', 'path1', 'path2']));
 	t.false(isDynamicPattern(['path1', 'path2']));
 
-	for (const cwdDirectory of getCwdValues(cwd)) {
+	for (const cwdDirectory of getPathValues(cwd)) {
 		t.true(isDynamicPattern('**', {cwd: cwdDirectory}));
 	}
 });
 
 test('expandDirectories option', async t => {
 	t.deepEqual(await runGlobby(t, temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
-	for (const temporaryDirectory of getCwdValues(temporary)) {
+	for (const temporaryDirectory of getPathValues(temporary)) {
 		// eslint-disable-next-line no-await-in-loop
 		t.deepEqual(await runGlobby(t, '**', {cwd: temporaryDirectory}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	}
@@ -189,7 +180,7 @@ test('expandDirectories and ignores option', async t => {
 
 test.serial.failing('relative paths and ignores option', async t => {
 	process.chdir(temporary);
-	for (const cwd of getCwdValues(process.cwd())) {
+	for (const cwd of getPathValues(process.cwd())) {
 		// eslint-disable-next-line no-await-in-loop
 		t.deepEqual(await runGlobby(t, '../tmp', {
 			cwd,
@@ -201,32 +192,14 @@ test.serial.failing('relative paths and ignores option', async t => {
 });
 
 // Rejected for being an invalid pattern
-for (const value of [
-	{},
-	[{}],
-	true,
-	[true],
-	false,
-	[false],
-	null,
-	[null],
-	undefined,
-	[undefined],
-	Number.NaN,
-	[Number.NaN],
-	5,
-	[5],
-	function () {},
-	[function () {}],
-]) {
+for (const value of invalidPatterns) {
 	const valueString = util.format(value);
 	const message = 'Patterns must be a string or an array of strings';
 
 	test(`throws for invalid patterns input: ${valueString}`, async t => {
-		await t.throwsAsync(globby(t, value), {instanceOf: TypeError, message});
+		await t.throwsAsync(globby(value), {instanceOf: TypeError, message});
 		t.throws(() => globbySync(value), {instanceOf: TypeError, message});
 		t.throws(() => globbyStream(value), {instanceOf: TypeError, message});
-		t.throws(() => generateGlobTasks(value), {instanceOf: TypeError, message});
 		t.throws(() => isDynamicPattern(value), {instanceOf: TypeError, message});
 	});
 }
@@ -264,7 +237,7 @@ test('gitignore option and objectMode option', async t => {
 });
 
 test('`{extension: false}` and `expandDirectories.extensions` option', async t => {
-	for (const temporaryDirectory of getCwdValues(temporary)) {
+	for (const temporaryDirectory of getPathValues(temporary)) {
 		t.deepEqual(
 			// eslint-disable-next-line no-await-in-loop
 			await runGlobby(t, '*', {
@@ -291,7 +264,7 @@ test('`{extension: false}` and `expandDirectories.extensions` option', async t =
 test('throws when specifying a file as cwd', async t => {
 	const error = {message: 'The `cwd` option must be a path to a directory'};
 
-	for (const file of getCwdValues(path.resolve('fixtures/gitignore/bar.js'))) {
+	for (const file of getPathValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		// eslint-disable-next-line no-await-in-loop
 		await t.throwsAsync(globby('.', {cwd: file}), error);
 		// eslint-disable-next-line no-await-in-loop
@@ -304,7 +277,7 @@ test('throws when specifying a file as cwd', async t => {
 });
 
 test('throws when specifying a file as cwd - isDynamicPattern', t => {
-	for (const file of getCwdValues(path.resolve('fixtures/gitignore/bar.js'))) {
+	for (const file of getPathValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		t.throws(() => {
 			isDynamicPattern('.', {cwd: file});
 		}, {message: 'The `cwd` option must be a path to a directory'});
@@ -316,7 +289,7 @@ test('throws when specifying a file as cwd - isDynamicPattern', t => {
 });
 
 test('don\'t throw when specifying a non-existing cwd directory', async t => {
-	for (const cwd of getCwdValues('/unknown')) {
+	for (const cwd of getPathValues('/unknown')) {
 		// eslint-disable-next-line no-await-in-loop
 		const actual = await runGlobby(t, '.', {cwd});
 		t.is(actual.length, 0);
