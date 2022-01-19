@@ -110,9 +110,15 @@ import {globbyStream} from 'globby';
 
 ### generateGlobTasks(patterns, options?)
 
-Returns an `object[]` in the format `{pattern: string, options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
+Returns an `Promise<object[]>` in the format `{patterns: string[], options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.
+
+### generateGlobTasksSync(patterns, options?)
+
+Returns an `object[]` in the format `{patterns: string[], options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
+
+Takes the same options as `generateGlobTasks`.
 
 ### isDynamicPattern(patterns, options?)
 

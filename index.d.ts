@@ -4,7 +4,7 @@ import {Options as FastGlobOptions, Entry} from 'fast-glob';
 export type GlobEntry = Entry;
 
 export interface GlobTask {
-	readonly pattern: string;
+	readonly patterns: string[];
 	readonly options: Options;
 }
 
@@ -139,6 +139,16 @@ Note that you should avoid running the same tasks multiple times as they contain
 @returns An object in the format `{pattern: string, options: object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 */
 export function generateGlobTasks(
+	patterns: string | readonly string[],
+	options?: Options
+): Promise<GlobTask[]>;
+
+/**
+@see generateGlobTasks
+
+@returns An object in the format `{pattern: string, options: object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
+*/
+export function generateGlobTasksSync(
 	patterns: string | readonly string[],
 	options?: Options
 ): GlobTask[];
