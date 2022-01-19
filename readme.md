@@ -118,7 +118,7 @@ Note that you should avoid running the same tasks multiple times as they contain
 
 Returns an `object[]` in the format `{patterns: string[], options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
 
-Takes the same options as `generateGlobTasks`.
+Takes the same arguments as `generateGlobTasks`.
 
 ### isDynamicPattern(patterns, options?)
 
