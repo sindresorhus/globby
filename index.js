@@ -111,7 +111,7 @@ const generateTasks = async (patterns, options) => {
 	const patternExpandOptions = getDirGlobOptions(expandDirectories, cwd);
 	const ignoreExpandOptions = cwd ? {cwd} : undefined;
 
-	const tasks = await Promise.all(
+	return Promise.all(
 		globTasks.map(async task => {
 			const {pattern, options} = task;
 
@@ -124,11 +124,9 @@ const generateTasks = async (patterns, options) => {
 			]);
 
 			options.ignore = ignore;
-			return patterns.map(pattern => ({pattern, options}));
+			return {pattern: patterns, options};
 		}),
 	);
-
-	return tasks.flat();
 };
 
 const generateTasksSync = (patterns, options) => {
@@ -143,11 +141,11 @@ const generateTasksSync = (patterns, options) => {
 	const patternExpandOptions = getDirGlobOptions(expandDirectories, cwd);
 	const ignoreExpandOptions = cwd ? {cwd} : undefined;
 
-	return globTasks.flatMap(task => {
+	return globTasks.map(task => {
 		const {pattern, options} = task;
 		const patterns = dirGlob.sync(pattern, patternExpandOptions);
 		options.ignore = dirGlob.sync(options.ignore, ignoreExpandOptions);
-		return patterns.map(pattern => ({pattern, options}));
+		return {pattern: patterns, options};
 	});
 };
 
