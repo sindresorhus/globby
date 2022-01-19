@@ -1,5 +1,4 @@
 import path from 'node:path';
-import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'ava';
 import slash from 'slash';
 import {isGitIgnored, isGitIgnoredSync} from '../gitignore.js';

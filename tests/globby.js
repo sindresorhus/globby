@@ -2,7 +2,6 @@ import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
-import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'ava';
 import getStream from 'get-stream';
 import {
