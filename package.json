@@ -81,5 +81,10 @@
 		"ignores": [
 			"fixtures"
 		]
+	},
+	"ava": {
+		"files": [
+			"!tests/utilities.js"
+		]
 	}
 }
