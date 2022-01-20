@@ -72,17 +72,6 @@ const createFilterFunction = isIgnored => {
 const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
 const unionFastGlobStreams = (streams, filter) => merge2(streams).pipe(new FilterStream(fastGlobResult => filter(fastGlobResult)));
 
-const getPatternsAndIgnore = (allPatterns, start, index) => ({
-	patterns: allPatterns
-		.slice(Math.max(start, 0), index)
-		.filter(({negated}) => !negated)
-		.map(({pattern}) => pattern),
-	ignore: allPatterns
-		.slice(index)
-		.filter(({negated}) => negated)
-		.map(({pattern}) => pattern)
-});
-
 const findIndexFrom = (array, callback, fromIndex) => {
 	for (let index = fromIndex; index < array.length; index++) {
 		if (callback(array[index])) {
@@ -95,46 +84,37 @@ const findIndexFrom = (array, callback, fromIndex) => {
 
 // TODO[@fisker]: Make this function returns `{patterns: string[], ignore: string[]}[]`
 const convertNegativePatterns = (patterns, options) => {
-	const createOptions = ignorePattern => {
-		const ignore = [...options.ignore];
-		if (ignorePattern) {
-			ignore.push(ignorePattern.slice(1));
-		}
-
-		return {...options, ignore};
-	};
-
 	const tasks = [];
 	const addTask = (from, negativePatternIndex) => {
-		const ignorePattern = patterns[negativePatternIndex];
+		const ignorePattern = patterns[negativePatternIndex].slice(1);
 
 		for (const task of tasks) {
-			task.options.ignore.push(ignorePattern.slice(1));
+			task.options.ignore.push(ignorePattern);
 		}
 
-		if (negativePatternIndex === from + 1) {
+		if (negativePatternIndex === from) {
 			return;
 		}
 
 		tasks.push({
-			patterns: patterns.slice(from + 1, negativePatternIndex),
-			options: createOptions(ignorePattern),
+			patterns: patterns.slice(from, negativePatternIndex),
+			options: {
+				...options,
+				ignore: [...options.ignore, ignorePattern],
+			},
 		});
-	}
+	};
 
-	const patternsLength = patterns.length;
-	let index = -1;
-
-	while (index < patternsLength - 1) {
-		const nextNegativePatternIndex = findIndexFrom(patterns, isNegative, index + 1);
+	for (let index = 0; index < patterns.length;) {
+		const nextNegativePatternIndex = findIndexFrom(patterns, isNegative, index);
 
 		if (nextNegativePatternIndex === -1) {
-			tasks.push({patterns: patterns.slice(index + 1), options});
+			tasks.push({patterns: patterns.slice(index), options});
 			break;
 		}
 
 		addTask(index, nextNegativePatternIndex);
-		index = nextNegativePatternIndex;
+		index = nextNegativePatternIndex + 1;
 	}
 
 	return tasks;

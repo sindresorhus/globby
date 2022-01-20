@@ -9,6 +9,7 @@ import {
 import {
 	invalidPatterns,
 	getPathValues,
+	isUnique,
 } from './utilities.js';
 
 const runGenerateGlobTasks = async (t, patterns, options) => {
@@ -108,26 +109,26 @@ test('expandDirectories option', async t => {
 test('combine tasks', async t => {
 	t.deepEqual(
 		await getTasks(t, ['a', 'b']),
-		[{patterns: ['a', 'b'], ignore: []}]
+		[{patterns: ['a', 'b'], ignore: []}],
 	);
 	t.deepEqual(
 		await getTasks(t, ['!a', 'b']),
-		[{patterns: ['b'], ignore: []}]
+		[{patterns: ['b'], ignore: []}],
 	);
 	t.deepEqual(
 		await getTasks(t, ['!a']),
-		[]
+		[],
 	);
 	t.deepEqual(
 		await getTasks(t, ['a', 'b', '!c', '!d']),
-		[{patterns: ['a', 'b'], ignore: ['c', 'd']}]
+		[{patterns: ['a', 'b'], ignore: ['c', 'd']}],
 	);
 	t.deepEqual(
 		await getTasks(t, ['a', 'b', '!c', '!d', 'e']),
 		[
 			{patterns: ['a', 'b'], ignore: ['c', 'd']},
-			{patterns: ['e'], ignore: []}
-		]
+			{patterns: ['e'], ignore: []},
+		],
 	);
 	t.deepEqual(
 		await getTasks(t, ['a', 'b', '!c', 'd', 'e', '!f', '!g', 'h']),
@@ -135,6 +136,52 @@ test('combine tasks', async t => {
 			{patterns: ['a', 'b'], ignore: ['c', 'f', 'g']},
 			{patterns: ['d', 'e'], ignore: ['f', 'g']},
 			{patterns: ['h'], ignore: []},
-		]
+		],
 	);
-})
+});
+
+test('random patterns', async t => {
+	for (let index = 0; index < 500; index++) {
+		const positivePatterns = [];
+		const negativePatterns = [];
+		const negativePatternsAtStart = [];
+
+		const patterns = Array.from({length: 1 + (index % 10)}, (_, index) => {
+			const negative = Math.random() > 0.5;
+			let pattern = String(index + 1);
+			if (negative) {
+				negativePatterns.push(pattern);
+
+				if (positivePatterns.length === 0) {
+					negativePatternsAtStart.push(pattern);
+				}
+
+				pattern = `!${pattern}`;
+			} else {
+				positivePatterns.push(pattern);
+			}
+
+			return pattern;
+		});
+
+		/* eslint-disable ava/assertion-arguments */
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await getTasks(t, patterns);
+		const patternsToDebug = JSON.stringify(patterns);
+		for (const {patterns, ignore} of tasks) {
+			t.true(isUnique(patterns), patternsToDebug);
+			t.true(isUnique(ignore), patternsToDebug);
+		}
+
+		const allPatterns = tasks.flatMap(({patterns}) => patterns);
+		const allIgnore = tasks.flatMap(({ignore}) => ignore);
+
+		t.is(new Set(allPatterns).size, positivePatterns.length, patternsToDebug);
+		t.is(
+			new Set(allIgnore).size,
+			negativePatterns.length - negativePatternsAtStart.length,
+			patternsToDebug,
+		);
+		/* eslint-enable ava/assertion-arguments */
+	}
+});

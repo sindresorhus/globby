@@ -20,3 +20,4 @@ export const invalidPatterns = [
 	function () {},
 	[function () {}],
 ];
+export const isUnique = array => new Set(array).size === array.length;
