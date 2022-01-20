@@ -167,6 +167,12 @@ test('random patterns', async t => {
 		// eslint-disable-next-line no-await-in-loop
 		const tasks = await getTasks(t, patterns);
 		const patternsToDebug = JSON.stringify(patterns);
+
+		t.true(
+			tasks.length <= negativePatterns.length - negativePatternsAtStart.length + 1,
+			`Unexpected tasks: ${patternsToDebug}`,
+		);
+
 		for (const [index, {patterns, ignore}] of tasks.entries()) {
 			t.not(
 				patterns.length,
