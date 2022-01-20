@@ -98,8 +98,8 @@ const convertNegativePatterns = (patterns, options) => {
 					...options,
 					ignore: [
 						...options.ignore,
-						ignorePattern
-					]
+						ignorePattern,
+					],
 				},
 			});
 		}
