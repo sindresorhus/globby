@@ -89,13 +89,14 @@ const convertNegativePatterns = (patterns, options) => {
 			task.options.ignore.push(ignorePattern);
 		}
 
-		const patternsBefore = patterns.splice(0, index);
 		if (index !== 0) {
 			tasks.push({
-				patterns: patternsBefore,
+				patterns: patterns.slice(0, index),
 				options: {...options, ignore: [...options.ignore, ignorePattern]},
 			});
 		}
+
+		patterns = patterns.slice(index + 1);
 	}
 
 	return tasks;
