@@ -85,25 +85,6 @@ const findIndexFrom = (array, callback, fromIndex) => {
 // TODO[@fisker]: Make this function returns `{patterns: string[], ignore: string[]}[]`
 const convertNegativePatterns = (patterns, options) => {
 	const tasks = [];
-	const addTask = (from, negativePatternIndex) => {
-		const ignorePattern = patterns[negativePatternIndex].slice(1);
-
-		for (const task of tasks) {
-			task.options.ignore.push(ignorePattern);
-		}
-
-		if (negativePatternIndex === from) {
-			return;
-		}
-
-		tasks.push({
-			patterns: patterns.slice(from, negativePatternIndex),
-			options: {
-				...options,
-				ignore: [...options.ignore, ignorePattern],
-			},
-		});
-	};
 
 	for (let index = 0; index < patterns.length;) {
 		const nextNegativePatternIndex = findIndexFrom(patterns, isNegative, index);
@@ -113,7 +94,22 @@ const convertNegativePatterns = (patterns, options) => {
 			break;
 		}
 
-		addTask(index, nextNegativePatternIndex);
+		const ignorePattern = patterns[nextNegativePatternIndex].slice(1);
+
+		for (const task of tasks) {
+			task.options.ignore.push(ignorePattern);
+		}
+
+		if (nextNegativePatternIndex !== index) {
+			tasks.push({
+				patterns: patterns.slice(index, nextNegativePatternIndex),
+				options: {
+					...options,
+					ignore: [...options.ignore, ignorePattern],
+				},
+			});
+		}
+
 		index = nextNegativePatternIndex + 1;
 	}
 

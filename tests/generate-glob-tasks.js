@@ -169,6 +169,7 @@ test('random patterns', async t => {
 		const tasks = await getTasks(t, patterns);
 		const patternsToDebug = JSON.stringify(patterns);
 		for (const {patterns, ignore} of tasks) {
+			t.not(patterns.length, 0, patternsToDebug);
 			t.true(isUnique(patterns), patternsToDebug);
 			t.true(isUnique(ignore), patternsToDebug);
 		}
