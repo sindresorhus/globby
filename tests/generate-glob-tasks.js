@@ -111,18 +111,22 @@ test('combine tasks', async t => {
 		await getTasks(t, ['a', 'b']),
 		[{patterns: ['a', 'b'], ignore: []}],
 	);
+
 	t.deepEqual(
 		await getTasks(t, ['!a', 'b']),
 		[{patterns: ['b'], ignore: []}],
 	);
+
 	t.deepEqual(
 		await getTasks(t, ['!a']),
 		[],
 	);
+
 	t.deepEqual(
 		await getTasks(t, ['a', 'b', '!c', '!d']),
 		[{patterns: ['a', 'b'], ignore: ['c', 'd']}],
 	);
+
 	t.deepEqual(
 		await getTasks(t, ['a', 'b', '!c', '!d', 'e']),
 		[
@@ -130,6 +134,7 @@ test('combine tasks', async t => {
 			{patterns: ['e'], ignore: []},
 		],
 	);
+
 	t.deepEqual(
 		await getTasks(t, ['a', 'b', '!c', 'd', 'e', '!f', '!g', 'h']),
 		[
@@ -179,10 +184,12 @@ test('random patterns', async t => {
 				0,
 				`Unexpected empty patterns: ${patternsToDebug}`,
 			);
+
 			t.true(
 				isUnique(patterns),
 				`patterns should be unique: ${patternsToDebug}`,
 			);
+
 			t.true(
 				isUnique(ignore),
 				`ignore should be unique: ${patternsToDebug}`,
@@ -205,6 +212,7 @@ test('random patterns', async t => {
 			positivePatterns.length,
 			`positive patterns should be in patterns: ${patternsToDebug}`,
 		);
+
 		t.is(
 			new Set(allIgnore).size,
 			negativePatterns.length - negativePatternsAtStart.length,
