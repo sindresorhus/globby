@@ -146,7 +146,7 @@ test('random patterns', async t => {
 		const negativePatterns = [];
 		const negativePatternsAtStart = [];
 
-		const patterns = Array.from({length: 1 + (index % 10)}, (_, index) => {
+		const patterns = Array.from({length: 1 + Math.floor(Math.random() * 20)}, (_, index) => {
 			const negative = Math.random() > 0.5;
 			let pattern = String(index + 1);
 			if (negative) {
