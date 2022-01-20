@@ -83,42 +83,65 @@ const getPatternsAndIgnore = (allPatterns, start, index) => ({
 		.map(({pattern}) => pattern)
 });
 
-const convertNegativePatterns = (patterns, options) => {
-	const allPatterns = patterns.map((pattern, index) => {
-		const negated = isNegative(pattern);
+const findIndexFrom = (array, callback, fromIndex) => {
+	for (let index = fromIndex; index < array.length; index++) {
+		if (callback(array[index])) {
+			return index;
+		}
+	}
 
-		if (negated) {
-			pattern = pattern.slice(1);
+	return -1;
+};
+
+// TODO[@fisker]: Make this function returns `{patterns: string[], ignore: string[]}[]`
+const convertNegativePatterns = (patterns, options) => {
+	const createOptions = ignorePattern => {
+		const ignore = [...options.ignore];
+		if (ignorePattern) {
+			ignore.push(ignorePattern.slice(1));
 		}
 
-		return {negated, pattern, index};
-	});
+		return {...options, ignore};
+	};
 
 	const tasks = [];
 
-	let lastNegativeIndex = -1;
-	for (const {negated, pattern, index} of allPatterns) {
-		if (!negated) {
-			continue;
+	const patternsLength = patterns.length
+	let index = patterns.findIndex(isNegative);
+	if (index == -1) {
+		return [{patterns, options}];
+	}
+
+	const patternsBefore = patterns.slice(0, index);
+
+	if (index !== 0) {
+		tasks.push({patterns: patternsBefore, options: createOptions(patterns[index])});
+	}
+
+	while (index >= 0 && index < patternsLength - 1) {
+		const nextNegativePatternIndex = findIndexFrom(patterns, isNegative, index + 1);
+
+		if (nextNegativePatternIndex === -1) {
+			tasks.push({patterns: patterns.slice(index + 1), options});
+			break;
 		}
 
-		tasks.push(getPatternsAndIgnore(allPatterns, lastNegativeIndex, index))
-		lastNegativeIndex = index;
+		const ignorePattern = patterns[nextNegativePatternIndex];
+
+		for (const task of tasks) {
+			task.options.ignore.push(ignorePattern.slice(1));
+		}
+
+		if (nextNegativePatternIndex !== index + 1) {
+			const patternsBetween = patterns.slice(index + 1, nextNegativePatternIndex);
+
+			tasks.push({patterns: patternsBetween, options: createOptions(ignorePattern)});
+		}
+
+		index = nextNegativePatternIndex;
 	}
 
-	if (lastNegativeIndex !== allPatterns.length - 1) {
-		tasks.push(getPatternsAndIgnore(allPatterns, lastNegativeIndex, allPatterns.length))
-	}
-
-	return tasks
-		.filter(({patterns}) => patterns.length !== 0)
-		.map(({patterns, ignore}) => ({
-			patterns,
-			options: {
-				...options,
-				ignore: [...options.ignore, ...ignore],
-			}
-		}));
+	return tasks;
 };
 
 const getDirGlobOptions = (options, cwd) => ({
