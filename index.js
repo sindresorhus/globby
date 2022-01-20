@@ -55,9 +55,11 @@ const normalizeArgumentsSync = fn => (patterns, options) => fn(toPatternsArray(p
 const getFilter = async options => createFilterFunction(
 	options.gitignore && await isGitIgnored({cwd: options.cwd}),
 );
+
 const getFilterSync = options => createFilterFunction(
 	options.gitignore && isGitIgnoredSync({cwd: options.cwd}),
 );
+
 const createFilterFunction = isIgnored => {
 	const seen = new Set();
 
@@ -72,27 +74,40 @@ const createFilterFunction = isIgnored => {
 const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
 const unionFastGlobStreams = (streams, filter) => merge2(streams).pipe(new FilterStream(fastGlobResult => filter(fastGlobResult)));
 
-const convertNegativePatterns = (patterns, taskOptions) => {
-	const globTasks = [];
-	for (const [index, pattern] of patterns.entries()) {
-		if (isNegative(pattern)) {
-			continue;
+const convertNegativePatterns = (patterns, options) => {
+	const tasks = [];
+
+	while (patterns.length > 0) {
+		const index = patterns.findIndex(pattern => isNegative(pattern));
+
+		if (index === -1) {
+			tasks.push({patterns, options});
+			break;
 		}
 
-		const ignore = patterns
-			.slice(index)
-			.filter(pattern => isNegative(pattern))
-			.map(pattern => pattern.slice(1));
+		const ignorePattern = patterns[index].slice(1);
 
-		const options = {
-			...taskOptions,
-			ignore: [...taskOptions.ignore, ...ignore],
-		};
+		for (const task of tasks) {
+			task.options.ignore.push(ignorePattern);
+		}
 
-		globTasks.push({patterns: [pattern], options});
+		if (index !== 0) {
+			tasks.push({
+				patterns: patterns.slice(0, index),
+				options: {
+					...options,
+					ignore: [
+						...options.ignore,
+						ignorePattern,
+					],
+				},
+			});
+		}
+
+		patterns = patterns.slice(index + 1);
 	}
 
-	return globTasks;
+	return tasks;
 };
 
 const getDirGlobOptions = (options, cwd) => ({

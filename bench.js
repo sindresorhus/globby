@@ -4,7 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import Benchmark from 'benchmark';
 import rimraf from 'rimraf';
-import * as globbyMainBranch from 'globby';
+import * as globbyMainBranch from '@globby/main-branch';
 import gs from 'glob-stream';
 import fastGlob from 'fast-glob';
 import {globby, globbySync, globbyStream} from './index.js';

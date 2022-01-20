@@ -14,6 +14,7 @@ import {
 	PROJECT_ROOT,
 	getPathValues,
 	invalidPatterns,
+	isUnique,
 } from './utilities.js';
 
 const cwd = process.cwd();
@@ -298,6 +299,5 @@ test('don\'t throw when specifying a non-existing cwd directory', async t => {
 
 test('unique when using objectMode option', async t => {
 	const result = await runGlobby(t, ['a.tmp', '*.tmp'], {cwd, objectMode: true});
-	const isUnique = array => [...new Set(array)].length === array.length;
 	t.true(isUnique(result.map(({path}) => path)));
 });
