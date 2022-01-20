@@ -53,10 +53,10 @@ const normalizeArguments = fn => async (patterns, options) => fn(toPatternsArray
 const normalizeArgumentsSync = fn => (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 
 const getFilter = async options => createFilterFunction(
-	options.gitignore && await isGitIgnored({cwd: options.cwd, ignore: options.ignore}),
+	options.gitignore && await isGitIgnored({cwd: options.cwd}),
 );
 const getFilterSync = options => createFilterFunction(
-	options.gitignore && isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore}),
+	options.gitignore && isGitIgnoredSync({cwd: options.cwd}),
 );
 const createFilterFunction = isIgnored => {
 	const seen = new Set();
