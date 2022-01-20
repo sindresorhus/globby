@@ -105,20 +105,27 @@ const convertNegativePatterns = (patterns, options) => {
 	};
 
 	const tasks = [];
+	const addTask = (from, negativePatternIndex) => {
+		const ignorePattern = patterns[negativePatternIndex];
 
-	const patternsLength = patterns.length
-	let index = patterns.findIndex(isNegative);
-	if (index == -1) {
-		return [{patterns, options}];
+		for (const task of tasks) {
+			task.options.ignore.push(ignorePattern.slice(1));
+		}
+
+		if (negativePatternIndex === from + 1) {
+			return;
+		}
+
+		tasks.push({
+			patterns: patterns.slice(from + 1, negativePatternIndex),
+			options: createOptions(ignorePattern),
+		});
 	}
 
-	const patternsBefore = patterns.slice(0, index);
+	const patternsLength = patterns.length;
+	let index = -1;
 
-	if (index !== 0) {
-		tasks.push({patterns: patternsBefore, options: createOptions(patterns[index])});
-	}
-
-	while (index >= 0 && index < patternsLength - 1) {
+	while (index < patternsLength - 1) {
 		const nextNegativePatternIndex = findIndexFrom(patterns, isNegative, index + 1);
 
 		if (nextNegativePatternIndex === -1) {
@@ -126,18 +133,7 @@ const convertNegativePatterns = (patterns, options) => {
 			break;
 		}
 
-		const ignorePattern = patterns[nextNegativePatternIndex];
-
-		for (const task of tasks) {
-			task.options.ignore.push(ignorePattern.slice(1));
-		}
-
-		if (nextNegativePatternIndex !== index + 1) {
-			const patternsBetween = patterns.slice(index + 1, nextNegativePatternIndex);
-
-			tasks.push({patterns: patternsBetween, options: createOptions(ignorePattern)});
-		}
-
+		addTask(index, nextNegativePatternIndex);
 		index = nextNegativePatternIndex;
 	}
 
