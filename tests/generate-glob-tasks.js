@@ -182,7 +182,7 @@ test('random patterns', async t => {
 				`ignore should be unique: ${patternsToDebug}`,
 			);
 
-			if (index !== 0 && ignore.length !== 0) {
+			if (index !== 0 && ignore.length > 0) {
 				t.deepEqual(
 					tasks[index - 1].ignore.slice(-ignore.length),
 					ignore,
