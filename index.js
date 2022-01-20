@@ -82,7 +82,6 @@ const findIndexFrom = (array, callback, fromIndex) => {
 	return -1;
 };
 
-// TODO[@fisker]: Make this function returns `{patterns: string[], ignore: string[]}[]`
 const convertNegativePatterns = (patterns, options) => {
 	const tasks = [];
 
