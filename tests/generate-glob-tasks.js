@@ -167,7 +167,7 @@ test('random patterns', async t => {
 		// eslint-disable-next-line no-await-in-loop
 		const tasks = await getTasks(t, patterns);
 		const patternsToDebug = JSON.stringify(patterns);
-		for (const {patterns, ignore} of tasks) {
+		for (const [index, {patterns, ignore}] of tasks.entries()) {
 			t.not(
 				patterns.length,
 				0,
@@ -181,6 +181,14 @@ test('random patterns', async t => {
 				isUnique(ignore),
 				`ignore should be unique: ${patternsToDebug}`,
 			);
+
+			if (index !== 0 && ignore.length !== 0) {
+				t.deepEqual(
+					tasks[index - 1].ignore.slice(-ignore.length),
+					ignore,
+					`Unexpected ignore: ${patternsToDebug}`,
+				);
+			}
 		}
 
 		const allPatterns = tasks.flatMap(({patterns}) => patterns);
@@ -195,10 +203,6 @@ test('random patterns', async t => {
 			new Set(allIgnore).size,
 			negativePatterns.length - negativePatternsAtStart.length,
 			`negative patterns should be in ignore: ${patternsToDebug}`,
-		);
-		t.true(
-			tasks.every(({ignore}, index) => index === 0 || ignore.length < tasks[index - 1].ignore.length),
-			`ignore size should be greater then the next task: ${patternsToDebug}`,
 		);
 	}
 });
