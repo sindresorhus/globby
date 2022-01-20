@@ -164,25 +164,41 @@ test('random patterns', async t => {
 			return pattern;
 		});
 
-		/* eslint-disable ava/assertion-arguments */
 		// eslint-disable-next-line no-await-in-loop
 		const tasks = await getTasks(t, patterns);
 		const patternsToDebug = JSON.stringify(patterns);
 		for (const {patterns, ignore} of tasks) {
-			t.not(patterns.length, 0, patternsToDebug);
-			t.true(isUnique(patterns), patternsToDebug);
-			t.true(isUnique(ignore), patternsToDebug);
+			t.not(
+				patterns.length,
+				0,
+				`Unexpected empty patterns: ${patternsToDebug}`,
+			);
+			t.true(
+				isUnique(patterns),
+				`patterns should be unique: ${patternsToDebug}`,
+			);
+			t.true(
+				isUnique(ignore),
+				`ignore should be unique: ${patternsToDebug}`,
+			);
 		}
 
 		const allPatterns = tasks.flatMap(({patterns}) => patterns);
 		const allIgnore = tasks.flatMap(({ignore}) => ignore);
 
-		t.is(new Set(allPatterns).size, positivePatterns.length, patternsToDebug);
+		t.is(
+			new Set(allPatterns).size,
+			positivePatterns.length,
+			`positive patterns should be in patterns: ${patternsToDebug}`,
+		);
 		t.is(
 			new Set(allIgnore).size,
 			negativePatterns.length - negativePatternsAtStart.length,
-			patternsToDebug,
+			`negative patterns should be in ignore: ${patternsToDebug}`,
 		);
-		/* eslint-enable ava/assertion-arguments */
+		t.true(
+			tasks.every(({ignore}, index) => index === 0 || ignore.length < tasks[index - 1].ignore.length),
+			`ignore size should be greater then the next task: ${patternsToDebug}`,
+		);
 	}
 });
