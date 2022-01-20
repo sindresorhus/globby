@@ -1,7 +1,9 @@
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
 export const PROJECT_ROOT = fileURLToPath(new URL('../', import.meta.url));
+
 export const getPathValues = path => [path, pathToFileURL(path)];
+
 export const invalidPatterns = [
 	{},
 	[{}],
@@ -20,4 +22,5 @@ export const invalidPatterns = [
 	function () {},
 	[function () {}],
 ];
+
 export const isUnique = array => new Set(array).size === array.length;
