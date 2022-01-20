@@ -72,36 +72,27 @@ const createFilterFunction = isIgnored => {
 const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
 const unionFastGlobStreams = (streams, filter) => merge2(streams).pipe(new FilterStream(fastGlobResult => filter(fastGlobResult)));
 
-const findIndexFrom = (array, callback, fromIndex) => {
-	for (let index = fromIndex; index < array.length; index++) {
-		if (callback(array[index])) {
-			return index;
-		}
-	}
-
-	return -1;
-};
-
 const convertNegativePatterns = (patterns, options) => {
 	const tasks = [];
 
 	for (let index = 0; index < patterns.length;) {
-		const nextNegativePatternIndex = findIndexFrom(patterns, isNegative, index);
+		const restPatterns = patterns.slice(index);
+		const negativePatternIndex = restPatterns.findIndex(pattern => isNegative(pattern));
 
-		if (nextNegativePatternIndex === -1) {
-			tasks.push({patterns: patterns.slice(index), options});
+		if (negativePatternIndex === -1) {
+			tasks.push({patterns: restPatterns, options});
 			break;
 		}
 
-		const ignorePattern = patterns[nextNegativePatternIndex].slice(1);
+		const ignorePattern = restPatterns[negativePatternIndex].slice(1);
 
 		for (const task of tasks) {
 			task.options.ignore.push(ignorePattern);
 		}
 
-		if (nextNegativePatternIndex !== index) {
+		if (negativePatternIndex !== 0) {
 			tasks.push({
-				patterns: patterns.slice(index, nextNegativePatternIndex),
+				patterns: restPatterns.slice(0, negativePatternIndex),
 				options: {
 					...options,
 					ignore: [...options.ignore, ignorePattern],
@@ -109,7 +100,7 @@ const convertNegativePatterns = (patterns, options) => {
 			});
 		}
 
-		index = nextNegativePatternIndex + 1;
+		index += negativePatternIndex + 1;
 	}
 
 	return tasks;
