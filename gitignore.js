@@ -7,9 +7,9 @@ import slash from 'slash';
 import {toPath} from './utilities.js';
 
 const DEFAULT_IGNORE = [
-	'**/node_modules/**',
-	'**/flow-typed/**',
-	'**/coverage/**',
+	'**/node_modules',
+	'**/flow-typed',
+	'**/coverage',
 	'**/.git',
 ];
 
@@ -58,37 +58,32 @@ const ensureAbsolutePathForCwd = (cwd, p) => {
 
 const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, toPath(p)))));
 
-const getFile = async (file, cwd) => {
-	const filePath = path.join(cwd, file);
-	const content = await fs.promises.readFile(filePath, 'utf8');
+const getFile = async (filePath, cwd) => ({
+	cwd,
+	filePath,
+	content: await fs.promises.readFile(filePath, 'utf8'),
+});
 
-	return {
-		cwd,
-		filePath,
-		content,
-	};
-};
-
-const getFileSync = (file, cwd) => {
-	const filePath = path.join(cwd, file);
-	const content = fs.readFileSync(filePath, 'utf8');
-
-	return {
-		cwd,
-		filePath,
-		content,
-	};
-};
+const getFileSync = (filePath, cwd) => ({
+	cwd,
+	filePath,
+	content: fs.readFileSync(filePath, 'utf8'),
+});
 
 const normalizeOptions = ({
 	ignore = [],
 	cwd = slash(process.cwd()),
 } = {}) => ({ignore: [...DEFAULT_IGNORE, ...ignore], cwd: toPath(cwd)});
 
+const getGitignoreGlobOptions = options => ({
+	...options,
+	absolute: true,
+});
+
 export const isGitIgnored = async options => {
 	options = normalizeOptions(options);
 
-	const paths = await fastGlob('**/.gitignore', options);
+	const paths = await fastGlob('**/.gitignore', getGitignoreGlobOptions(options));
 
 	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
 	const ignores = reduceIgnore(files);
@@ -99,7 +94,7 @@ export const isGitIgnored = async options => {
 export const isGitIgnoredSync = options => {
 	options = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', options);
+	const paths = fastGlob.sync('**/.gitignore', getGitignoreGlobOptions(options));
 
 	const files = paths.map(file => getFileSync(file, options.cwd));
 	const ignores = reduceIgnore(files);
