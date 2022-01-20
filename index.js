@@ -75,32 +75,27 @@ const unionFastGlobStreams = (streams, filter) => merge2(streams).pipe(new Filte
 const convertNegativePatterns = (patterns, options) => {
 	const tasks = [];
 
-	for (let index = 0; index < patterns.length;) {
-		const restPatterns = patterns.slice(index);
-		const negativePatternIndex = restPatterns.findIndex(pattern => isNegative(pattern));
+	while (patterns.length > 0) {
+		const index = patterns.findIndex(pattern => isNegative(pattern));
 
-		if (negativePatternIndex === -1) {
-			tasks.push({patterns: restPatterns, options});
+		if (index === -1) {
+			tasks.push({patterns, options});
 			break;
 		}
 
-		const ignorePattern = restPatterns[negativePatternIndex].slice(1);
+		const ignorePattern = patterns[index].slice(1);
 
 		for (const task of tasks) {
 			task.options.ignore.push(ignorePattern);
 		}
 
-		if (negativePatternIndex !== 0) {
+		const patternsBefore = patterns.splice(0, index);
+		if (index !== 0) {
 			tasks.push({
-				patterns: restPatterns.slice(0, negativePatternIndex),
-				options: {
-					...options,
-					ignore: [...options.ignore, ignorePattern],
-				},
+				patterns: patternsBefore,
+				options: {...options, ignore: [...options.ignore, ignorePattern]},
 			});
 		}
-
-		index += negativePatternIndex + 1;
 	}
 
 	return tasks;
