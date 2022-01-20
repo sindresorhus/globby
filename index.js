@@ -55,9 +55,11 @@ const normalizeArgumentsSync = fn => (patterns, options) => fn(toPatternsArray(p
 const getFilter = async options => createFilterFunction(
 	options.gitignore && await isGitIgnored({cwd: options.cwd, ignore: options.ignore}),
 );
+
 const getFilterSync = options => createFilterFunction(
 	options.gitignore && isGitIgnoredSync({cwd: options.cwd, ignore: options.ignore}),
 );
+
 const createFilterFunction = isIgnored => {
 	const seen = new Set();
 
@@ -92,7 +94,13 @@ const convertNegativePatterns = (patterns, options) => {
 		if (index !== 0) {
 			tasks.push({
 				patterns: patterns.slice(0, index),
-				options: {...options, ignore: [...options.ignore, ignorePattern]},
+				options: {
+					...options,
+					ignore: [
+						...options.ignore,
+						ignorePattern
+					]
+				},
 			});
 		}
 
