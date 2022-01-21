@@ -6,13 +6,6 @@ import gitIgnore from 'ignore';
 import slash from 'slash';
 import {toPath} from './utilities.js';
 
-const DEFAULT_IGNORE = [
-	'**/node_modules/**',
-	'**/flow-typed/**',
-	'**/coverage/**',
-	'**/.git',
-];
-
 const mapGitIgnorePatternTo = base => ignore => {
 	if (ignore.startsWith('!')) {
 		return '!' + path.posix.join(base, ignore.slice(1));
@@ -58,51 +51,40 @@ const ensureAbsolutePathForCwd = (cwd, p) => {
 
 const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, toPath(p)))));
 
-const getFile = async (file, cwd) => {
-	const filePath = path.join(cwd, file);
-	const content = await fs.promises.readFile(filePath, 'utf8');
+const getFile = async (filePath, cwd) => ({
+	cwd,
+	filePath,
+	content: await fs.promises.readFile(filePath, 'utf8'),
+});
 
-	return {
-		cwd,
-		filePath,
-		content,
-	};
-};
+const getFileSync = (filePath, cwd) => ({
+	cwd,
+	filePath,
+	content: fs.readFileSync(filePath, 'utf8'),
+});
 
-const getFileSync = (file, cwd) => {
-	const filePath = path.join(cwd, file);
-	const content = fs.readFileSync(filePath, 'utf8');
-
-	return {
-		cwd,
-		filePath,
-		content,
-	};
-};
-
-const normalizeOptions = ({
-	ignore = [],
-	cwd = slash(process.cwd()),
-} = {}) => ({ignore: [...DEFAULT_IGNORE, ...ignore], cwd: toPath(cwd)});
+const normalizeOptions = (options = {}) => ({
+	cwd: toPath(options.cwd) || slash(process.cwd()),
+});
 
 export const isGitIgnored = async options => {
-	options = normalizeOptions(options);
+	const {cwd} = normalizeOptions(options);
 
-	const paths = await fastGlob('**/.gitignore', options);
+	const paths = await fastGlob('**/.gitignore', {cwd, absolute: true});
 
-	const files = await Promise.all(paths.map(file => getFile(file, options.cwd)));
+	const files = await Promise.all(paths.map(file => getFile(file, cwd)));
 	const ignores = reduceIgnore(files);
 
-	return getIsIgnoredPredicate(ignores, options.cwd);
+	return getIsIgnoredPredicate(ignores, cwd);
 };
 
 export const isGitIgnoredSync = options => {
-	options = normalizeOptions(options);
+	const {cwd} = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', options);
+	const paths = fastGlob.sync('**/.gitignore', {cwd, absolute: true});
 
-	const files = paths.map(file => getFileSync(file, options.cwd));
+	const files = paths.map(file => getFileSync(file, cwd));
 	const ignores = reduceIgnore(files);
 
-	return getIsIgnoredPredicate(ignores, options.cwd);
+	return getIsIgnoredPredicate(ignores, cwd);
 };

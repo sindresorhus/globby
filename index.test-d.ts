@@ -125,7 +125,7 @@ expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<boolean>(isDynamicPattern('**'));
 expectType<boolean>(isDynamicPattern(['**', 'path1', 'path2']));
 expectType<boolean>(isDynamicPattern(['**', 'path1', 'path2'], {extglob: false}));
-expectType<boolean>(isDynamicPattern(['**'], {cwd: new URL('https://example.com')}));
+expectType<boolean>(isDynamicPattern(['**'], {cwd: new URL('file:///path/to/cwd')}));
 expectType<boolean>(isDynamicPattern(['**'], {cwd: __dirname}));
 
 // IsGitIgnored
@@ -137,7 +137,7 @@ expectType<Promise<GlobbyFilterFunction>>(
 );
 expectType<Promise<GlobbyFilterFunction>>(
 	isGitIgnored({
-		ignore: ['**/b.tmp'],
+		cwd: new URL('file:///path/to/cwd'),
 	}),
 );
 
@@ -150,6 +150,6 @@ expectType<GlobbyFilterFunction>(
 );
 expectType<GlobbyFilterFunction>(
 	isGitIgnoredSync({
-		ignore: ['**/b.tmp'],
+		cwd: new URL('file:///path/to/cwd'),
 	}),
 );

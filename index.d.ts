@@ -57,7 +57,6 @@ export interface Options extends FastGlobOptionsWithoutCwd {
 
 export interface GitignoreOptions {
 	readonly cwd?: URL | string;
-	readonly ignore?: readonly string[];
 }
 
 export type GlobbyFilterFunction = (path: URL | string) => boolean;
