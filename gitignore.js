@@ -6,6 +6,16 @@ import gitIgnore from 'ignore';
 import slash from 'slash';
 import {toPath} from './utilities.js';
 
+const gitignoreGlobOptions = {
+	ignore: [
+		'**/node_modules',
+		'**/flow-typed',
+		'**/coverage',
+		'**/.git',
+	],
+	absolute: true,
+};
+
 const mapGitIgnorePatternTo = base => ignore => {
 	if (ignore.startsWith('!')) {
 		return '!' + path.posix.join(base, ignore.slice(1));
@@ -70,7 +80,7 @@ const normalizeOptions = (options = {}) => ({
 export const isGitIgnored = async options => {
 	const {cwd} = normalizeOptions(options);
 
-	const paths = await fastGlob('**/.gitignore', {cwd, absolute: true});
+	const paths = await fastGlob('**/.gitignore', {cwd, ...gitignoreGlobOptions});
 
 	const files = await Promise.all(paths.map(file => getFile(file, cwd)));
 	const ignores = reduceIgnore(files);
@@ -81,7 +91,7 @@ export const isGitIgnored = async options => {
 export const isGitIgnoredSync = options => {
 	const {cwd} = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', {cwd, absolute: true});
+	const paths = fastGlob.sync('**/.gitignore', {cwd, ...gitignoreGlobOptions});
 
 	const files = paths.map(file => getFileSync(file, cwd));
 	const ignores = reduceIgnore(files);
