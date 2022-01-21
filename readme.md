@@ -132,7 +132,7 @@ This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isd
 
 Returns a `Promise<(path: URL | string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
-Takes `cwd?: URL | string` and `ignore?: string[]` as options. `.gitignore` files matched by the ignore config are not used for the resulting filter function.
+Takes `cwd?: URL | string` as options.
 
 ```js
 import {isGitIgnored} from 'globby';
@@ -146,7 +146,7 @@ console.log(isIgnored('some/file'));
 
 Returns a `(path: URL | string) => boolean` indicating whether a given path is ignored via a `.gitignore` file.
 
-Takes the same options as `isGitIgnored`.
+Takes `cwd?: URL | string` as options.
 
 ## Globbing patterns
 

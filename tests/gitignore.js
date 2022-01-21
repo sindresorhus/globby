@@ -44,29 +44,6 @@ test('gitignore - sync', t => {
 	}
 });
 
-test('ignore ignored .gitignore', async t => {
-	const ignore = ['**/.gitignore'];
-
-	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/gitignore'))) {
-		// eslint-disable-next-line no-await-in-loop
-		const isIgnored = await isGitIgnored({cwd, ignore});
-		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
-		const expected = ['foo.js', 'bar.js'];
-		t.deepEqual(actual, expected);
-	}
-});
-
-test('ignore ignored .gitignore - sync', t => {
-	const ignore = ['**/.gitignore'];
-
-	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/gitignore'))) {
-		const isIgnored = isGitIgnoredSync({cwd, ignore});
-		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
-		const expected = ['foo.js', 'bar.js'];
-		t.deepEqual(actual, expected);
-	}
-});
-
 test('negative gitignore', async t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/negative'))) {
 		// eslint-disable-next-line no-await-in-loop
