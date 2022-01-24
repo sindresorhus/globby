@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
-import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
+import {isIgnored, isIgnoredSync} from './ignore.js';
 import {FilterStream, toPath} from './utilities.js';
 
 const isNegative = pattern => pattern[0] === '!';
@@ -52,13 +52,21 @@ const normalizeOptions = (options = {}) => {
 const normalizeArguments = fn => async (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 const normalizeArgumentsSync = fn => (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 
-const getFilter = async options => createFilterFunction(
-	options.gitignore && await isGitIgnored({cwd: options.cwd}),
-);
+const getIgnoreFilesPattern = options => options && options.gitignore ? '**/.gitignore' : options && options.ignoreFiles;
 
-const getFilterSync = options => createFilterFunction(
-	options.gitignore && isGitIgnoredSync({cwd: options.cwd}),
-);
+const getFilter = async options => {
+	const ignoreFilesPattern = getIgnoreFilesPattern(options);
+	return createFilterFunction(
+		ignoreFilesPattern && await isIgnored(ignoreFilesPattern, {cwd: options.cwd}),
+	);
+};
+
+const getFilterSync = options => {
+	const ignoreFilesPattern = getIgnoreFilesPattern(options);
+	return createFilterFunction(
+		ignoreFilesPattern && isIgnoredSync(ignoreFilesPattern, {cwd: options.cwd}),
+	);
+};
 
 const createFilterFunction = isIgnored => {
 	const seen = new Set();
@@ -200,7 +208,6 @@ export const isDynamicPattern = normalizeArgumentsSync(
 export const generateGlobTasks = normalizeArguments(generateTasks);
 export const generateGlobTasksSync = normalizeArgumentsSync(generateTasksSync);
 
-export {
-	isGitIgnored,
-	isGitIgnoredSync,
-} from './gitignore.js';
+export {isIgnored, isIgnoredSync} from './ignore.js';
+export const isGitIgnored = options => isIgnored('**/.gitignore', options);
+export const isGitIgnoredSync = options => isIgnoredSync('**/.gitignore', options);
