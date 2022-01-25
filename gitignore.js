@@ -29,7 +29,7 @@ const parseGitIgnoreFile = (file, cwd) => {
 		.map(pattern => applyBaseToPattern(pattern, base));
 };
 
-const toRelativePath = (cwd, fileOrDirectory) => {
+const toRelativePath = (fileOrDirectory, cwd) => {
 	cwd = slash(cwd);
 	if (path.isAbsolute(fileOrDirectory)) {
 		if (slash(fileOrDirectory).startsWith(cwd)) {
@@ -48,13 +48,13 @@ const getIsIgnoredPredicate = (files, cwd) => {
 
 	return fileOrDirectory => {
 		fileOrDirectory = toPath(fileOrDirectory);
-		fileOrDirectory = toRelativePath(cwd, fileOrDirectory);
+		fileOrDirectory = toRelativePath(fileOrDirectory, cwd);
 		return ignores.ignores(slash(fileOrDirectory));
 	};
 };
 
 const normalizeOptions = (options = {}) => ({
-	cwd: toPath(options.cwd) || slash(process.cwd()),
+	cwd: toPath(options.cwd) || process.cwd(),
 });
 
 export const isGitIgnored = async options => {
