@@ -116,14 +116,14 @@ test('glob - stream async iterator support', async t => {
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-test.serial('cwd option - sync', async t => {
+test.serial('cwd option', async t => {
 	process.chdir(temporary);
 	t.deepEqual(await runGlobby(t, '*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp'], {cwd}), ['a.tmp', 'b.tmp']);
 	process.chdir(cwd);
 });
 
-test('don\'t mutate the options object - async', async t => {
+test('don\'t mutate the options object', async t => {
 	await runGlobby(t, ['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 	t.pass();
 });
