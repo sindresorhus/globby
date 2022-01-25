@@ -60,7 +60,7 @@ const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || process.cwd(),
 });
 
-export const isIgnored = async (patterns, options) => {
+export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
 
 	const paths = await fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
@@ -75,7 +75,7 @@ export const isIgnored = async (patterns, options) => {
 	return getIsIgnoredPredicate(files, cwd);
 };
 
-export const isIgnoredSync = (patterns, options) => {
+export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
 
 	const paths = fastGlob.sync(patterns, {cwd, ...ignoreFilesGlobOptions});
@@ -88,5 +88,5 @@ export const isIgnoredSync = (patterns, options) => {
 	return getIsIgnoredPredicate(files, cwd);
 };
 
-export const isGitIgnored = options => isIgnored(GITIGNORE_FILES_PATTERN, options);
-export const isGitIgnoredSync = options => isIgnoredSync(GITIGNORE_FILES_PATTERN, options);
+export const isGitIgnored = options => isIgnoredByIgnoreFiles(GITIGNORE_FILES_PATTERN, options);
+export const isGitIgnoredSync = options => isIgnoredByIgnoreFilesSync(GITIGNORE_FILES_PATTERN, options);

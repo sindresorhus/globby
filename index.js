@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
-import {isIgnored, isIgnoredSync, GITIGNORE_FILES_PATTERN} from './ignore.js';
+import {
+	GITIGNORE_FILES_PATTERN,
+	isIgnoredByIgnoreFiles,
+	isIgnoredByIgnoreFilesSync,
+} from './ignore.js';
 import {FilterStream, toPath, isNegativePattern} from './utilities.js';
 
 const assertPatternsInput = patterns => {
@@ -64,14 +68,14 @@ const getIgnoreFilesPatterns = options => {
 const getFilter = async options => {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
 	return createFilterFunction(
-		ignoreFilesPatterns.length > 0 && await isIgnored(ignoreFilesPatterns, {cwd: options.cwd}),
+		ignoreFilesPatterns.length > 0 && await isIgnoredByIgnoreFiles(ignoreFilesPatterns, {cwd: options.cwd}),
 	);
 };
 
 const getFilterSync = options => {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
 	return createFilterFunction(
-		ignoreFilesPatterns.length > 0 && isIgnoredSync(ignoreFilesPatterns, {cwd: options.cwd}),
+		ignoreFilesPatterns.length > 0 && isIgnoredByIgnoreFilesSync(ignoreFilesPatterns, {cwd: options.cwd}),
 	);
 };
 
