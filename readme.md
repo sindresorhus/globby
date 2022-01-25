@@ -10,7 +10,7 @@ Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob) but adds a bunch of 
 - Multiple patterns
 - Negated patterns: `['foo*', '!foobar']`
 - Expands directories: `foo` → `foo/**/*`
-- Supports `.gitignore`, or any similar ignore file configuration.
+- Supports `.gitignore` and similar ignore config files
 - Supports `URL` as `cwd`
 
 ## Install
