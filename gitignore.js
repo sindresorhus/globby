@@ -4,7 +4,7 @@ import path from 'node:path';
 import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
-import {toPath} from './utilities.js';
+import {toPath, isNegativePattern} from './utilities.js';
 
 const gitignoreGlobOptions = {
 	ignore: [
@@ -16,62 +16,42 @@ const gitignoreGlobOptions = {
 	absolute: true,
 };
 
-const mapGitIgnorePatternTo = base => ignore => {
-	if (ignore.startsWith('!')) {
-		return '!' + path.posix.join(base, ignore.slice(1));
-	}
+const applyBaseToPattern = (pattern, base) => isNegativePattern(pattern)
+	? '!' + path.posix.join(base, pattern.slice(1))
+	: path.posix.join(base, pattern);
 
-	return path.posix.join(base, ignore);
-};
+const parseGitIgnoreFile = (file, cwd) => {
+	const base = slash(path.relative(cwd, path.dirname(file.filePath)));
 
-const parseGitIgnore = (content, options) => {
-	const base = slash(path.relative(options.cwd, path.dirname(options.fileName)));
-
-	return content
+	return file.content
 		.split(/\r?\n/)
-		.filter(Boolean)
-		.filter(line => !line.startsWith('#'))
-		.map(mapGitIgnorePatternTo(base));
+		.filter(line => line && !line.startsWith('#'))
+		.map(pattern => applyBaseToPattern(pattern, base));
 };
 
-const reduceIgnore = files => {
-	const ignores = gitIgnore();
-	for (const file of files) {
-		ignores.add(parseGitIgnore(file.content, {
-			cwd: file.cwd,
-			fileName: file.filePath,
-		}));
-	}
-
-	return ignores;
-};
-
-const ensureAbsolutePathForCwd = (cwd, p) => {
+const toRelativePath = (cwd, fileOrDirectory) => {
 	cwd = slash(cwd);
-	if (path.isAbsolute(p)) {
-		if (slash(p).startsWith(cwd)) {
-			return p;
+	if (path.isAbsolute(fileOrDirectory)) {
+		if (slash(fileOrDirectory).startsWith(cwd)) {
+			return path.relative(cwd, fileOrDirectory);
 		}
 
-		throw new Error(`Path ${p} is not in cwd ${cwd}`);
+		throw new Error(`Path ${fileOrDirectory} is not in cwd ${cwd}`);
 	}
 
-	return path.join(cwd, p);
+	return fileOrDirectory;
 };
 
-const getIsIgnoredPredicate = (ignores, cwd) => p => ignores.ignores(slash(path.relative(cwd, ensureAbsolutePathForCwd(cwd, toPath(p)))));
+const getIsIgnoredPredicate = (files, cwd) => {
+	const patterns = files.flatMap(file => parseGitIgnoreFile(file, cwd));
+	const ignores = gitIgnore().add(patterns);
 
-const getFile = async (filePath, cwd) => ({
-	cwd,
-	filePath,
-	content: await fs.promises.readFile(filePath, 'utf8'),
-});
-
-const getFileSync = (filePath, cwd) => ({
-	cwd,
-	filePath,
-	content: fs.readFileSync(filePath, 'utf8'),
-});
+	return fileOrDirectory => {
+		fileOrDirectory = toPath(fileOrDirectory);
+		fileOrDirectory = toRelativePath(cwd, fileOrDirectory);
+		return ignores.ignores(slash(fileOrDirectory));
+	};
+};
 
 const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || slash(process.cwd()),
@@ -82,10 +62,14 @@ export const isGitIgnored = async options => {
 
 	const paths = await fastGlob('**/.gitignore', {cwd, ...gitignoreGlobOptions});
 
-	const files = await Promise.all(paths.map(file => getFile(file, cwd)));
-	const ignores = reduceIgnore(files);
+	const files = await Promise.all(
+		paths.map(async filePath => ({
+			filePath,
+			content: await fs.promises.readFile(filePath, 'utf8'),
+		})),
+	);
 
-	return getIsIgnoredPredicate(ignores, cwd);
+	return getIsIgnoredPredicate(files, cwd);
 };
 
 export const isGitIgnoredSync = options => {
@@ -93,8 +77,10 @@ export const isGitIgnoredSync = options => {
 
 	const paths = fastGlob.sync('**/.gitignore', {cwd, ...gitignoreGlobOptions});
 
-	const files = paths.map(file => getFileSync(file, cwd));
-	const ignores = reduceIgnore(files);
+	const files = paths.map(filePath => ({
+		filePath,
+		content: fs.readFileSync(filePath, 'utf8'),
+	}));
 
-	return getIsIgnoredPredicate(ignores, cwd);
+	return getIsIgnoredPredicate(files, cwd);
 };

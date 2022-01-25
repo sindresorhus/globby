@@ -13,3 +13,5 @@ export class FilterStream extends Transform {
 		});
 	}
 }
+
+export const isNegativePattern = pattern => pattern[0] === '!';

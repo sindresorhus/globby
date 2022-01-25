@@ -3,9 +3,7 @@ import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
 import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
-import {FilterStream, toPath} from './utilities.js';
-
-const isNegative = pattern => pattern[0] === '!';
+import {FilterStream, toPath, isNegativePattern} from './utilities.js';
 
 const assertPatternsInput = patterns => {
 	if (!patterns.every(pattern => typeof pattern === 'string')) {
@@ -78,7 +76,7 @@ const convertNegativePatterns = (patterns, options) => {
 	const tasks = [];
 
 	while (patterns.length > 0) {
-		const index = patterns.findIndex(pattern => isNegative(pattern));
+		const index = patterns.findIndex(pattern => isNegativePattern(pattern));
 
 		if (index === -1) {
 			tasks.push({patterns, options});
