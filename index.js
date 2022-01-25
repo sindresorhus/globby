@@ -6,7 +6,7 @@ import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
 import {FilterStream, toPath, isNegativePattern} from './utilities.js';
 
 const assertPatternsInput = patterns => {
-	if (!patterns.every(pattern => typeof pattern === 'string')) {
+	if (patterns.some(pattern => typeof pattern !== 'string')) {
 		throw new TypeError('Patterns must be a string or an array of strings');
 	}
 };
