@@ -12,11 +12,46 @@ import {
 	getPathValues,
 } from './utilities.js';
 
+const runIsIgnoredByIgnoreFiles = async (t, patterns, options, fn) => {
+	const promisePredicate = await isIgnoredByIgnoreFiles(patterns, options);
+	const syncPredicate = isIgnoredByIgnoreFilesSync(patterns, options);
+
+	const promiseResult = fn(promisePredicate);
+	const syncResult = fn(syncPredicate);
+
+	t[Array.isArray(promiseResult) ? 'deepEqual' : 'is'](
+		promiseResult,
+		syncResult,
+		'isIgnoredByIgnoreFilesSync() result is different than isIgnoredByIgnoreFiles()',
+	);
+
+	return promiseResult;
+};
+
+const runIsGitIgnored = async (t, options, fn) => {
+	const promisePredicate = await isGitIgnored(options);
+	const syncPredicate = isGitIgnoredSync(options);
+
+	const promiseResult = fn(promisePredicate);
+	const syncResult = fn(syncPredicate);
+
+	t[Array.isArray(promiseResult) ? 'deepEqual' : 'is'](
+		promiseResult,
+		syncResult,
+		'isGitIgnoredSync() result is different than isGitIgnored()',
+	);
+
+	return promiseResult;
+};
+
 test('ignore', async t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/gitignore'))) {
 		// eslint-disable-next-line no-await-in-loop
-		const isIgnored = await isGitIgnored({cwd});
-		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
+		const actual = await runIsGitIgnored(
+			t,
+			{cwd},
+			isIgnored => ['foo.js', 'bar.js'].filter(file => !isIgnored(file)),
+		);
 		const expected = ['bar.js'];
 		t.deepEqual(actual, expected);
 	}
@@ -25,44 +60,39 @@ test('ignore', async t => {
 test('ignore - mixed path styles', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 	for (const cwd of getPathValues(directory)) {
-		// eslint-disable-next-line no-await-in-loop
-		const isIgnored = await isGitIgnored({cwd});
-		t.true(isIgnored(slash(path.resolve(directory, 'foo.js'))));
+		t.true(
+			// eslint-disable-next-line no-await-in-loop
+			await runIsGitIgnored(
+				t,
+				{cwd},
+				isIgnored => isIgnored(slash(path.resolve(directory, 'foo.js'))),
+			),
+		);
 	}
 });
 
 test('ignore - os paths', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 	for (const cwd of getPathValues(directory)) {
-		// eslint-disable-next-line no-await-in-loop
-		const isIgnored = await isGitIgnored({cwd});
-		t.true(isIgnored(path.resolve(directory, 'foo.js')));
-	}
-});
-
-test('ignore - sync', t => {
-	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/gitignore'))) {
-		const isIgnored = isGitIgnoredSync({cwd});
-		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
-		const expected = ['bar.js'];
-		t.deepEqual(actual, expected);
+		t.true(
+			// eslint-disable-next-line no-await-in-loop
+			await runIsGitIgnored(
+				t,
+				{cwd},
+				isIgnored => isIgnored(path.resolve(directory, 'foo.js')),
+			),
+		);
 	}
 });
 
 test('negative ignore', async t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/negative'))) {
 		// eslint-disable-next-line no-await-in-loop
-		const isIgnored = await isGitIgnored({cwd});
-		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
-		const expected = ['foo.js'];
-		t.deepEqual(actual, expected);
-	}
-});
-
-test('negative ignore - sync', t => {
-	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/negative'))) {
-		const isIgnored = isGitIgnoredSync({cwd});
-		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
+		const actual = await runIsGitIgnored(
+			t,
+			{cwd},
+			isIgnored => ['foo.js', 'bar.js'].filter(file => !isIgnored(file)),
+		);
 		const expected = ['foo.js'];
 		t.deepEqual(actual, expected);
 	}
@@ -71,30 +101,16 @@ test('negative ignore - sync', t => {
 test('multiple negation', async t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/multiple-negation'))) {
 		// eslint-disable-next-line no-await-in-loop
-		const isIgnored = await isGitIgnored({cwd});
-
-		const actual = [
-			'!!!unicorn.js',
-			'!!unicorn.js',
-			'!unicorn.js',
-			'unicorn.js',
-		].filter(file => !isIgnored(file));
-
-		const expected = ['!!unicorn.js', '!unicorn.js'];
-		t.deepEqual(actual, expected);
-	}
-});
-
-test('multiple negation - sync', t => {
-	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/multiple-negation'))) {
-		const isIgnored = isGitIgnoredSync({cwd});
-
-		const actual = [
-			'!!!unicorn.js',
-			'!!unicorn.js',
-			'!unicorn.js',
-			'unicorn.js',
-		].filter(file => !isIgnored(file));
+		const actual = await runIsGitIgnored(
+			t,
+			{cwd},
+			isIgnored => [
+				'!!!unicorn.js',
+				'!!unicorn.js',
+				'!unicorn.js',
+				'unicorn.js',
+			].filter(file => !isIgnored(file)),
+		);
 
 		const expected = ['!!unicorn.js', '!unicorn.js'];
 		t.deepEqual(actual, expected);
@@ -103,21 +119,31 @@ test('multiple negation - sync', t => {
 
 test('check file', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
-	const ignoredFile = path.join(directory, 'foo.js');
-	const isIgnored = await isGitIgnored({cwd: directory});
-	const isIgnoredSync = isGitIgnoredSync({cwd: directory});
 
-	for (const file of getPathValues(ignoredFile)) {
-		t.true(isIgnored(file));
-		t.true(isIgnoredSync(file));
+	for (const ignoredFile of getPathValues(path.join(directory, 'foo.js'))) {
+		t.true(
+			// eslint-disable-next-line no-await-in-loop
+			await runIsGitIgnored(
+				t,
+				{cwd: directory},
+				isIgnored => isIgnored(ignoredFile),
+			),
+		);
 	}
 
-	for (const file of getPathValues(path.join(directory, 'bar.js'))) {
-		t.false(isIgnored(file));
+	for (const notIgnoredFile of getPathValues(path.join(directory, 'bar.js'))) {
+		t.false(
+			// eslint-disable-next-line no-await-in-loop
+			await runIsGitIgnored(
+				t,
+				{cwd: directory},
+				isIgnored => isIgnored(notIgnoredFile),
+			),
+		);
 	}
 });
 
-test('custom ignore files - sync', t => {
+test('custom ignore files', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
 	const files = [
 		'ignored-by-eslint.js',
@@ -125,55 +151,35 @@ test('custom ignore files - sync', t => {
 		'not-ignored.js',
 	];
 
-	const isEslintIgnored = isIgnoredByIgnoreFilesSync('.eslintignore', {cwd});
-	const isPrettierIgnored = isIgnoredByIgnoreFilesSync('.prettierignore', {cwd});
-	const isEslintOrPrettierIgnored = isIgnoredByIgnoreFilesSync('.{prettier,eslint}ignore', {cwd});
 	t.deepEqual(
-		files.filter(file => isEslintIgnored(file)),
+		await runIsIgnoredByIgnoreFiles(
+			t,
+			'.eslintignore',
+			{cwd},
+			isEslintIgnored => files.filter(file => isEslintIgnored(file)),
+		),
 		[
 			'ignored-by-eslint.js',
 		],
 	);
 	t.deepEqual(
-		files.filter(file => isPrettierIgnored(file)),
+		await runIsIgnoredByIgnoreFiles(
+			t,
+			'.prettierignore',
+			{cwd},
+			isPrettierIgnored => files.filter(file => isPrettierIgnored(file)),
+		),
 		[
 			'ignored-by-prettier.js',
 		],
 	);
 	t.deepEqual(
-		files.filter(file => isEslintOrPrettierIgnored(file)),
-		[
-			'ignored-by-eslint.js',
-			'ignored-by-prettier.js',
-		],
-	);
-});
-
-test('custom ignore files - async', async t => {
-	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
-	const files = [
-		'ignored-by-eslint.js',
-		'ignored-by-prettier.js',
-		'not-ignored.js',
-	];
-
-	const isEslintIgnored = await isIgnoredByIgnoreFiles('.eslintignore', {cwd});
-	const isPrettierIgnored = await isIgnoredByIgnoreFiles('.prettierignore', {cwd});
-	const isEslintOrPrettierIgnored = await isIgnoredByIgnoreFiles('.{prettier,eslint}ignore', {cwd});
-	t.deepEqual(
-		files.filter(file => isEslintIgnored(file)),
-		[
-			'ignored-by-eslint.js',
-		],
-	);
-	t.deepEqual(
-		files.filter(file => isPrettierIgnored(file)),
-		[
-			'ignored-by-prettier.js',
-		],
-	);
-	t.deepEqual(
-		files.filter(file => isEslintOrPrettierIgnored(file)),
+		await runIsIgnoredByIgnoreFiles(
+			t,
+			'.{prettier,eslint}ignore',
+			{cwd},
+			isEslintOrPrettierIgnored => files.filter(file => isEslintOrPrettierIgnored(file)),
+		),
 		[
 			'ignored-by-eslint.js',
 			'ignored-by-prettier.js',
