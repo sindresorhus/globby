@@ -251,6 +251,11 @@ test('respects ignoreFiles array option', async t => {
 	t.false(actual.includes('node_modules'));
 });
 
+test('glob dot files', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: false, ignoreFiles: '*gitignore', onlyFiles: false});
+	t.false(actual.includes('node_modules'));
+});
+
 test('`{extension: false}` and `expandDirectories.extensions` option', async t => {
 	for (const temporaryDirectory of getPathValues(temporary)) {
 		t.deepEqual(

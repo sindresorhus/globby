@@ -14,6 +14,7 @@ const ignoreFilesGlobOptions = {
 		'**/.git',
 	],
 	absolute: true,
+	dot: true,
 };
 
 export const GITIGNORE_FILE_PATTERN = '**/.gitignore';
