@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
-import {isIgnored, isIgnoredSync, GITIGNORE_PATTERN} from './ignore.js';
+import {isIgnored, isIgnoredSync, GITIGNORE_FILE_PATTERN} from './ignore.js';
 import {FilterStream, toPath, isNegativePattern} from './utilities.js';
 
 const assertPatternsInput = patterns => {
@@ -51,13 +51,11 @@ const normalizeArguments = fn => async (patterns, options) => fn(toPatternsArray
 const normalizeArgumentsSync = fn => (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 
 const getIgnoreFilesPatterns = options => {
-	if (!options) {
-		return [];
-	}
+	const {ignoreFiles, gitignore} = options;
 
-	const patterns = toPatternsArray(options.ignoreFiles || []);
-	if (options.gitignore) {
-		patterns.push(GITIGNORE_PATTERN);
+	const patterns = ignoreFiles ? toPatternsArray(ignoreFiles) : [];
+	if (gitignore) {
+		patterns.push(GITIGNORE_FILE_PATTERN);
 	}
 
 	return patterns;
