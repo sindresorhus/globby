@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
-import {isIgnored, isIgnoredSync} from './ignore.js';
+import {isIgnored, isIgnoredSync, GITIGNORE_PATTERN} from './ignore.js';
 import {FilterStream, toPath, isNegativePattern} from './utilities.js';
 
 const assertPatternsInput = patterns => {
@@ -57,7 +57,7 @@ const getIgnoreFilesPatterns = options => {
 
 	const patterns = toPatternsArray(options.ignoreFiles || []);
 	if (options.gitignore) {
-		patterns.push('**/.gitignore');
+		patterns.push(GITIGNORE_PATTERN);
 	}
 
 	return patterns;
@@ -217,6 +217,7 @@ export const isDynamicPattern = normalizeArgumentsSync(
 export const generateGlobTasks = normalizeArguments(generateTasks);
 export const generateGlobTasksSync = normalizeArgumentsSync(generateTasksSync);
 
-export {isIgnored, isIgnoredSync} from './ignore.js';
-export const isGitIgnored = options => isIgnored('**/.gitignore', options);
-export const isGitIgnoredSync = options => isIgnoredSync('**/.gitignore', options);
+export {
+	isGitIgnored,
+	isGitIgnoredSync,
+} from './ignore.js';
