@@ -17,7 +17,7 @@ const ignoreFilesGlobOptions = {
 	dot: true,
 };
 
-export const GITIGNORE_FILE_PATTERN = '**/.gitignore';
+export const GITIGNORE_FILES_PATTERN = '**/.gitignore';
 
 const applyBaseToPattern = (pattern, base) => isNegativePattern(pattern)
 	? '!' + path.posix.join(base, pattern.slice(1))
@@ -88,5 +88,5 @@ export const isIgnoredSync = (patterns, options) => {
 	return getIsIgnoredPredicate(files, cwd);
 };
 
-export const isGitIgnored = options => isIgnored(GITIGNORE_FILE_PATTERN, options);
-export const isGitIgnoredSync = options => isIgnoredSync(GITIGNORE_FILE_PATTERN, options);
+export const isGitIgnored = options => isIgnored(GITIGNORE_FILES_PATTERN, options);
+export const isGitIgnoredSync = options => isIgnoredSync(GITIGNORE_FILES_PATTERN, options);
