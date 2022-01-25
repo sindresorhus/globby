@@ -129,23 +129,22 @@ test('custom ignore files - sync', t => {
 	const isPrettierIgnored = isIgnoredByIgnoreFilesSync('.prettierignore', {cwd});
 	const isEslintOrPrettierIgnored = isIgnoredByIgnoreFilesSync('.{prettier,eslint}ignore', {cwd});
 	t.deepEqual(
-		files.filter(file => !isEslintIgnored(file)),
-		[
-			'ignored-by-prettier.js',
-			'not-ignored.js',
-		],
-	);
-	t.deepEqual(
-		files.filter(file => !isPrettierIgnored(file)),
+		files.filter(file => isEslintIgnored(file)),
 		[
 			'ignored-by-eslint.js',
-			'not-ignored.js',
 		],
 	);
 	t.deepEqual(
-		files.filter(file => !isEslintOrPrettierIgnored(file)),
+		files.filter(file => isPrettierIgnored(file)),
 		[
-			'not-ignored.js',
+			'ignored-by-prettier.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => isEslintOrPrettierIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+			'ignored-by-prettier.js',
 		],
 	);
 });
@@ -162,23 +161,22 @@ test('custom ignore files - async', async t => {
 	const isPrettierIgnored = await isIgnoredByIgnoreFiles('.prettierignore', {cwd});
 	const isEslintOrPrettierIgnored = await isIgnoredByIgnoreFiles('.{prettier,eslint}ignore', {cwd});
 	t.deepEqual(
-		files.filter(file => !isEslintIgnored(file)),
-		[
-			'ignored-by-prettier.js',
-			'not-ignored.js',
-		],
-	);
-	t.deepEqual(
-		files.filter(file => !isPrettierIgnored(file)),
+		files.filter(file => isEslintIgnored(file)),
 		[
 			'ignored-by-eslint.js',
-			'not-ignored.js',
 		],
 	);
 	t.deepEqual(
-		files.filter(file => !isEslintOrPrettierIgnored(file)),
+		files.filter(file => isPrettierIgnored(file)),
 		[
-			'not-ignored.js',
+			'ignored-by-prettier.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => isEslintOrPrettierIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+			'ignored-by-prettier.js',
 		],
 	);
 });
