@@ -91,6 +91,10 @@ test('glob - multiple file paths', async t => {
 	t.deepEqual(await runGlobby(t, ['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
 
+test('glob - empty patterns', async t => {
+	t.deepEqual(await runGlobby(t, []), []);
+});
+
 test('glob with multiple patterns', async t => {
 	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
