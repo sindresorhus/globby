@@ -8,7 +8,7 @@ import {FilterStream, toPath} from './utilities.js';
 const isNegative = pattern => pattern[0] === '!';
 
 const assertPatternsInput = patterns => {
-	if (!patterns.every(pattern => typeof pattern === 'string')) {
+	if (patterns.some(pattern => typeof pattern !== 'string')) {
 		throw new TypeError('Patterns must be a string or an array of strings');
 	}
 };
