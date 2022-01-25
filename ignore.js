@@ -2,7 +2,7 @@ import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
 import fastGlob from 'fast-glob';
-import gitIgnore from 'ignore';
+import ignore from 'ignore';
 import slash from 'slash';
 import {toPath} from './utilities.js';
 
@@ -35,7 +35,7 @@ const parseGitIgnore = (content, options) => {
 };
 
 const reduceIgnore = files => {
-	const ignores = gitIgnore();
+	const ignores = ignore();
 	for (const file of files) {
 		ignores.add(parseGitIgnore(file.content, {
 			cwd: file.cwd,

@@ -14,7 +14,7 @@ const assertPatternsInput = patterns => {
 };
 
 const toPatternsArray = patterns => {
-	patterns = [...new Set([patterns].flat())];
+	patterns = [...new Set([patterns].flat(Infinity))];
 	assertPatternsInput(patterns);
 	return patterns;
 };
@@ -52,19 +52,29 @@ const normalizeOptions = (options = {}) => {
 const normalizeArguments = fn => async (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 const normalizeArgumentsSync = fn => (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 
-const getIgnoreFilesPattern = options => options && options.gitignore ? '**/.gitignore' : options && options.ignoreFiles;
+const getIgnoreFilesPatterns = options => {
+	if (!options) {
+		return [];
+	}
+
+	const patterns = [
+		options.gitignore && '**/.gitignore',
+		options.ignoreFiles,
+	].filter(Boolean);
+	return toPatternsArray(patterns);
+};
 
 const getFilter = async options => {
-	const ignoreFilesPattern = getIgnoreFilesPattern(options);
+	const filePatterns = getIgnoreFilesPatterns(options);
 	return createFilterFunction(
-		ignoreFilesPattern && await isIgnored(ignoreFilesPattern, {cwd: options.cwd}),
+		filePatterns.length > 0 && await isIgnored(filePatterns, {cwd: options.cwd}),
 	);
 };
 
 const getFilterSync = options => {
-	const ignoreFilesPattern = getIgnoreFilesPattern(options);
+	const filePatterns = getIgnoreFilesPatterns(options);
 	return createFilterFunction(
-		ignoreFilesPattern && isIgnoredSync(ignoreFilesPattern, {cwd: options.cwd}),
+		filePatterns.length > 0 && isIgnoredSync(filePatterns, {cwd: options.cwd}),
 	);
 };
 
