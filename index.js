@@ -62,7 +62,7 @@ const getIgnoreFilesPatterns = options => {
 		patterns.push('**/.gitignore');
 	}
 
-	return toPatternsArray(patterns);
+	return patterns;
 };
 
 const getFilter = async options => {
