@@ -14,7 +14,7 @@ const assertPatternsInput = patterns => {
 };
 
 const toPatternsArray = patterns => {
-	patterns = [...new Set([patterns].flat(Infinity))];
+	patterns = [...new Set([patterns].flat())];
 	assertPatternsInput(patterns);
 	return patterns;
 };
@@ -57,10 +57,11 @@ const getIgnoreFilesPatterns = options => {
 		return [];
 	}
 
-	const patterns = [
-		options.gitignore && '**/.gitignore',
-		options.ignoreFiles,
-	].filter(Boolean);
+	const patterns = toPatternsArray(options.ignoreFiles || []);
+	if (options.gitignore) {
+		patterns.push('**/.gitignore');
+	}
+
 	return toPatternsArray(patterns);
 };
 
