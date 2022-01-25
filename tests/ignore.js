@@ -1,13 +1,18 @@
 import path from 'node:path';
 import test from 'ava';
 import slash from 'slash';
-import {isGitIgnored, isGitIgnoredSync} from '../gitignore.js';
+import {
+	isIgnoredByIgnoreFiles,
+	isIgnoredByIgnoreFilesSync,
+	isGitIgnored,
+	isGitIgnoredSync,
+} from '../ignore.js';
 import {
 	PROJECT_ROOT,
 	getPathValues,
 } from './utilities.js';
 
-test('gitignore', async t => {
+test('ignore', async t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/gitignore'))) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd});
@@ -17,7 +22,7 @@ test('gitignore', async t => {
 	}
 });
 
-test('gitignore - mixed path styles', async t => {
+test('ignore - mixed path styles', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 	for (const cwd of getPathValues(directory)) {
 		// eslint-disable-next-line no-await-in-loop
@@ -26,7 +31,7 @@ test('gitignore - mixed path styles', async t => {
 	}
 });
 
-test('gitignore - os paths', async t => {
+test('ignore - os paths', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 	for (const cwd of getPathValues(directory)) {
 		// eslint-disable-next-line no-await-in-loop
@@ -35,7 +40,7 @@ test('gitignore - os paths', async t => {
 	}
 });
 
-test('gitignore - sync', t => {
+test('ignore - sync', t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/gitignore'))) {
 		const isIgnored = isGitIgnoredSync({cwd});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
@@ -44,7 +49,7 @@ test('gitignore - sync', t => {
 	}
 });
 
-test('negative gitignore', async t => {
+test('negative ignore', async t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/negative'))) {
 		// eslint-disable-next-line no-await-in-loop
 		const isIgnored = await isGitIgnored({cwd});
@@ -54,7 +59,7 @@ test('negative gitignore', async t => {
 	}
 });
 
-test('negative gitignore - sync', t => {
+test('negative ignore - sync', t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/negative'))) {
 		const isIgnored = isGitIgnoredSync({cwd});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
@@ -110,4 +115,68 @@ test('check file', async t => {
 	for (const file of getPathValues(path.join(directory, 'bar.js'))) {
 		t.false(isIgnored(file));
 	}
+});
+
+test('custom ignore files - sync', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+	const files = [
+		'ignored-by-eslint.js',
+		'ignored-by-prettier.js',
+		'not-ignored.js',
+	];
+
+	const isEslintIgnored = isIgnoredByIgnoreFilesSync('.eslintignore', {cwd});
+	const isPrettierIgnored = isIgnoredByIgnoreFilesSync('.prettierignore', {cwd});
+	const isEslintOrPrettierIgnored = isIgnoredByIgnoreFilesSync('.{prettier,eslint}ignore', {cwd});
+	t.deepEqual(
+		files.filter(file => isEslintIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => isPrettierIgnored(file)),
+		[
+			'ignored-by-prettier.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => isEslintOrPrettierIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+			'ignored-by-prettier.js',
+		],
+	);
+});
+
+test('custom ignore files - async', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+	const files = [
+		'ignored-by-eslint.js',
+		'ignored-by-prettier.js',
+		'not-ignored.js',
+	];
+
+	const isEslintIgnored = await isIgnoredByIgnoreFiles('.eslintignore', {cwd});
+	const isPrettierIgnored = await isIgnoredByIgnoreFiles('.prettierignore', {cwd});
+	const isEslintOrPrettierIgnored = await isIgnoredByIgnoreFiles('.{prettier,eslint}ignore', {cwd});
+	t.deepEqual(
+		files.filter(file => isEslintIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => isPrettierIgnored(file)),
+		[
+			'ignored-by-prettier.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => isEslintOrPrettierIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+			'ignored-by-prettier.js',
+		],
+	);
 });

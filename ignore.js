@@ -6,7 +6,7 @@ import gitIgnore from 'ignore';
 import slash from 'slash';
 import {toPath, isNegativePattern} from './utilities.js';
 
-const gitignoreGlobOptions = {
+const ignoreFilesGlobOptions = {
 	ignore: [
 		'**/node_modules',
 		'**/flow-typed',
@@ -14,13 +14,16 @@ const gitignoreGlobOptions = {
 		'**/.git',
 	],
 	absolute: true,
+	dot: true,
 };
+
+export const GITIGNORE_FILES_PATTERN = '**/.gitignore';
 
 const applyBaseToPattern = (pattern, base) => isNegativePattern(pattern)
 	? '!' + path.posix.join(base, pattern.slice(1))
 	: path.posix.join(base, pattern);
 
-const parseGitIgnoreFile = (file, cwd) => {
+const parseIgnoreFile = (file, cwd) => {
 	const base = slash(path.relative(cwd, path.dirname(file.filePath)));
 
 	return file.content
@@ -43,7 +46,7 @@ const toRelativePath = (fileOrDirectory, cwd) => {
 };
 
 const getIsIgnoredPredicate = (files, cwd) => {
-	const patterns = files.flatMap(file => parseGitIgnoreFile(file, cwd));
+	const patterns = files.flatMap(file => parseIgnoreFile(file, cwd));
 	const ignores = gitIgnore().add(patterns);
 
 	return fileOrDirectory => {
@@ -57,10 +60,10 @@ const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || process.cwd(),
 });
 
-export const isGitIgnored = async options => {
+export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
 
-	const paths = await fastGlob('**/.gitignore', {cwd, ...gitignoreGlobOptions});
+	const paths = await fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
 
 	const files = await Promise.all(
 		paths.map(async filePath => ({
@@ -72,10 +75,10 @@ export const isGitIgnored = async options => {
 	return getIsIgnoredPredicate(files, cwd);
 };
 
-export const isGitIgnoredSync = options => {
+export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
 
-	const paths = fastGlob.sync('**/.gitignore', {cwd, ...gitignoreGlobOptions});
+	const paths = fastGlob.sync(patterns, {cwd, ...ignoreFilesGlobOptions});
 
 	const files = paths.map(filePath => ({
 		filePath,
@@ -84,3 +87,6 @@ export const isGitIgnoredSync = options => {
 
 	return getIsIgnoredPredicate(files, cwd);
 };
+
+export const isGitIgnored = options => isIgnoredByIgnoreFiles(GITIGNORE_FILES_PATTERN, options);
+export const isGitIgnoredSync = options => isIgnoredByIgnoreFilesSync(GITIGNORE_FILES_PATTERN, options);

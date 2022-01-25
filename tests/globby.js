@@ -241,6 +241,21 @@ test('gitignore option and objectMode option', async t => {
 	t.truthy(result[0].path);
 });
 
+test('respects ignoreFiles string option', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: false, ignoreFiles: '.gitignore', onlyFiles: false});
+	t.false(actual.includes('node_modules'));
+});
+
+test('respects ignoreFiles array option', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: false, ignoreFiles: ['.gitignore'], onlyFiles: false});
+	t.false(actual.includes('node_modules'));
+});
+
+test('glob dot files', async t => {
+	const actual = await runGlobby(t, '*', {gitignore: false, ignoreFiles: '*gitignore', onlyFiles: false});
+	t.false(actual.includes('node_modules'));
+});
+
 test('`{extension: false}` and `expandDirectories.extensions` option', async t => {
 	for (const temporaryDirectory of getPathValues(temporary)) {
 		t.deepEqual(

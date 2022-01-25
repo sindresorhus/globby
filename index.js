@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
-import {isGitIgnored, isGitIgnoredSync} from './gitignore.js';
+import {
+	GITIGNORE_FILES_PATTERN,
+	isIgnoredByIgnoreFiles,
+	isIgnoredByIgnoreFilesSync,
+} from './ignore.js';
 import {FilterStream, toPath, isNegativePattern} from './utilities.js';
 
 const assertPatternsInput = patterns => {
@@ -50,13 +54,30 @@ const normalizeOptions = (options = {}) => {
 const normalizeArguments = fn => async (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 const normalizeArgumentsSync = fn => (patterns, options) => fn(toPatternsArray(patterns), normalizeOptions(options));
 
-const getFilter = async options => createFilterFunction(
-	options.gitignore && await isGitIgnored({cwd: options.cwd}),
-);
+const getIgnoreFilesPatterns = options => {
+	const {ignoreFiles, gitignore} = options;
 
-const getFilterSync = options => createFilterFunction(
-	options.gitignore && isGitIgnoredSync({cwd: options.cwd}),
-);
+	const patterns = ignoreFiles ? toPatternsArray(ignoreFiles) : [];
+	if (gitignore) {
+		patterns.push(GITIGNORE_FILES_PATTERN);
+	}
+
+	return patterns;
+};
+
+const getFilter = async options => {
+	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
+	return createFilterFunction(
+		ignoreFilesPatterns.length > 0 && await isIgnoredByIgnoreFiles(ignoreFilesPatterns, {cwd: options.cwd}),
+	);
+};
+
+const getFilterSync = options => {
+	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
+	return createFilterFunction(
+		ignoreFilesPatterns.length > 0 && isIgnoredByIgnoreFilesSync(ignoreFilesPatterns, {cwd: options.cwd}),
+	);
+};
 
 const createFilterFunction = isIgnored => {
 	const seen = new Set();
@@ -201,4 +222,4 @@ export const generateGlobTasksSync = normalizeArgumentsSync(generateTasksSync);
 export {
 	isGitIgnored,
 	isGitIgnoredSync,
-} from './gitignore.js';
+} from './ignore.js';

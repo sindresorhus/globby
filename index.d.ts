@@ -48,6 +48,15 @@ export interface Options extends FastGlobOptionsWithoutCwd {
 	readonly gitignore?: boolean;
 
 	/**
+	Glob patterns to look for ignore files, which are then used to ignore globbed files.
+
+	This is a more generic form of the `gitignore` option, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
+
+	@default undefined
+	*/
+	readonly ignoreFiles?: string | string[];
+
+	/**
 	The current working directory in which to search.
 
 	@default process.cwd()
