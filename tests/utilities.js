@@ -21,6 +21,7 @@ export const invalidPatterns = [
 	[5],
 	function () {},
 	[function () {}],
+	[['string']],
 ];
 
 export const isUnique = array => new Set(array).size === array.length;
