@@ -2,7 +2,6 @@ import path from 'node:path';
 import test from 'ava';
 import slash from 'slash';
 import {
-	GITIGNORE_FILES_PATTERN,
 	isIgnoredByIgnoreFiles,
 	isIgnoredByIgnoreFilesSync,
 	isGitIgnored,
@@ -16,7 +15,7 @@ import {
 test('ignore', async t => {
 	for (const cwd of getPathValues(path.join(PROJECT_ROOT, 'fixtures/gitignore'))) {
 		// eslint-disable-next-line no-await-in-loop
-		const isIgnored  = await isGitIgnored({cwd});
+		const isIgnored = await isGitIgnored({cwd});
 		const actual = ['foo.js', 'bar.js'].filter(file => !isIgnored(file));
 		const expected = ['bar.js'];
 		t.deepEqual(actual, expected);
@@ -116,4 +115,70 @@ test('check file', async t => {
 	for (const file of getPathValues(path.join(directory, 'bar.js'))) {
 		t.false(isIgnored(file));
 	}
+});
+
+test('custom ignore files - sync', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+	const files = [
+		'ignored-by-eslint.js',
+		'ignored-by-prettier.js',
+		'not-ignored.js',
+	];
+
+	const isEslintIgnored = isIgnoredByIgnoreFilesSync('.eslintignore', {cwd});
+	const isPrettierIgnored = isIgnoredByIgnoreFilesSync('.prettierignore', {cwd});
+	const isEslintOrPrettierIgnored = isIgnoredByIgnoreFilesSync('.{prettier,eslint}ignore', {cwd});
+	t.deepEqual(
+		files.filter(file => !isEslintIgnored(file)),
+		[
+			'ignored-by-prettier.js',
+			'not-ignored.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => !isPrettierIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+			'not-ignored.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => !isEslintOrPrettierIgnored(file)),
+		[
+			'not-ignored.js',
+		],
+	);
+});
+
+test('custom ignore files - async', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+	const files = [
+		'ignored-by-eslint.js',
+		'ignored-by-prettier.js',
+		'not-ignored.js',
+	];
+
+	const isEslintIgnored = await isIgnoredByIgnoreFiles('.eslintignore', {cwd});
+	const isPrettierIgnored = await isIgnoredByIgnoreFiles('.prettierignore', {cwd});
+	const isEslintOrPrettierIgnored = await isIgnoredByIgnoreFiles('.{prettier,eslint}ignore', {cwd});
+	t.deepEqual(
+		files.filter(file => !isEslintIgnored(file)),
+		[
+			'ignored-by-prettier.js',
+			'not-ignored.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => !isPrettierIgnored(file)),
+		[
+			'ignored-by-eslint.js',
+			'not-ignored.js',
+		],
+	);
+	t.deepEqual(
+		files.filter(file => !isEslintOrPrettierIgnored(file)),
+		[
+			'not-ignored.js',
+		],
+	);
 });
