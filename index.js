@@ -62,16 +62,16 @@ const getIgnoreFilesPatterns = options => {
 };
 
 const getFilter = async options => {
-	const filePatterns = getIgnoreFilesPatterns(options);
+	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
 	return createFilterFunction(
-		filePatterns.length > 0 && await isIgnored(filePatterns, {cwd: options.cwd}),
+		ignoreFilesPatterns.length > 0 && await isIgnored(ignoreFilesPatterns, {cwd: options.cwd}),
 	);
 };
 
 const getFilterSync = options => {
-	const filePatterns = getIgnoreFilesPatterns(options);
+	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
 	return createFilterFunction(
-		filePatterns.length > 0 && isIgnoredSync(filePatterns, {cwd: options.cwd}),
+		ignoreFilesPatterns.length > 0 && isIgnoredSync(ignoreFilesPatterns, {cwd: options.cwd}),
 	);
 };
 
