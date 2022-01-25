@@ -2,11 +2,11 @@ import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
 import fastGlob from 'fast-glob';
-import ignore from 'ignore';
+import gitIgnore from 'ignore';
 import slash from 'slash';
 import {toPath, isNegativePattern} from './utilities.js';
 
-const gitignoreGlobOptions = {
+const ignoreFilesGlobOptions = {
 	ignore: [
 		'**/node_modules',
 		'**/flow-typed',
@@ -20,7 +20,7 @@ const applyBaseToPattern = (pattern, base) => isNegativePattern(pattern)
 	? '!' + path.posix.join(base, pattern.slice(1))
 	: path.posix.join(base, pattern);
 
-const parseGitIgnoreFile = (file, cwd) => {
+const parseIgnoreFile = (file, cwd) => {
 	const base = slash(path.relative(cwd, path.dirname(file.filePath)));
 
 	return file.content
@@ -43,7 +43,7 @@ const toRelativePath = (fileOrDirectory, cwd) => {
 };
 
 const getIsIgnoredPredicate = (files, cwd) => {
-	const patterns = files.flatMap(file => parseGitIgnoreFile(file, cwd));
+	const patterns = files.flatMap(file => parseIgnoreFile(file, cwd));
 	const ignores = gitIgnore().add(patterns);
 
 	return fileOrDirectory => {
@@ -57,10 +57,10 @@ const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || process.cwd(),
 });
 
-export const isIgnored = async (pattern, options) => {
+export const isIgnored = async (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
 
-	const paths = await fastGlob(pattern, {cwd, ...gitignoreGlobOptions});
+	const paths = await fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
 
 	const files = await Promise.all(
 		paths.map(async filePath => ({
@@ -72,10 +72,10 @@ export const isIgnored = async (pattern, options) => {
 	return getIsIgnoredPredicate(files, cwd);
 };
 
-export const isIgnoredSync = (pattern, options) => {
+export const isIgnoredSync = (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
 
-	const paths = fastGlob.sync(pattern, {cwd, ...gitignoreGlobOptions});
+	const paths = fastGlob.sync(patterns, {cwd, ...ignoreFilesGlobOptions});
 
 	const files = paths.map(filePath => ({
 		filePath,
