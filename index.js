@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import nodePath from 'node:path';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
 import dirGlob from 'dir-glob';
@@ -84,8 +85,9 @@ const createFilterFunction = isIgnored => {
 
 	return fastGlobResult => {
 		const path = fastGlobResult.path || fastGlobResult;
-		const seenOrIgnored = seen.has(path) || (isIgnored && isIgnored(path));
-		seen.add(path);
+		const pathKey = nodePath.normalize(path);
+		const seenOrIgnored = seen.has(pathKey) || (isIgnored && isIgnored(path));
+		seen.add(pathKey);
 		return !seenOrIgnored;
 	};
 };
