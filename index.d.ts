@@ -1,4 +1,3 @@
-import {URL} from 'node:url'; // TODO: Remove this when https://github.com/DefinitelyTyped/DefinitelyTyped/issues/34960 is fixed.
 import {Options as FastGlobOptions, Entry} from 'fast-glob';
 
 export type GlobEntry = Entry;
