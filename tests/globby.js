@@ -116,6 +116,13 @@ test('glob - stream async iterator support', async t => {
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
+test('glob - duplicated patterns', async t => {
+	const result1 = await runGlobby(t, [`./${temporary}/**`, `./${temporary}`]);
+	t.deepEqual(result1, ['./tmp/a.tmp', './tmp/b.tmp', './tmp/c.tmp', './tmp/d.tmp', './tmp/e.tmp']);
+	const result2 = await runGlobby(t, [`./${temporary}`, `./${temporary}/**`]);
+	t.deepEqual(result2, ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+});
+
 test.serial('cwd option', async t => {
 	process.chdir(temporary);
 	t.deepEqual(await runGlobby(t, '*.tmp', {cwd}), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
