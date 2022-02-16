@@ -1,10 +1,10 @@
 import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
-import fastGlob from 'fast-glob';
+import fastGlobModule from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
-import {toPath, isNegativePattern} from './utilities.js';
+import {toPath, isNegativePattern, genSync} from './utilities.js';
 
 const ignoreFilesGlobOptions = {
 	ignore: [
@@ -60,33 +60,33 @@ const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || process.cwd(),
 });
 
-export const isIgnoredByIgnoreFiles = async (patterns, options) => {
-	const {cwd} = normalizeOptions(options);
+const readFile = genSync({
+	async: fs.promises.readFile,
+	sync: fs.readFileSync,
+});
 
-	const paths = await fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
-
-	const files = await Promise.all(
-		paths.map(async filePath => ({
-			filePath,
-			content: await fs.promises.readFile(filePath, 'utf8'),
-		})),
-	);
-
-	return getIsIgnoredPredicate(files, cwd);
-};
-
-export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
-	const {cwd} = normalizeOptions(options);
-
-	const paths = fastGlob.sync(patterns, {cwd, ...ignoreFilesGlobOptions});
-
-	const files = paths.map(filePath => ({
+const readFileContent = genSync(function * (filePath) {
+	return {
 		filePath,
-		content: fs.readFileSync(filePath, 'utf8'),
-	}));
+		content: yield * readFile(filePath, 'utf8'),
+	};
+});
+
+const fastGlob = genSync(fastGlobModule);
+
+export const isIgnoredByIgnoreFiles = genSync(function * (patterns, options) {
+	const {cwd} = normalizeOptions(options);
+
+	const paths = yield * fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
+
+	const files = yield * genSync.all(paths.map(filePath => readFileContent(filePath)));
 
 	return getIsIgnoredPredicate(files, cwd);
-};
+});
 
-export const isGitIgnored = options => isIgnoredByIgnoreFiles(GITIGNORE_FILES_PATTERN, options);
-export const isGitIgnoredSync = options => isIgnoredByIgnoreFilesSync(GITIGNORE_FILES_PATTERN, options);
+export const {
+	async: isGitIgnored,
+	sync: isGitIgnoredSync,
+} = genSync(function * (options) {
+	return yield * isIgnoredByIgnoreFiles(GITIGNORE_FILES_PATTERN, options);
+});

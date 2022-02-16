@@ -61,6 +61,7 @@
 	"dependencies": {
 		"dir-glob": "^3.0.1",
 		"fast-glob": "^3.2.11",
+		"gensync": "1.0.0-beta.2",
 		"ignore": "^5.2.0",
 		"merge2": "^1.4.1",
 		"slash": "^4.0.0"

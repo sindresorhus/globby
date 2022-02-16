@@ -6,9 +6,8 @@ import dirGlob from 'dir-glob';
 import {
 	GITIGNORE_FILES_PATTERN,
 	isIgnoredByIgnoreFiles,
-	isIgnoredByIgnoreFilesSync,
 } from './ignore.js';
-import {FilterStream, toPath, isNegativePattern} from './utilities.js';
+import {FilterStream, toPath, isNegativePattern, genSync} from './utilities.js';
 
 const assertPatternsInput = patterns => {
 	if (patterns.some(pattern => typeof pattern !== 'string')) {
@@ -66,19 +65,16 @@ const getIgnoreFilesPatterns = options => {
 	return patterns;
 };
 
-const getFilter = async options => {
+const {
+	async: getFilter,
+	sync: getFilterSync,
+} = genSync(function * (options) {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
-	return createFilterFunction(
-		ignoreFilesPatterns.length > 0 && await isIgnoredByIgnoreFiles(ignoreFilesPatterns, {cwd: options.cwd}),
-	);
-};
-
-const getFilterSync = options => {
-	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
-	return createFilterFunction(
-		ignoreFilesPatterns.length > 0 && isIgnoredByIgnoreFilesSync(ignoreFilesPatterns, {cwd: options.cwd}),
-	);
-};
+	const isIgnored = ignoreFilesPatterns.length > 0
+		? yield * isIgnoredByIgnoreFiles(ignoreFilesPatterns, {cwd: options.cwd})
+		: undefined;
+	return createFilterFunction(isIgnored);
+});
 
 const createFilterFunction = isIgnored => {
 	const seen = new Set();
