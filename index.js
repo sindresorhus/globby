@@ -2,12 +2,14 @@ import fs from 'node:fs';
 import nodePath from 'node:path';
 import merge2 from 'merge2';
 import fastGlob from 'fast-glob';
-import dirGlob from 'dir-glob';
+import dirGlobModule from 'dir-glob';
 import {
 	GITIGNORE_FILES_PATTERN,
 	isIgnoredByIgnoreFiles,
 } from './ignore.js';
 import {FilterStream, toPath, isNegativePattern, genSync} from './utilities.js';
+
+const dirGlob = genSync(dirGlobModule);
 
 const assertPatternsInput = patterns => {
 	if (patterns.some(pattern => typeof pattern !== 'string')) {
@@ -129,7 +131,25 @@ const getDirGlobOptions = (options, cwd) => ({
 	...(Array.isArray(options) ? {files: options} : options),
 });
 
-const generateTasks = async (patterns, options) => {
+const expandTask = genSync(function * (task, expandOptions) {
+	const [
+		patterns,
+		ignore,
+	] = yield * genSync.all([
+		dirGlob(task.patterns, expandOptions.patterns),
+		dirGlob(task.options.ignore, expandOptions.ignore),
+	]);
+
+	return {
+		patterns,
+		options: {
+			...task.options,
+			ignore,
+		},
+	};
+});
+
+const generateTasks = genSync(function * (patterns, options) {
 	const globTasks = convertNegativePatterns(patterns, options);
 
 	const {cwd, expandDirectories} = options;
@@ -138,52 +158,20 @@ const generateTasks = async (patterns, options) => {
 		return globTasks;
 	}
 
-	const patternExpandOptions = getDirGlobOptions(expandDirectories, cwd);
-	const ignoreExpandOptions = cwd ? {cwd} : undefined;
+	const expandOptions = {
+		patterns: getDirGlobOptions(expandDirectories, cwd),
+		ignore: cwd ? {cwd} : undefined,
+	};
 
-	return Promise.all(
-		globTasks.map(async task => {
-			let {patterns, options} = task;
-
-			[
-				patterns,
-				options.ignore,
-			] = await Promise.all([
-				dirGlob(patterns, patternExpandOptions),
-				dirGlob(options.ignore, ignoreExpandOptions),
-			]);
-
-			return {patterns, options};
-		}),
-	);
-};
-
-const generateTasksSync = (patterns, options) => {
-	const globTasks = convertNegativePatterns(patterns, options);
-
-	const {cwd, expandDirectories} = options;
-
-	if (!expandDirectories) {
-		return globTasks;
-	}
-
-	const patternExpandOptions = getDirGlobOptions(expandDirectories, cwd);
-	const ignoreExpandOptions = cwd ? {cwd} : undefined;
-
-	return globTasks.map(task => {
-		let {patterns, options} = task;
-		patterns = dirGlob.sync(patterns, patternExpandOptions);
-		options.ignore = dirGlob.sync(options.ignore, ignoreExpandOptions);
-		return {patterns, options};
-	});
-};
+	return yield * genSync.all(globTasks.map(task => expandTask(task, expandOptions)));
+});
 
 export const globby = normalizeArguments(async (patterns, options) => {
 	const [
 		tasks,
 		filter,
 	] = await Promise.all([
-		generateTasks(patterns, options),
+		generateTasks.async(patterns, options),
 		getFilter.async(options),
 	]);
 	const results = await Promise.all(tasks.map(task => fastGlob(task.patterns, task.options)));
@@ -192,7 +180,7 @@ export const globby = normalizeArguments(async (patterns, options) => {
 });
 
 export const globbySync = normalizeArgumentsSync((patterns, options) => {
-	const tasks = generateTasksSync(patterns, options);
+	const tasks = generateTasks.sync(patterns, options);
 	const filter = getFilter.sync(options);
 	const results = tasks.map(task => fastGlob.sync(task.patterns, task.options));
 
@@ -200,7 +188,7 @@ export const globbySync = normalizeArgumentsSync((patterns, options) => {
 });
 
 export const globbyStream = normalizeArgumentsSync((patterns, options) => {
-	const tasks = generateTasksSync(patterns, options);
+	const tasks = generateTasks.sync(patterns, options);
 	const filter = getFilter.sync(options);
 	const streams = tasks.map(task => fastGlob.stream(task.patterns, task.options));
 
@@ -211,8 +199,8 @@ export const isDynamicPattern = normalizeArgumentsSync(
 	(patterns, options) => patterns.some(pattern => fastGlob.isDynamicPattern(pattern, options)),
 );
 
-export const generateGlobTasks = normalizeArguments(generateTasks);
-export const generateGlobTasksSync = normalizeArgumentsSync(generateTasksSync);
+export const generateGlobTasks = normalizeArguments(generateTasks.async);
+export const generateGlobTasksSync = normalizeArgumentsSync(generateTasks.sync);
 
 export {
 	isGitIgnored,
