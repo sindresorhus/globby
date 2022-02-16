@@ -9,6 +9,7 @@ import {
 } from './ignore.js';
 import {FilterStream, toPath, isNegativePattern, genSync} from './utilities.js';
 
+const fastGlobGenerator = genSync(fastGlob);
 const dirGlob = genSync(dirGlobModule);
 
 const assertPatternsInput = patterns => {
@@ -166,23 +167,18 @@ const generateTasks = genSync(function * (patterns, options) {
 	return yield * genSync.all(globTasks.map(task => expandTask(task, expandOptions)));
 });
 
-export const globby = normalizeArguments(async (patterns, options) => {
+const globbyInternal = genSync(function * (patterns, options) {
 	const [
 		tasks,
 		filter,
-	] = await Promise.all([
-		generateTasks.async(patterns, options),
-		getFilter.async(options),
+	] = yield * genSync.all([
+		generateTasks(patterns, options),
+		getFilter(options),
 	]);
-	const results = await Promise.all(tasks.map(task => fastGlob(task.patterns, task.options)));
 
-	return unionFastGlobResults(results, filter);
-});
-
-export const globbySync = normalizeArgumentsSync((patterns, options) => {
-	const tasks = generateTasks.sync(patterns, options);
-	const filter = getFilter.sync(options);
-	const results = tasks.map(task => fastGlob.sync(task.patterns, task.options));
+	const results = yield * genSync.all(
+		tasks.map(task => fastGlobGenerator(task.patterns, task.options))
+	);
 
 	return unionFastGlobResults(results, filter);
 });
@@ -199,6 +195,8 @@ export const isDynamicPattern = normalizeArgumentsSync(
 	(patterns, options) => patterns.some(pattern => fastGlob.isDynamicPattern(pattern, options)),
 );
 
+export const globby = normalizeArguments(globbyInternal.async);
+export const globbySync = normalizeArgumentsSync(globbyInternal.sync);
 export const generateGlobTasks = normalizeArguments(generateTasks.async);
 export const generateGlobTasksSync = normalizeArgumentsSync(generateTasks.sync);
 
