@@ -65,10 +65,7 @@ const getIgnoreFilesPatterns = options => {
 	return patterns;
 };
 
-const {
-	async: getFilter,
-	sync: getFilterSync,
-} = genSync(function * (options) {
+const getFilter = genSync(function * (options) {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
 	const isIgnored = ignoreFilesPatterns.length > 0
 		? yield * isIgnoredByIgnoreFiles(ignoreFilesPatterns, {cwd: options.cwd})
@@ -187,7 +184,7 @@ export const globby = normalizeArguments(async (patterns, options) => {
 		filter,
 	] = await Promise.all([
 		generateTasks(patterns, options),
-		getFilter(options),
+		getFilter.async(options),
 	]);
 	const results = await Promise.all(tasks.map(task => fastGlob(task.patterns, task.options)));
 
@@ -196,7 +193,7 @@ export const globby = normalizeArguments(async (patterns, options) => {
 
 export const globbySync = normalizeArgumentsSync((patterns, options) => {
 	const tasks = generateTasksSync(patterns, options);
-	const filter = getFilterSync(options);
+	const filter = getFilter.sync(options);
 	const results = tasks.map(task => fastGlob.sync(task.patterns, task.options));
 
 	return unionFastGlobResults(results, filter);
@@ -204,7 +201,7 @@ export const globbySync = normalizeArgumentsSync((patterns, options) => {
 
 export const globbyStream = normalizeArgumentsSync((patterns, options) => {
 	const tasks = generateTasksSync(patterns, options);
-	const filter = getFilterSync(options);
+	const filter = getFilter.sync(options);
 	const streams = tasks.map(task => fastGlob.stream(task.patterns, task.options));
 
 	return unionFastGlobStreams(streams, filter);
