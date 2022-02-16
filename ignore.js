@@ -1,7 +1,7 @@
 import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
-import fastGlobModule from 'fast-glob';
+import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
 import {toPath, isNegativePattern, genSync} from './utilities.js';
@@ -72,12 +72,12 @@ const readFileContent = genSync(function * (filePath) {
 	};
 });
 
-const fastGlob = genSync(fastGlobModule);
+const fastGlobGenerator = genSync(fastGlob);
 
 export const isIgnoredByIgnoreFiles = genSync(function * (patterns, options) {
 	const {cwd} = normalizeOptions(options);
 
-	const paths = yield * fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
+	const paths = yield * fastGlobGenerator(patterns, {cwd, ...ignoreFilesGlobOptions});
 
 	const files = yield * genSync.all(paths.map(filePath => readFileContent(filePath)));
 
