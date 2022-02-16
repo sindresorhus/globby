@@ -2,7 +2,7 @@ import path from 'node:path';
 import test from 'ava';
 import slash from 'slash';
 import {
-	isIgnoredByIgnoreFiles as isIgnoredByIgnoreFilesGenerator,
+	isIgnoredByIgnoreFiles,
 	isGitIgnored,
 	isGitIgnoredSync,
 } from '../ignore.js';
@@ -11,14 +11,9 @@ import {
 	getPathValues,
 } from './utilities.js';
 
-const {
-	async: isIgnoredByIgnoreFiles,
-	sync: isIgnoredByIgnoreFilesSync,
-} = isIgnoredByIgnoreFilesGenerator;
-
 const runIsIgnoredByIgnoreFiles = async (t, patterns, options, fn) => {
-	const promisePredicate = await isIgnoredByIgnoreFiles(patterns, options);
-	const syncPredicate = isIgnoredByIgnoreFilesSync(patterns, options);
+	const promisePredicate = await isIgnoredByIgnoreFiles.async(patterns, options);
+	const syncPredicate = isIgnoredByIgnoreFiles.sync(patterns, options);
 
 	const promiseResult = fn(promisePredicate);
 	const syncResult = fn(syncPredicate);

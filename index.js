@@ -177,7 +177,7 @@ const globbyInternal = genSync(function * (patterns, options) {
 	]);
 
 	const results = yield * genSync.all(
-		tasks.map(task => fastGlobGenerator(task.patterns, task.options))
+		tasks.map(task => fastGlobGenerator(task.patterns, task.options)),
 	);
 
 	return unionFastGlobResults(results, filter);
