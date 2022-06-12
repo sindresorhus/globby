@@ -54,7 +54,7 @@ export interface Options extends FastGlobOptionsWithoutCwd {
 
 	@default undefined
 	*/
-	readonly ignoreFiles?: string | string[];
+	readonly ignoreFiles?: string | readonly string[];
 
 	/**
 	The current working directory in which to search.
