@@ -8,19 +8,12 @@ import {
 	isIgnoredByIgnoreFiles,
 	isIgnoredByIgnoreFilesSync,
 } from './ignore.js';
-import {FilterStream, toPath, isNegativePattern} from './utilities.js';
-
-const assertPatternsInput = patterns => {
-	if (patterns.some(pattern => typeof pattern !== 'string')) {
-		throw new TypeError('Patterns must be a string or an array of strings');
-	}
-};
-
-const toPatternsArray = patterns => {
-	patterns = [...new Set([patterns].flat())];
-	assertPatternsInput(patterns);
-	return patterns;
-};
+import {
+	FilterStream,
+	toPath,
+	isNegativePattern,
+	toPatternsArray,
+} from './utilities.js';
 
 const checkCwdOption = options => {
 	if (!options.cwd) {

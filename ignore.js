@@ -4,7 +4,7 @@ import path from 'node:path';
 import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
-import {toPath, isNegativePattern} from './utilities.js';
+import {toPath, isNegativePattern, toPatternsArray} from './utilities.js';
 
 const ignoreFilesGlobOptions = {
 	ignore: [
@@ -60,32 +60,45 @@ const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || process.cwd(),
 });
 
+const cache = new Map();
+const getCacheKey = (patterns, cwd) => JSON.stringify({patterns: toPatternsArray(patterns), cwd});
+
 export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
+	const cacheKey = getCacheKey(patterns, cwd);
 
-	const paths = await fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
+	if (!cache.has(cacheKey)) {
+		const paths = await fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
 
-	const files = await Promise.all(
-		paths.map(async filePath => ({
-			filePath,
-			content: await fs.promises.readFile(filePath, 'utf8'),
-		})),
-	);
+		const files = await Promise.all(
+			paths.map(async filePath => ({
+				filePath,
+				content: await fs.promises.readFile(filePath, 'utf8'),
+			})),
+		);
 
-	return getIsIgnoredPredicate(files, cwd);
+		cache.set(cacheKey, getIsIgnoredPredicate(files, cwd))
+	}
+
+	return cache.get(cacheKey);
 };
 
 export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
 	const {cwd} = normalizeOptions(options);
+	const cacheKey = getCacheKey(patterns, cwd);
 
-	const paths = fastGlob.sync(patterns, {cwd, ...ignoreFilesGlobOptions});
+	if (!cache.has(cacheKey)) {
+		const paths = fastGlob.sync(patterns, {cwd, ...ignoreFilesGlobOptions});
 
-	const files = paths.map(filePath => ({
-		filePath,
-		content: fs.readFileSync(filePath, 'utf8'),
-	}));
+		const files = paths.map(filePath => ({
+			filePath,
+			content: fs.readFileSync(filePath, 'utf8'),
+		}));
 
-	return getIsIgnoredPredicate(files, cwd);
+		cache.set(cacheKey, getIsIgnoredPredicate(files, cwd))
+	}
+
+	return cache.get(cacheKey);
 };
 
 export const isGitIgnored = options => isIgnoredByIgnoreFiles(GITIGNORE_FILES_PATTERN, options);

@@ -14,4 +14,16 @@ export class FilterStream extends Transform {
 	}
 }
 
+const assertPatternsInput = patterns => {
+	if (patterns.some(pattern => typeof pattern !== 'string')) {
+		throw new TypeError('Patterns must be a string or an array of strings');
+	}
+};
+
+export const toPatternsArray = patterns => {
+	patterns = [...new Set([patterns].flat())];
+	assertPatternsInput(patterns);
+	return patterns;
+};
+
 export const isNegativePattern = pattern => pattern[0] === '!';
