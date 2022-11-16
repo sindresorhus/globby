@@ -77,7 +77,7 @@ export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 			})),
 		);
 
-		cache.set(cacheKey, getIsIgnoredPredicate(files, cwd))
+		cache.set(cacheKey, getIsIgnoredPredicate(files, cwd));
 	}
 
 	return cache.get(cacheKey);
@@ -95,7 +95,7 @@ export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
 			content: fs.readFileSync(filePath, 'utf8'),
 		}));
 
-		cache.set(cacheKey, getIsIgnoredPredicate(files, cwd))
+		cache.set(cacheKey, getIsIgnoredPredicate(files, cwd));
 	}
 
 	return cache.get(cacheKey);
