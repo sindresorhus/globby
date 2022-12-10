@@ -191,13 +191,16 @@ test('expandDirectories and ignores option', async t => {
 });
 
 test('absolute:true, expandDirectories:false, onlyFiles:false, gitignore:true and top level folder', async t => {
-	t.deepEqual(await runGlobby(t, '.', {
+	const result = await runGlobby(t, '.', {
 		absolute: true,
 		cwd: path.resolve(temporary),
 		expandDirectories: false,
 		gitignore: true,
 		onlyFiles: false,
-	}), [path.resolve(temporary)]);
+	});
+
+	t.is(result.length, 1);
+	t.truthy(result[0].endsWith(temporary));
 });
 
 test.serial.failing('relative paths and ignores option', async t => {
