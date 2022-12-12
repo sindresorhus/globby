@@ -52,7 +52,7 @@ const getIsIgnoredPredicate = (files, cwd) => {
 	return fileOrDirectory => {
 		fileOrDirectory = toPath(fileOrDirectory);
 		fileOrDirectory = toRelativePath(fileOrDirectory, cwd);
-		return ignores.ignores(slash(fileOrDirectory));
+		return fileOrDirectory ? ignores.ignores(slash(fileOrDirectory)) : false;
 	};
 };
 
