@@ -82,32 +82,32 @@ test.after(() => {
 	fs.rmdirSync(temporary);
 });
 
-test('glob', async t => {
+test.serial('glob', async t => {
 	const result = await runGlobby(t, '*.tmp');
 	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-test('glob - multiple file paths', async t => {
+test.serial('glob - multiple file paths', async t => {
 	t.deepEqual(await runGlobby(t, ['a.tmp', 'b.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('glob - empty patterns', async t => {
+test.serial('glob - empty patterns', async t => {
 	t.deepEqual(await runGlobby(t, []), []);
 });
 
-test('glob with multiple patterns', async t => {
+test.serial('glob with multiple patterns', async t => {
 	t.deepEqual(await runGlobby(t, ['a.tmp', '*.tmp', '!{c,d,e}.tmp']), ['a.tmp', 'b.tmp']);
 });
 
-test('respect patterns order', async t => {
+test.serial('respect patterns order', async t => {
 	t.deepEqual(await runGlobby(t, ['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-test('return [] for all negative patterns', async t => {
+test.serial('return [] for all negative patterns', async t => {
 	t.deepEqual(await runGlobby(t, ['!a.tmp', '!b.tmp']), []);
 });
 
-test('glob - stream async iterator support', async t => {
+test.serial('glob - stream async iterator support', async t => {
 	const results = [];
 	for await (const path of globbyStream('*.tmp')) {
 		results.push(path);
@@ -116,7 +116,7 @@ test('glob - stream async iterator support', async t => {
 	t.deepEqual(results, ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
 });
 
-/// test('glob - duplicated patterns', async t => {
+/// test.serial('glob - duplicated patterns', async t => {
 // 	const result1 = await runGlobby(t, [`./${temporary}/**`, `./${temporary}`]);
 // 	t.deepEqual(result1, ['./tmp/a.tmp', './tmp/b.tmp', './tmp/c.tmp', './tmp/d.tmp', './tmp/e.tmp']);
 // 	const result2 = await runGlobby(t, [`./${temporary}`, `./${temporary}/**`]);
@@ -130,12 +130,12 @@ test.serial('cwd option', async t => {
 	process.chdir(cwd);
 });
 
-test('don\'t mutate the options object', async t => {
+test.serial('don\'t mutate the options object', async t => {
 	await runGlobby(t, ['*.tmp', '!b.tmp'], Object.freeze({ignore: Object.freeze([])}));
 	t.pass();
 });
 
-test('expose isDynamicPattern', t => {
+test.serial('expose isDynamicPattern', t => {
 	t.true(isDynamicPattern('**'));
 	t.true(isDynamicPattern(['**', 'path1', 'path2']));
 	t.false(isDynamicPattern(['path1', 'path2']));
@@ -145,7 +145,7 @@ test('expose isDynamicPattern', t => {
 	}
 });
 
-test('expandDirectories option', async t => {
+test.serial('expandDirectories option', async t => {
 	t.deepEqual(await runGlobby(t, temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 	for (const temporaryDirectory of getPathValues(temporary)) {
 		// eslint-disable-next-line no-await-in-loop
@@ -168,7 +168,7 @@ test('expandDirectories option', async t => {
 	}), ['tmp/a.tmp']);
 });
 
-test('expandDirectories:true and onlyFiles:true option', async t => {
+test.serial('expandDirectories:true and onlyFiles:true option', async t => {
 	t.deepEqual(await runGlobby(t, temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
@@ -179,7 +179,7 @@ test.failing('expandDirectories:true and onlyFiles:false option', async t => {
 	t.deepEqual(await runGlobby(t, temporary, {onlyFiles: false}), ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test('expandDirectories and ignores option', async t => {
+test.serial('expandDirectories and ignores option', async t => {
 	t.deepEqual(await runGlobby(t, 'tmp', {
 		ignore: ['tmp'],
 	}), []);
@@ -190,7 +190,7 @@ test('expandDirectories and ignores option', async t => {
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test('absolute:true, expandDirectories:false, onlyFiles:false, gitignore:true and top level folder', async t => {
+test.serial('absolute:true, expandDirectories:false, onlyFiles:false, gitignore:true and top level folder', async t => {
 	const result = await runGlobby(t, '.', {
 		absolute: true,
 		cwd: path.resolve(temporary),
@@ -221,7 +221,7 @@ for (const value of invalidPatterns) {
 	const valueString = util.format(value);
 	const message = 'Patterns must be a string or an array of strings';
 
-	test(`throws for invalid patterns input: ${valueString}`, async t => {
+	test.serial(`throws for invalid patterns input: ${valueString}`, async t => {
 		await t.throwsAsync(globby(value), {instanceOf: TypeError, message});
 		t.throws(() => globbySync(value), {instanceOf: TypeError, message});
 		t.throws(() => globbyStream(value), {instanceOf: TypeError, message});
@@ -229,54 +229,74 @@ for (const value of invalidPatterns) {
 	});
 }
 
-test('gitignore option defaults to false - async', async t => {
+test.serial('gitignore option defaults to false - async', async t => {
 	const actual = await runGlobby(t, '*', {onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
 
-test('respects gitignore option true', async t => {
+test.serial('respects gitignore option true', async t => {
 	const actual = await runGlobby(t, '*', {gitignore: true, onlyFiles: false});
 	t.false(actual.includes('node_modules'));
 });
 
-test('respects gitignore option false', async t => {
+test.serial('respects gitignore option false', async t => {
 	const actual = await runGlobby(t, '*', {gitignore: false, onlyFiles: false});
 	t.true(actual.includes('node_modules'));
 });
 
-test('gitignore option with stats option', async t => {
+test.serial('gitignore option with stats option', async t => {
 	const result = await runGlobby(t, '*', {gitignore: true, stats: true});
 	const actual = result.map(x => x.path);
 	t.false(actual.includes('node_modules'));
 });
 
-test('gitignore option with absolute option', async t => {
+test.serial('gitignore option with absolute option', async t => {
 	const result = await runGlobby(t, '*', {gitignore: true, absolute: true});
 	t.false(result.includes('node_modules'));
 });
 
-test('gitignore option and objectMode option', async t => {
+test.serial('gitignore option and objectMode option', async t => {
 	const result = await runGlobby(t, 'fixtures/gitignore/*', {gitignore: true, objectMode: true});
 	t.is(result.length, 1);
 	t.truthy(result[0].path);
 });
 
-test('respects ignoreFiles string option', async t => {
+test.serial('gitignore option and suppressErrors option', async t => {
+	const gitignorePath = path.join(temporary, '.gitignore');
+	const fooPath = path.join(temporary, 'foo');
+	const notignoredPath = path.join(temporary, 'notignored');
+	try {
+		fs.writeFileSync(gitignorePath, 'foo', 'utf8');
+		fs.mkdirSync(fooPath);
+		fs.chmodSync(fooPath, 0o000);
+		fs.writeFileSync(notignoredPath, 'notignored', 'utf8');
+		const result = await runGlobby(t, temporary, {gitignore: true, suppressErrors: true});
+		t.is(result.length, 1);
+		t.truthy(result.includes('tmp/notignored'));
+	} finally {
+		fs.chmodSync(fooPath, 0o777);
+		fs.unlinkSync(gitignorePath);
+		fs.rmdirSync(fooPath);
+		fs.unlinkSync(notignoredPath);
+	}
+});
+
+test.serial('respects ignoreFiles string option', async t => {
 	const actual = await runGlobby(t, '*', {gitignore: false, ignoreFiles: '.gitignore', onlyFiles: false});
 	t.false(actual.includes('node_modules'));
 });
 
-test('respects ignoreFiles array option', async t => {
+test.serial('respects ignoreFiles array option', async t => {
 	const actual = await runGlobby(t, '*', {gitignore: false, ignoreFiles: ['.gitignore'], onlyFiles: false});
 	t.false(actual.includes('node_modules'));
 });
 
-test('glob dot files', async t => {
+test.serial('glob dot files', async t => {
 	const actual = await runGlobby(t, '*', {gitignore: false, ignoreFiles: '*gitignore', onlyFiles: false});
 	t.false(actual.includes('node_modules'));
 });
 
-test('`{extension: false}` and `expandDirectories.extensions` option', async t => {
+test.serial('`{extension: false}` and `expandDirectories.extensions` option', async t => {
 	for (const temporaryDirectory of getPathValues(temporary)) {
 		t.deepEqual(
 			// eslint-disable-next-line no-await-in-loop
@@ -301,7 +321,7 @@ test('`{extension: false}` and `expandDirectories.extensions` option', async t =
 	}
 });
 
-test('throws when specifying a file as cwd', async t => {
+test.serial('throws when specifying a file as cwd', async t => {
 	const error = {message: 'The `cwd` option must be a path to a directory'};
 
 	for (const file of getPathValues(path.resolve('fixtures/gitignore/bar.js'))) {
@@ -316,7 +336,7 @@ test('throws when specifying a file as cwd', async t => {
 	}
 });
 
-test('throws when specifying a file as cwd - isDynamicPattern', t => {
+test.serial('throws when specifying a file as cwd - isDynamicPattern', t => {
 	for (const file of getPathValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		t.throws(() => {
 			isDynamicPattern('.', {cwd: file});
@@ -328,7 +348,7 @@ test('throws when specifying a file as cwd - isDynamicPattern', t => {
 	}
 });
 
-test('don\'t throw when specifying a non-existing cwd directory', async t => {
+test.serial('don\'t throw when specifying a non-existing cwd directory', async t => {
 	for (const cwd of getPathValues('/unknown')) {
 		// eslint-disable-next-line no-await-in-loop
 		const actual = await runGlobby(t, '.', {cwd});
@@ -336,7 +356,7 @@ test('don\'t throw when specifying a non-existing cwd directory', async t => {
 	}
 });
 
-test('unique when using objectMode option', async t => {
+test.serial('unique when using objectMode option', async t => {
 	const result = await runGlobby(t, ['a.tmp', '*.tmp'], {cwd, objectMode: true});
 	t.true(isUnique(result.map(({path}) => path)));
 });
