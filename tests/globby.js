@@ -203,7 +203,7 @@ test.serial('absolute:true, expandDirectories:false, onlyFiles:false, gitignore:
 	t.truthy(result[0].endsWith(temporary));
 });
 
-test.serial.failing('relative paths and ignores option', async t => {
+test.failing('relative paths and ignores option', async t => {
 	process.chdir(temporary);
 	for (const cwd of getPathValues(process.cwd())) {
 		// eslint-disable-next-line no-await-in-loop
@@ -262,11 +262,9 @@ test.serial('gitignore option and objectMode option', async t => {
 });
 
 test.serial('gitignore option and suppressErrors option', async t => {
-	const gitignorePath = path.join(temporary, '.gitignore');
-	const fooPath = path.join(temporary, 'foo');
+	const fooPath = path.join(temporary, 'foo.tmp');
 	const notignoredPath = path.join(temporary, 'notignored');
 	try {
-		fs.writeFileSync(gitignorePath, 'foo', 'utf8');
 		fs.mkdirSync(fooPath);
 		fs.chmodSync(fooPath, 0o000);
 		fs.writeFileSync(notignoredPath, 'notignored', 'utf8');
@@ -275,7 +273,6 @@ test.serial('gitignore option and suppressErrors option', async t => {
 		t.truthy(result.includes('tmp/notignored'));
 	} finally {
 		fs.chmodSync(fooPath, 0o777);
-		fs.unlinkSync(gitignorePath);
 		fs.rmdirSync(fooPath);
 		fs.unlinkSync(notignoredPath);
 	}
