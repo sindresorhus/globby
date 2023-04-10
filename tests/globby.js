@@ -4,6 +4,7 @@ import path from 'node:path';
 import util from 'node:util';
 import test from 'ava';
 import getStream from 'get-stream';
+import {temporaryDirectory} from 'tempy';
 import {
 	globby,
 	globbySync,
@@ -145,7 +146,7 @@ test('expose isDynamicPattern', t => {
 	}
 });
 
-test.serial('expandDirectories option', async t => {
+test('expandDirectories option', async t => {
 	t.deepEqual(await runGlobby(t, temporary), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 	for (const temporaryDirectory of getPathValues(temporary)) {
 		// eslint-disable-next-line no-await-in-loop
@@ -168,11 +169,11 @@ test.serial('expandDirectories option', async t => {
 	}), ['tmp/a.tmp']);
 });
 
-test.serial('expandDirectories:true and onlyFiles:true option', async t => {
+test('expandDirectories:true and onlyFiles:true option', async t => {
 	t.deepEqual(await runGlobby(t, temporary, {onlyFiles: true}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
-test.serial.failing('expandDirectories:true and onlyFiles:false option', async t => {
+test.failing('expandDirectories:true and onlyFiles:false option', async t => {
 	// Node-glob('tmp/**') => ['tmp', 'tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// Fast-glob('tmp/**') => ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']
 	// See https://github.com/mrmlnc/fast-glob/issues/47
@@ -261,21 +262,18 @@ test('gitignore option and objectMode option', async t => {
 	t.truthy(result[0].path);
 });
 
-test.serial('gitignore option and suppressErrors option', async t => {
-	const fooPath = path.join(temporary, 'foo.tmp');
-	const notignoredPath = path.join(temporary, 'notignored');
-	try {
-		fs.mkdirSync(fooPath);
-		fs.chmodSync(fooPath, 0o000);
-		fs.writeFileSync(notignoredPath, 'notignored', 'utf8');
-		const result = await runGlobby(t, temporary, {gitignore: true, suppressErrors: true});
-		t.is(result.length, 1);
-		t.truthy(result.includes('tmp/notignored'));
-	} finally {
-		fs.chmodSync(fooPath, 0o777);
-		fs.rmdirSync(fooPath);
-		fs.unlinkSync(notignoredPath);
-	}
+test('gitignore option and suppressErrors option', async t => {
+	const temporary = temporaryDirectory();
+	fs.mkdirSync(path.join(temporary, 'foo'));
+	fs.writeFileSync(path.join(temporary, '.gitignore'), 'baz', 'utf8');
+	fs.writeFileSync(path.join(temporary, 'foo', 'protected'), '', 'utf8');
+	fs.writeFileSync(path.join(temporary, 'bar'), '', 'utf8');
+	fs.writeFileSync(path.join(temporary, 'baz'), '', 'utf8');
+	// Block access to the "foo" directory, which should be silently ignored.
+	fs.chmodSync(path.join(temporary, 'foo'), 0o000);
+	const result = await runGlobby(t, '**/*', {cwd: temporary, gitignore: true, suppressErrors: true});
+	t.is(result.length, 1);
+	t.truthy(result.includes('bar'));
 });
 
 test('respects ignoreFiles string option', async t => {
