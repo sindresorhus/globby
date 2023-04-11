@@ -266,10 +266,9 @@ test('gitignore option and suppressErrors option', async t => {
 	const temporary = temporaryDirectory();
 	fs.mkdirSync(path.join(temporary, 'foo'));
 	fs.writeFileSync(path.join(temporary, '.gitignore'), 'baz', 'utf8');
-	fs.writeFileSync(path.join(temporary, 'foo', 'protected'), '', 'utf8');
 	fs.writeFileSync(path.join(temporary, 'bar'), '', 'utf8');
 	fs.writeFileSync(path.join(temporary, 'baz'), '', 'utf8');
-	// Block access to the "foo" directory, which should be silently ignored.
+	// Block access to "foo", which should be silently ignored.
 	fs.chmodSync(path.join(temporary, 'foo'), 0o000);
 	const result = await runGlobby(t, '**/*', {cwd: temporary, gitignore: true, suppressErrors: true});
 	t.is(result.length, 1);
