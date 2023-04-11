@@ -58,12 +58,13 @@ const getIsIgnoredPredicate = (files, cwd) => {
 
 const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || process.cwd(),
+	suppressErrors: Boolean(options.suppressErrors),
 });
 
 export const isIgnoredByIgnoreFiles = async (patterns, options) => {
-	const {cwd} = normalizeOptions(options);
+	const {cwd, suppressErrors} = normalizeOptions(options);
 
-	const paths = await fastGlob(patterns, {cwd, ...ignoreFilesGlobOptions});
+	const paths = await fastGlob(patterns, {cwd, suppressErrors, ...ignoreFilesGlobOptions});
 
 	const files = await Promise.all(
 		paths.map(async filePath => ({
@@ -76,9 +77,9 @@ export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 };
 
 export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
-	const {cwd} = normalizeOptions(options);
+	const {cwd, suppressErrors} = normalizeOptions(options);
 
-	const paths = fastGlob.sync(patterns, {cwd, ...ignoreFilesGlobOptions});
+	const paths = fastGlob.sync(patterns, {cwd, suppressErrors, ...ignoreFilesGlobOptions});
 
 	const files = paths.map(filePath => ({
 		filePath,

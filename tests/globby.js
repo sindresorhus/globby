@@ -4,6 +4,7 @@ import path from 'node:path';
 import util from 'node:util';
 import test from 'ava';
 import getStream from 'get-stream';
+import {temporaryDirectory} from 'tempy';
 import {
 	globby,
 	globbySync,
@@ -259,6 +260,19 @@ test('gitignore option and objectMode option', async t => {
 	const result = await runGlobby(t, 'fixtures/gitignore/*', {gitignore: true, objectMode: true});
 	t.is(result.length, 1);
 	t.truthy(result[0].path);
+});
+
+test('gitignore option and suppressErrors option', async t => {
+	const temporary = temporaryDirectory();
+	fs.mkdirSync(path.join(temporary, 'foo'));
+	fs.writeFileSync(path.join(temporary, '.gitignore'), 'baz', 'utf8');
+	fs.writeFileSync(path.join(temporary, 'bar'), '', 'utf8');
+	fs.writeFileSync(path.join(temporary, 'baz'), '', 'utf8');
+	// Block access to "foo", which should be silently ignored.
+	fs.chmodSync(path.join(temporary, 'foo'), 0o000);
+	const result = await runGlobby(t, '**/*', {cwd: temporary, gitignore: true, suppressErrors: true});
+	t.is(result.length, 1);
+	t.truthy(result.includes('bar'));
 });
 
 test('respects ignoreFiles string option', async t => {
