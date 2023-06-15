@@ -59,7 +59,7 @@ const getIsIgnoredPredicate = (files, cwd) => {
 const normalizeOptions = (options = {}) => ({
 	cwd: toPath(options.cwd) || process.cwd(),
 	suppressErrors: Boolean(options.suppressErrors),
-	deep: options.deep ? Number.parseInt(options.deep, 10) : Number.POSITIVE_INFINITY,
+	deep: typeof options.deep === 'number' ? options.deep : Number.POSITIVE_INFINITY,
 });
 
 export const isIgnoredByIgnoreFiles = async (patterns, options) => {
