@@ -72,6 +72,7 @@ expectType<NodeJS.ReadableStream>(
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {gitignore: true}));
 expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
 
+// eslint-disable-next-line unicorn/prefer-top-level-await
 (async () => {
 	const streamResult = [];
 	for await (const path of globbyStream('*.tmp')) {
