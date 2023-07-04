@@ -63,7 +63,7 @@
 		"fast-glob": "^3.3.0",
 		"ignore": "^5.2.4",
 		"merge2": "^1.4.1",
-		"slash": "^5.1.0"
+		"slash": "^4.0.0"
 	},
 	"devDependencies": {
 		"@globby/main-branch": "sindresorhus/globby#main",
