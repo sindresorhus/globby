@@ -53,7 +53,7 @@ const streamToArray = async stream => {
 const runGlobby = async (t, patterns, options) => {
 	const syncResult = globbySync(patterns, options);
 	const promiseResult = await globby(patterns, options);
-	// TODO: Use `Array.fromAsync` when Node.js supports it
+	// TODO: Use `stream.toArray()` when targeting Node.js 16.
 	const streamResult = await streamToArray(globbyStream(patterns, options));
 
 	const result = stabilizeResult(promiseResult);
