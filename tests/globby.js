@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
 import test from 'ava';
-import getStream from 'get-stream';
 import {temporaryDirectory} from 'tempy';
 import {
 	globby,
@@ -42,11 +41,20 @@ const stabilizeResult = result => result
 	})
 	.sort((a, b) => (a.path || a).localeCompare(b.path || b));
 
+const streamToArray = async stream => {
+	const result = [];
+	for await (const chunk of stream) {
+		result.push(chunk);
+	}
+
+	return result;
+};
+
 const runGlobby = async (t, patterns, options) => {
 	const syncResult = globbySync(patterns, options);
 	const promiseResult = await globby(patterns, options);
-	// TODO: Use `Array.fromAsync` when Node.js supports it
-	const streamResult = await getStream.array(globbyStream(patterns, options));
+	// TODO: Use `stream.toArray()` when targeting Node.js 16.
+	const streamResult = await streamToArray(globbyStream(patterns, options));
 
 	const result = stabilizeResult(promiseResult);
 	t.deepEqual(
