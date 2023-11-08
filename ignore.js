@@ -1,10 +1,12 @@
 import process from 'node:process';
 import fs from 'node:fs';
+import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
-import {toPath, isNegativePattern} from './utilities.js';
+import {toPath} from 'unicorn-magic';
+import {isNegativePattern} from './utilities.js';
 
 const ignoreFilesGlobOptions = {
 	ignore: [
@@ -57,7 +59,7 @@ const getIsIgnoredPredicate = (files, cwd) => {
 };
 
 const normalizeOptions = (options = {}) => ({
-	cwd: toPath(options.cwd) || process.cwd(),
+	cwd: toPath(options.cwd) ?? process.cwd(),
 	suppressErrors: Boolean(options.suppressErrors),
 	deep: typeof options.deep === 'number' ? options.deep : Number.POSITIVE_INFINITY,
 });
@@ -70,7 +72,7 @@ export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 	const files = await Promise.all(
 		paths.map(async filePath => ({
 			filePath,
-			content: await fs.promises.readFile(filePath, 'utf8'),
+			content: await fsPromises.readFile(filePath, 'utf8'),
 		})),
 	);
 

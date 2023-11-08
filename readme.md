@@ -15,8 +15,8 @@ Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob) but adds a bunch of 
 
 ## Install
 
-```
-$ npm install globby
+```sh
+npm install globby
 ```
 
 ## Usage
@@ -66,17 +66,15 @@ If set to `true`, `globby` will automatically glob directories for you. If you d
 ```js
 import {globby} from 'globby';
 
-(async () => {
-	const paths = await globby('images', {
-		expandDirectories: {
-			files: ['cat', 'unicorn', '*.jpg'],
-			extensions: ['png']
-		}
-	});
+const paths = await globby('images', {
+	expandDirectories: {
+		files: ['cat', 'unicorn', '*.jpg'],
+		extensions: ['png']
+	}
+});
 
-	console.log(paths);
-	//=> ['cat.png', 'unicorn.png', 'cow.jpg', 'rainbow.jpg']
-})();
+console.log(paths);
+//=> ['cat.png', 'unicorn.png', 'cow.jpg', 'rainbow.jpg']
 ```
 
 Note that if you set this option to `false`, you won't get back matched directories unless you set `onlyFiles: false`.
@@ -105,16 +103,14 @@ Returns `string[]` of matching paths.
 
 Returns a [`stream.Readable`](https://nodejs.org/api/stream.html#stream_readable_streams) of matching paths.
 
-Since Node.js 10, [readable streams are iterable](https://nodejs.org/api/stream.html#stream_readable_symbol_asynciterator), so you can loop over glob matches in a [`for await...of` loop](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) like this:
+For example, loop over glob matches in a [`for await...of` loop](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) like this:
 
 ```js
 import {globbyStream} from 'globby';
 
-(async () => {
-	for await (const path of globbyStream('*.tmp')) {
-		console.log(path);
-	}
-})();
+for await (const path of globbyStream('*.tmp')) {
+	console.log(path);
+}
 ```
 
 ### generateGlobTasks(patterns, options?)
@@ -168,12 +164,6 @@ Just a quick overview.
 - `!` at the beginning of a pattern will negate the match
 
 [Various patterns and expected matches.](https://github.com/sindresorhus/multimatch/blob/main/test/test.js)
-
-## globby for enterprise
-
-Available as part of the Tidelift Subscription.
-
-The maintainers of globby and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. [Learn more.](https://tidelift.com/subscription/pkg/npm-globby?utm_source=npm-globby&utm_medium=referral&utm_campaign=enterprise&utm_term=repo)
 
 ## Related
 

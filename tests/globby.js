@@ -39,22 +39,12 @@ const stabilizeResult = result => result
 
 		return fastGlobResult;
 	})
-	.sort((a, b) => (a.path || a).localeCompare(b.path || b));
-
-const streamToArray = async stream => {
-	const result = [];
-	for await (const chunk of stream) {
-		result.push(chunk);
-	}
-
-	return result;
-};
+	.sort((a, b) => (a.path ?? a).localeCompare(b.path ?? b));
 
 const runGlobby = async (t, patterns, options) => {
 	const syncResult = globbySync(patterns, options);
 	const promiseResult = await globby(patterns, options);
-	// TODO: Use `stream.toArray()` when targeting Node.js 16.
-	const streamResult = await streamToArray(globbyStream(patterns, options));
+	const streamResult = await globbyStream(patterns, options).toArray();
 
 	const result = stabilizeResult(promiseResult);
 	t.deepEqual(

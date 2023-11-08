@@ -1,10 +1,9 @@
-import {Buffer} from 'node:buffer';
-import {URL} from 'node:url';
+import {type Buffer} from 'node:buffer';
 import {expectType} from 'tsd';
 import {
-	GlobTask,
-	GlobEntry,
-	GlobbyFilterFunction,
+	type GlobTask,
+	type GlobEntry,
+	type GlobbyFilterFunction,
 	globby,
 	globbySync,
 	globbyStream,

@@ -1,7 +1,9 @@
 import util from 'node:util';
 import process from 'node:process';
 import path from 'node:path';
+import fs from 'node:fs';
 import test from 'ava';
+import {temporaryDirectory} from 'tempy';
 import {
 	generateGlobTasks,
 	generateGlobTasksSync,
@@ -219,4 +221,14 @@ test('random patterns', async t => {
 			`negative patterns should be in ignore: ${patternsToDebug}`,
 		);
 	}
+});
+
+// Test for https://github.com/sindresorhus/globby/issues/147
+test.failing('expandDirectories should work with globstar prefix', async t => {
+	const cwd = temporaryDirectory();
+	const filePath = path.join(cwd, 'a', 'b');
+	fs.mkdirSync(filePath, {recursive: true});
+	const tasks = await runGenerateGlobTasks(t, ['**/b'], {cwd});
+	t.is(tasks.length, 1);
+	t.deepEqual(tasks[0].patterns, ['**/b/**']);
 });

@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import Benchmark from 'benchmark';
-import rimraf from 'rimraf';
 import * as globbyMainBranch from '@globby/main-branch';
 import gs from 'glob-stream';
 import fastGlob from 'fast-glob';
@@ -83,7 +82,7 @@ const benchs = [
 
 const before = () => {
 	process.chdir(__dirname);
-	rimraf.sync(BENCH_DIR);
+	fs.rmdirSync(BENCH_DIR, {recursive: true});
 	fs.mkdirSync(BENCH_DIR);
 	process.chdir(BENCH_DIR);
 
@@ -100,7 +99,7 @@ const before = () => {
 
 const after = () => {
 	process.chdir(__dirname);
-	rimraf.sync(BENCH_DIR);
+	fs.rmdirSync(BENCH_DIR, {recursive: true});
 };
 
 const suites = [];

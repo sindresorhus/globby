@@ -1,11 +1,11 @@
-import {Options as FastGlobOptions, Entry} from 'fast-glob';
+import {type Options as FastGlobOptions, type Entry} from 'fast-glob';
 
 export type GlobEntry = Entry;
 
-export interface GlobTask {
+export type GlobTask = {
 	readonly patterns: string[];
 	readonly options: Options;
-}
+};
 
 export type ExpandDirectoriesOption =
 	| boolean
@@ -14,7 +14,7 @@ export type ExpandDirectoriesOption =
 
 type FastGlobOptionsWithoutCwd = Omit<FastGlobOptions, 'cwd'>;
 
-export interface Options extends FastGlobOptionsWithoutCwd {
+export type Options = {
 	/**
 	If set to `true`, `globby` will automatically glob directories for you. If you define an `Array` it will only glob files that matches the patterns inside the `Array`. You can also define an `Object` with `files` and `extensions` like in the example below.
 
@@ -61,11 +61,11 @@ export interface Options extends FastGlobOptionsWithoutCwd {
 	@default process.cwd()
 	*/
 	readonly cwd?: URL | string;
-}
+} & FastGlobOptionsWithoutCwd;
 
-export interface GitignoreOptions {
+export type GitignoreOptions = {
 	readonly cwd?: URL | string;
-}
+};
 
 export type GlobbyFilterFunction = (path: URL | string) => boolean;
 
