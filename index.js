@@ -260,3 +260,5 @@ export {
 	isGitIgnored,
 	isGitIgnoredSync,
 } from './ignore.js';
+
+export const {convertPathToPattern} = fastGlob;

@@ -1,3 +1,4 @@
+import type FastGlob from 'fast-glob';
 import {type Options as FastGlobOptions, type Entry} from 'fast-glob';
 
 export type GlobEntry = Entry;
@@ -203,3 +204,5 @@ export function isGitIgnored(options?: GitignoreOptions): Promise<GlobbyFilterFu
 @returns A filter function indicating whether a given path is ignored via a `.gitignore` file.
 */
 export function isGitIgnoredSync(options?: GitignoreOptions): GlobbyFilterFunction;
+
+export function convertPathToPattern(source: string): FastGlob.Pattern;

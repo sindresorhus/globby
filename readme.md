@@ -113,6 +113,10 @@ for await (const path of globbyStream('*.tmp')) {
 }
 ```
 
+### convertPathToPattern(path)
+
+Convert a path to a pattern. [Learn more.](https://github.com/mrmlnc/fast-glob#convertpathtopatternpath)
+
 ### generateGlobTasks(patterns, options?)
 
 Returns an `Promise<object[]>` in the format `{patterns: string[], options: Object}`, which can be passed as arguments to [`fast-glob`](https://github.com/mrmlnc/fast-glob). This is useful for other globbing-related packages.
