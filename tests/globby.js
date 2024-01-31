@@ -165,6 +165,11 @@ test('expandDirectories option', async t => {
 		},
 		ignore: ['**/b.tmp'],
 	}), ['tmp/a.tmp']);
+	t.deepEqual(await runGlobby(t, temporary, {
+		expandDirectories: {
+			extensions: ['tmp'],
+		},
+	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test('expandDirectories:true and onlyFiles:true option', async t => {

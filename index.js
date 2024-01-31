@@ -27,7 +27,7 @@ const getDirectoryGlob = ({directoryPath, files, extensions}) => {
 	const extensionGlob = extensions?.length > 0 ? `.${extensions.length > 1 ? `{${extensions.join(',')}}` : extensions[0]}` : '';
 	return files
 		? files.map(file => nodePath.posix.join(directoryPath, `**/${nodePath.extname(file) ? file : `${file}${extensionGlob}`}`))
-		: [nodePath.posix.join(directoryPath, `**${extensionGlob ? `/${extensionGlob}` : ''}`)];
+		: [nodePath.posix.join(directoryPath, `**${extensionGlob ? `/*${extensionGlob}` : ''}`)];
 };
 
 const directoryToGlob = async (directoryPaths, {
