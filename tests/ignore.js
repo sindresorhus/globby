@@ -1,3 +1,4 @@
+import {chmod} from 'node:fs/promises';
 import path from 'node:path';
 import test from 'ava';
 import slash from 'slash';
@@ -185,4 +186,22 @@ test('custom ignore files', async t => {
 			'ignored-by-prettier.js',
 		],
 	);
+});
+
+test.serial('bad permissions', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/bad-permissions');
+	const noReadDirectory = path.join(cwd, 'noread');
+
+	await chmod(noReadDirectory, 0o000);
+
+	await t.notThrowsAsync(
+		runIsIgnoredByIgnoreFiles(
+			t,
+			'**/*',
+			{cwd, ignore: ['noread']},
+			() => {},
+		),
+	);
+
+	t.teardown(() => chmod(noReadDirectory, 0o755));
 });
