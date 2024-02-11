@@ -63,7 +63,7 @@
 		"git"
 	],
 	"dependencies": {
-		"@sindresorhus/merge-streams": "^1.0.0",
+		"@sindresorhus/merge-streams": "^2.1.0",
 		"fast-glob": "^3.3.2",
 		"ignore": "^5.2.4",
 		"path-type": "^5.0.0",
@@ -77,8 +77,8 @@
 		"benchmark": "2.1.4",
 		"glob-stream": "^8.0.0",
 		"tempy": "^3.1.0",
-		"tsd": "^0.29.0",
-		"xo": "^0.56.0"
+		"tsd": "^0.30.4",
+		"xo": "^0.57.0"
 	},
 	"xo": {
 		"ignores": [

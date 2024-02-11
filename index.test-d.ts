@@ -80,7 +80,7 @@ expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}))
 
 	// `NodeJS.ReadableStream` is not generic, unfortunately,
 	// so it seems `(string | Buffer)[]` is the best we can get here
-	expectType<Array<string | Buffer>>(streamResult);
+	expectType<Array<string | Buffer>>(streamResult); // eslint-disable-line @typescript-eslint/ban-types
 })();
 
 // GenerateGlobTasks

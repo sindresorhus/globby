@@ -1,5 +1,5 @@
-import type FastGlob from 'fast-glob';
-import {type Options as FastGlobOptions, type Entry} from 'fast-glob';
+import type FastGlob from 'fast-glob'; // eslint-disable-line import/no-duplicates
+import {type Options as FastGlobOptions, type Entry} from 'fast-glob'; // eslint-disable-line import/no-duplicates
 
 export type GlobEntry = Entry;
 

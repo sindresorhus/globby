@@ -13,12 +13,12 @@ import {
 	getPathValues,
 } from './utilities.js';
 
-const runIsIgnoredByIgnoreFiles = async (t, patterns, options, fn) => {
+const runIsIgnoredByIgnoreFiles = async (t, patterns, options, function_) => {
 	const promisePredicate = await isIgnoredByIgnoreFiles(patterns, options);
 	const syncPredicate = isIgnoredByIgnoreFilesSync(patterns, options);
 
-	const promiseResult = fn(promisePredicate);
-	const syncResult = fn(syncPredicate);
+	const promiseResult = function_(promisePredicate);
+	const syncResult = function_(syncPredicate);
 
 	t[Array.isArray(promiseResult) ? 'deepEqual' : 'is'](
 		promiseResult,
@@ -29,12 +29,12 @@ const runIsIgnoredByIgnoreFiles = async (t, patterns, options, fn) => {
 	return promiseResult;
 };
 
-const runIsGitIgnored = async (t, options, fn) => {
+const runIsGitIgnored = async (t, options, function_) => {
 	const promisePredicate = await isGitIgnored(options);
 	const syncPredicate = isGitIgnoredSync(options);
 
-	const promiseResult = fn(promisePredicate);
-	const syncResult = fn(syncPredicate);
+	const promiseResult = function_(promisePredicate);
+	const syncResult = function_(syncPredicate);
 
 	t[Array.isArray(promiseResult) ? 'deepEqual' : 'is'](
 		promiseResult,
