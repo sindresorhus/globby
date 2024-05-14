@@ -51,9 +51,9 @@ test('ignore', async t => {
 		const actual = await runIsGitIgnored(
 			t,
 			{cwd},
-			isIgnored => ['foo.js', 'bar.js'].filter(file => !isIgnored(file)),
+			isIgnored => ['foo.js', 'bar.js', 'baz.js'].filter(file => !isIgnored(file)),
 		);
-		const expected = ['bar.js'];
+		const expected = ['bar.js', 'baz.js'];
 		t.deepEqual(actual, expected);
 	}
 });

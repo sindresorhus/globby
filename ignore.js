@@ -30,7 +30,7 @@ const parseIgnoreFile = (file, cwd) => {
 
 	return file.content
 		.split(/\r?\n/)
-		.filter(line => line && !line.startsWith('#'))
+		.filter(line => line && !line.startsWith('#') && !line.startsWith('./') && !line.startsWith('../'))
 		.map(pattern => applyBaseToPattern(pattern, base));
 };
 
