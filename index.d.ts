@@ -1,7 +1,6 @@
-import type FastGlob from 'fast-glob'; // eslint-disable-line import/no-duplicates
-import {type Options as FastGlobOptions, type Entry} from 'fast-glob'; // eslint-disable-line import/no-duplicates
+import type FastGlob from 'fast-glob';
 
-export type GlobEntry = Entry;
+export type GlobEntry = FastGlob.Entry;
 
 export type GlobTask = {
 	readonly patterns: string[];
@@ -13,7 +12,7 @@ export type ExpandDirectoriesOption =
 	| readonly string[]
 	| {files?: readonly string[]; extensions?: readonly string[]};
 
-type FastGlobOptionsWithoutCwd = Omit<FastGlobOptions, 'cwd'>;
+type FastGlobOptionsWithoutCwd = Omit<FastGlob.Options, 'cwd'>;
 
 export type Options = {
 	/**
