@@ -206,7 +206,6 @@ export function isGitIgnoredSync(options?: GitignoreOptions): GlobbyFilterFuncti
 
 export function convertPathToPattern(source: string): FastGlob.Pattern;
 
-
 /**
  * Check if a path is ignored by the ignore files.
  * @param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).

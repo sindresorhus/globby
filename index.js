@@ -260,7 +260,7 @@ export {
 	isGitIgnored,
 	isGitIgnoredSync,
 	isIgnoredByIgnoreFiles,
-	isIgnoredByIgnoreFilesSync
+	isIgnoredByIgnoreFilesSync,
 } from './ignore.js';
 
 export const {convertPathToPattern} = fastGlob;
