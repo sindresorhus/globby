@@ -205,3 +205,51 @@ export function isGitIgnored(options?: GitignoreOptions): Promise<GlobbyFilterFu
 export function isGitIgnoredSync(options?: GitignoreOptions): GlobbyFilterFunction;
 
 export function convertPathToPattern(source: string): FastGlob.Pattern;
+
+/**
+Check if a path is ignored by the ignore files.
+
+@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
+@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
+@returns A filter function indicating whether a given path is ignored via the ignore files.
+
+This is a more generic form of the `isGitIgnored` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
+
+@example
+```
+import {isIgnoredByIgnoreFiles} from 'globby';
+
+const isIgnored = await isIgnoredByIgnoreFiles('**\/.gitignore');
+
+console.log(isIgnored('some/file'));
+```
+*/
+export function isIgnoredByIgnoreFiles(
+	patterns: string | readonly string[],
+	options?: Options
+): Promise<GlobbyFilterFunction>;
+
+/**
+Check if a path is ignored by the ignore files.
+
+@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
+@param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
+@returns A filter function indicating whether a given path is ignored via the ignore files.
+
+This is a more generic form of the `isGitIgnored` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
+
+@see {@link isIgnoredByIgnoreFiles}
+
+@example
+```
+import {isIgnoredByIgnoreFilesSync} from 'globby';
+
+const isIgnored = isIgnoredByIgnoreFilesSync('**\/.gitignore');
+
+console.log(isIgnored('some/file'));
+```
+*/
+export function isIgnoredByIgnoreFilesSync(
+	patterns: string | readonly string[],
+	options?: Options
+): GlobbyFilterFunction;

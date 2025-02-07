@@ -157,6 +157,39 @@ Returns a `(path: URL | string) => boolean` indicating whether a given path is i
 
 Takes `cwd?: URL | string` as options.
 
+
+### isIgnoredByIgnoreFiles(patterns, options?)
+
+Returns a `Promise<(path: URL | string) => boolean>` indicating whether a given path is ignored via the ignore files.
+
+This is a more generic form of the `isGitIgnored` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
+
+Takes `cwd?: URL | string` as options.
+
+```js
+import {isIgnoredByIgnoreFiles} from 'globby';
+
+const isIgnored = await isIgnoredByIgnoreFiles("**/.gitignore");
+
+console.log(isIgnored('some/file'));
+```
+
+### isIgnoredByIgnoreFilesSync(patterns, options?)
+
+Returns a `(path: URL | string) => boolean` indicating whether a given path is ignored via the ignore files.
+
+This is a more generic form of the `isGitIgnoredSync` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
+
+Takes `cwd?: URL | string` as options.
+
+```js
+import {isIgnoredByIgnoreFilesSync} from 'globby';
+
+const isIgnored = isIgnoredByIgnoreFilesSync("**/.gitignore");
+
+console.log(isIgnored('some/file'));
+```
+
 ## Globbing patterns
 
 Just a quick overview.

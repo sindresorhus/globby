@@ -259,6 +259,8 @@ export const generateGlobTasksSync = normalizeArgumentsSync(generateTasksSync);
 export {
 	isGitIgnored,
 	isGitIgnoredSync,
+	isIgnoredByIgnoreFiles,
+	isIgnoredByIgnoreFilesSync,
 } from './ignore.js';
 
 export const {convertPathToPattern} = fastGlob;
