@@ -160,7 +160,7 @@ Takes `cwd?: URL | string` as options.
 
 ### isIgnoredByIgnoreFiles(patterns, options?)
 
-Returns a `Promise<(path: URL | string) => boolean>` indicating whether a given path is ignored via an ignore file.
+Returns a `Promise<(path: URL | string) => boolean>` indicating whether a given path is ignored via the ignore files.
 
 This is a more generic form of the `isGitIgnored` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
 
@@ -176,7 +176,7 @@ console.log(isIgnored('some/file'));
 
 ### isIgnoredByIgnoreFilesSync(patterns, options?)
 
-Returns a `(path: URL | string) => boolean` indicating whether a given path is ignored via an ignore file.
+Returns a `(path: URL | string) => boolean` indicating whether a given path is ignored via the ignore files.
 
 This is a more generic form of the `isGitIgnoredSync` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
 
