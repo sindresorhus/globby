@@ -1,7 +1,7 @@
 import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
-import util from 'node:util';
+import {format} from 'node:util';
 import test from 'ava';
 import {temporaryDirectory} from 'tempy';
 import {
@@ -222,7 +222,7 @@ test.serial.failing('relative paths and ignores option', async t => {
 
 // Rejected for being an invalid pattern
 for (const value of invalidPatterns) {
-	const valueString = util.format(value);
+	const valueString = format(value);
 	const message = 'Patterns must be a string or an array of strings';
 
 	test(`throws for invalid patterns input: ${valueString}`, async t => {

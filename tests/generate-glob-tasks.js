@@ -1,4 +1,4 @@
-import util from 'node:util';
+import {format} from 'node:util';
 import process from 'node:process';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -44,7 +44,7 @@ test('generateGlobTasks', async t => {
 
 // Rejected for being an invalid pattern
 for (const value of invalidPatterns) {
-	const valueString = util.format(value);
+	const valueString = format(value);
 	const message = 'Patterns must be a string or an array of strings';
 
 	test(`throws for invalid patterns input: ${valueString}`, async t => {

@@ -64,21 +64,21 @@
 	],
 	"dependencies": {
 		"@sindresorhus/merge-streams": "^2.1.0",
-		"fast-glob": "^3.3.2",
-		"ignore": "^5.2.4",
-		"path-type": "^5.0.0",
+		"fast-glob": "^3.3.3",
+		"ignore": "^7.0.3",
+		"path-type": "^6.0.0",
 		"slash": "^5.1.0",
-		"unicorn-magic": "^0.1.0"
+		"unicorn-magic": "^0.3.0"
 	},
 	"devDependencies": {
 		"@globby/main-branch": "sindresorhus/globby#main",
-		"@types/node": "^20.9.0",
+		"@types/node": "^22.13.1",
 		"ava": "^5.3.1",
 		"benchmark": "2.1.4",
 		"glob-stream": "^8.0.0",
 		"tempy": "^3.1.0",
-		"tsd": "^0.30.4",
-		"xo": "^0.57.0"
+		"tsd": "^0.31.2",
+		"xo": "^0.60.0"
 	},
 	"xo": {
 		"ignores": [
