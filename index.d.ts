@@ -70,6 +70,13 @@ export type GitignoreOptions = {
 export type GlobbyFilterFunction = (path: URL | string) => boolean;
 
 /**
+A readable stream that yields string paths from glob patterns.
+*/
+export type GlobbyStream = NodeJS.ReadableStream & {
+	[Symbol.asyncIterator](): NodeJS.AsyncIterator<string>;
+};
+
+/**
 Find files and directories using glob patterns.
 
 Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
@@ -136,7 +143,7 @@ for await (const path of globbyStream('*.tmp')) {
 export function globbyStream(
 	patterns: string | readonly string[],
 	options?: Options
-): NodeJS.ReadableStream;
+): GlobbyStream;
 
 /**
 Note that you should avoid running the same tasks multiple times as they contain a file system cache. Instead, run this method each time to ensure file system changes are taken into consideration.

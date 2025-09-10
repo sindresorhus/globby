@@ -3,6 +3,7 @@ import {expectType} from 'tsd';
 import {
 	type GlobTask,
 	type GlobEntry,
+	type GlobbyStream,
 	type GlobbyFilterFunction,
 	globby,
 	globbySync,
@@ -55,12 +56,12 @@ expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<GlobEntry[]>(globbySync('*.tmp', {objectMode: true}));
 
 // Globby (stream)
-expectType<NodeJS.ReadableStream>(globbyStream('*.tmp'));
-expectType<NodeJS.ReadableStream>(globbyStream(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
+expectType<GlobbyStream>(globbyStream('*.tmp'));
+expectType<GlobbyStream>(globbyStream(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
-expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {expandDirectories: false}));
-expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {expandDirectories: ['a*', 'b*']}));
-expectType<NodeJS.ReadableStream>(
+expectType<GlobbyStream>(globbyStream('*.tmp', {expandDirectories: false}));
+expectType<GlobbyStream>(globbyStream('*.tmp', {expandDirectories: ['a*', 'b*']}));
+expectType<GlobbyStream>(
 	globbyStream('*.tmp', {
 		expandDirectories: {
 			files: ['a', 'b'],
@@ -68,8 +69,8 @@ expectType<NodeJS.ReadableStream>(
 		},
 	}),
 );
-expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {gitignore: true}));
-expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
+expectType<GlobbyStream>(globbyStream('*.tmp', {gitignore: true}));
+expectType<GlobbyStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
 
 // eslint-disable-next-line unicorn/prefer-top-level-await
 (async () => {
@@ -78,9 +79,8 @@ expectType<NodeJS.ReadableStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}))
 		streamResult.push(path);
 	}
 
-	// `NodeJS.ReadableStream` is not generic, unfortunately,
-	// so it seems `(string | Buffer)[]` is the best we can get here
-	expectType<Array<string | Buffer>>(streamResult); // eslint-disable-line @typescript-eslint/ban-types
+	// With the GlobbyStream interface, we can properly type the result as string[]
+	expectType<string[]>(streamResult);
 })();
 
 // GenerateGlobTasks
