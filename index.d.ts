@@ -42,6 +42,8 @@ export type Options = {
 	/**
 	Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
+	Performance note: This option searches for all `.gitignore` files in the entire directory tree before globbing, which can be slow. For better performance, use `ignoreFiles: '.gitignore'` to only respect the root `.gitignore` file.
+
 	@default false
 	*/
 	readonly gitignore?: boolean;
@@ -50,6 +52,8 @@ export type Options = {
 	Glob patterns to look for ignore files, which are then used to ignore globbed files.
 
 	This is a more generic form of the `gitignore` option, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
+
+	Performance tip: Using a specific path like `'.gitignore'` is much faster than recursive patterns.
 
 	@default undefined
 	*/
