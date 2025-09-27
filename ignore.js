@@ -21,9 +21,41 @@ const ignoreFilesGlobOptions = {
 
 export const GITIGNORE_FILES_PATTERN = '**/.gitignore';
 
-const applyBaseToPattern = (pattern, base) => isNegativePattern(pattern)
-	? '!' + path.posix.join(base, pattern.slice(1))
-	: path.posix.join(base, pattern);
+// Apply base path to gitignore patterns based on .gitignore spec 2.22.1
+// https://git-scm.com/docs/gitignore#_pattern_format
+// See also https://github.com/sindresorhus/globby/issues/146
+const applyBaseToPattern = (pattern, base) => {
+	if (!base) {
+		return pattern;
+	}
+
+	const isNegative = isNegativePattern(pattern);
+	const cleanPattern = isNegative ? pattern.slice(1) : pattern;
+
+	// Check if pattern has non-trailing slashes
+	const slashIndex = cleanPattern.indexOf('/');
+	const hasNonTrailingSlash = slashIndex !== -1 && slashIndex !== cleanPattern.length - 1;
+
+	let result;
+	if (!hasNonTrailingSlash) {
+		// "If there is no separator at the beginning or middle of the pattern,
+		// then the pattern may also match at any level below the .gitignore level."
+		// So patterns like '*.log' or 'temp' or 'build/' (trailing slash) match recursively.
+		result = path.posix.join(base, '**', cleanPattern);
+	} else if (cleanPattern.startsWith('/')) {
+		// "If there is a separator at the beginning [...] of the pattern,
+		// then the pattern is relative to the directory level of the particular .gitignore file itself."
+		// Leading slash anchors the pattern to the .gitignore's directory.
+		result = path.posix.join(base, cleanPattern.slice(1));
+	} else {
+		// "If there is a separator [...] middle [...] of the pattern,
+		// then the pattern is relative to the directory level of the particular .gitignore file itself."
+		// Patterns like 'src/foo' are relative to the .gitignore's directory.
+		result = path.posix.join(base, cleanPattern);
+	}
+
+	return isNegative ? '!' + result : result;
+};
 
 const parseIgnoreFile = (file, cwd) => {
 	const base = slash(path.relative(cwd, path.dirname(file.filePath)));

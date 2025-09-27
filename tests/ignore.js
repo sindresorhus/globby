@@ -144,6 +144,32 @@ test('check file', async t => {
 	}
 });
 
+test('gitignore patterns in subdirectories apply recursively', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures', 'gitignore-nested');
+	const isIgnored = await isGitIgnored({cwd});
+
+	// Pattern '*.log' in subdir/.gitignore should ignore files at any level below
+	t.true(isIgnored('subdir/file.log'));
+	t.true(isIgnored('subdir/deep/file.log'));
+	t.true(isIgnored('subdir/deep/deeper/file.log'));
+	t.false(isIgnored('file.log')); // Not under subdir
+
+	// Pattern 'specific.txt' should ignore at any level below
+	t.true(isIgnored('subdir/specific.txt'));
+	t.true(isIgnored('subdir/deep/specific.txt'));
+	t.false(isIgnored('specific.txt')); // Not under subdir
+});
+
+test('gitignore patterns with slashes are relative to gitignore location', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures', 'gitignore-nested');
+	const isIgnored = await isGitIgnored({cwd});
+
+	// Pattern 'deep/*.tmp' should only ignore direct children of deep/
+	t.true(isIgnored('subdir/deep/file.tmp'));
+	t.false(isIgnored('subdir/deep/nested/file.tmp'));
+	t.false(isIgnored('subdir/file.tmp'));
+});
+
 test('custom ignore files', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
 	const files = [
