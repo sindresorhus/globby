@@ -23,6 +23,19 @@ const normalizePathForDirectoryGlob = (filePath, cwd) => {
 	return nodePath.isAbsolute(path) ? path : nodePath.join(cwd, path);
 };
 
+const shouldExpandGlobstarDirectory = pattern => {
+	const match = pattern?.match(/\*\*\/([^/]+)$/);
+	if (!match) {
+		return false;
+	}
+
+	const dirname = match[1];
+	const hasWildcards = /[*?[\]{}]/.test(dirname);
+	const hasExtension = nodePath.extname(dirname) && !dirname.startsWith('.');
+
+	return !hasWildcards && !hasExtension;
+};
+
 const getDirectoryGlob = ({directoryPath, files, extensions}) => {
 	const extensionGlob = extensions?.length > 0 ? `.${extensions.length > 1 ? `{${extensions.join(',')}}` : extensions[0]}` : '';
 	return files
@@ -35,9 +48,19 @@ const directoryToGlob = async (directoryPaths, {
 	files,
 	extensions,
 } = {}) => {
-	const globs = await Promise.all(directoryPaths.map(async directoryPath =>
-		(await isDirectory(normalizePathForDirectoryGlob(directoryPath, cwd))) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath),
-	);
+	const globs = await Promise.all(directoryPaths.map(async directoryPath => {
+		// Check pattern without negative prefix
+		const checkPattern = isNegativePattern(directoryPath) ? directoryPath.slice(1) : directoryPath;
+
+		// Expand globstar directory patterns like **/dirname to **/dirname/**
+		if (shouldExpandGlobstarDirectory(checkPattern)) {
+			return getDirectoryGlob({directoryPath, files, extensions});
+		}
+
+		// Original logic for checking actual directories
+		const pathToCheck = normalizePathForDirectoryGlob(directoryPath, cwd);
+		return (await isDirectory(pathToCheck)) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath;
+	}));
 
 	return globs.flat();
 };
@@ -46,7 +69,19 @@ const directoryToGlobSync = (directoryPaths, {
 	cwd = process.cwd(),
 	files,
 	extensions,
-} = {}) => directoryPaths.flatMap(directoryPath => isDirectorySync(normalizePathForDirectoryGlob(directoryPath, cwd)) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath);
+} = {}) => directoryPaths.flatMap(directoryPath => {
+	// Check pattern without negative prefix
+	const checkPattern = isNegativePattern(directoryPath) ? directoryPath.slice(1) : directoryPath;
+
+	// Expand globstar directory patterns like **/dirname to **/dirname/**
+	if (shouldExpandGlobstarDirectory(checkPattern)) {
+		return getDirectoryGlob({directoryPath, files, extensions});
+	}
+
+	// Original logic for checking actual directories
+	const pathToCheck = normalizePathForDirectoryGlob(directoryPath, cwd);
+	return isDirectorySync(pathToCheck) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath;
+});
 
 const toPatternsArray = patterns => {
 	patterns = [...new Set([patterns].flat())];

@@ -224,11 +224,199 @@ test('random patterns', async t => {
 });
 
 // Test for https://github.com/sindresorhus/globby/issues/147
-test.failing('expandDirectories should work with globstar prefix', async t => {
+test('expandDirectories should work with globstar prefix', async t => {
 	const cwd = temporaryDirectory();
 	const filePath = path.join(cwd, 'a', 'b');
 	fs.mkdirSync(filePath, {recursive: true});
 	const tasks = await runGenerateGlobTasks(t, ['**/b'], {cwd});
 	t.is(tasks.length, 1);
 	t.deepEqual(tasks[0].patterns, ['**/b/**']);
+});
+
+test('expandDirectories should not expand invalid globstar patterns', async t => {
+	const cwd = temporaryDirectory();
+	const filePath = path.join(cwd, 'a', 'b');
+	fs.mkdirSync(filePath, {recursive: true});
+
+	// Test patterns that should NOT be expanded
+	const invalidPatterns = [
+		'**/b.txt', // File pattern with extension
+		'**/*', // Wildcard pattern
+		'**', // Just globstar
+		'**/b/c', // Path with slash
+		'**/b?', // Question mark wildcard
+		'**/b[abc]', // Bracket wildcard
+	];
+
+	for (const pattern of invalidPatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		t.is(tasks.length, 1, `Pattern ${pattern} should not be expanded`);
+		t.deepEqual(tasks[0].patterns, [pattern], `Pattern ${pattern} should remain unchanged`);
+	}
+});
+
+test('expandDirectories should work with globstar in middle of pattern', async t => {
+	const cwd = temporaryDirectory();
+
+	// Create nested directory structure
+	fs.mkdirSync(path.join(cwd, 'src', 'components', 'button'), {recursive: true});
+	fs.mkdirSync(path.join(cwd, 'lib', 'utils', 'button'), {recursive: true});
+
+	// Test patterns with globstar not at the start
+	const validPatterns = [
+		{pattern: 'src/**/button', expected: 'src/**/button/**'},
+		{pattern: 'lib/**/button', expected: 'lib/**/button/**'},
+		{pattern: 'src/components/**/button', expected: 'src/components/**/button/**'},
+	];
+
+	for (const {pattern, expected} of validPatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		t.is(tasks.length, 1, `Pattern ${pattern} should generate one task`);
+		t.deepEqual(tasks[0].patterns, [expected], `Pattern ${pattern} should expand to ${expected}`);
+	}
+
+	// Test patterns that should NOT be expanded (even with globstar in middle)
+	const invalidMiddlePatterns = [
+		'src/**/button.js', // File extension
+		'src/**/*', // Wildcard after globstar
+		'src/**/button/index', // Additional path after globstar directory
+		'src/**/button?', // Question mark wildcard
+	];
+
+	for (const pattern of invalidMiddlePatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		t.is(tasks.length, 1, `Pattern ${pattern} should not be expanded`);
+		t.deepEqual(tasks[0].patterns, [pattern], `Pattern ${pattern} should remain unchanged`);
+	}
+});
+
+test('expandDirectories critical edge cases', async t => {
+	const cwd = temporaryDirectory();
+
+	// Create test directories with various edge case names
+	fs.mkdirSync(path.join(cwd, '.git'), {recursive: true});
+	fs.mkdirSync(path.join(cwd, '.vscode'), {recursive: true});
+	fs.mkdirSync(path.join(cwd, 'node.js'), {recursive: true}); // Directory that looks like a file
+	fs.mkdirSync(path.join(cwd, 'build-output'), {recursive: true}); // Hyphens
+	fs.mkdirSync(path.join(cwd, 'test_files'), {recursive: true}); // Underscores
+	fs.mkdirSync(path.join(cwd, 'v1.0.0'), {recursive: true}); // Dots in name
+	fs.mkdirSync(path.join(cwd, '文件夹'), {recursive: true}); // Unicode Chinese
+	fs.mkdirSync(path.join(cwd, 'café'), {recursive: true}); // Unicode accents
+	fs.mkdirSync(path.join(cwd, '@scope'), {recursive: true}); // Npm scope style
+
+	// Test hidden directories (should expand - they're valid directory names)
+	const hiddenDirectoryPatterns = [
+		{pattern: '**/.git', expected: '**/.git/**'},
+		{pattern: '**/.vscode', expected: '**/.vscode/**'},
+	];
+
+	for (const {pattern, expected} of hiddenDirectoryPatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		t.is(tasks.length, 1, `Hidden directory pattern ${pattern} should generate one task`);
+		t.deepEqual(tasks[0].patterns, [expected], `Hidden directory ${pattern} should expand to ${expected}`);
+	}
+
+	// Test directories that look like files (should expand if no actual extension)
+	const ambiguousPatterns = [
+		{pattern: '**/node.js', expected: '**/node.js', shouldExpand: false}, // Has .js extension
+		{pattern: '**/build-output', expected: '**/build-output/**', shouldExpand: true}, // Hyphens OK
+		{pattern: '**/test_files', expected: '**/test_files/**', shouldExpand: true}, // Underscores OK
+		{pattern: '**/v1.0.0', expected: '**/v1.0.0', shouldExpand: false}, // Has extension .0
+		{pattern: '**/@scope', expected: '**/@scope/**', shouldExpand: true}, // Special chars OK
+	];
+
+	for (const {pattern, expected, shouldExpand} of ambiguousPatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		const message = shouldExpand ? 'should expand' : 'should not expand';
+		t.deepEqual(tasks[0].patterns, [expected], `Pattern ${pattern} ${message}`);
+	}
+
+	// Test Unicode directory names (should expand)
+	const unicodePatterns = [
+		{pattern: '**/文件夹', expected: '**/文件夹/**'}, // Chinese
+		{pattern: '**/café', expected: '**/café/**'}, // French accents
+	];
+
+	for (const {pattern, expected} of unicodePatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		t.deepEqual(tasks[0].patterns, [expected], `Unicode pattern ${pattern} should expand to ${expected}`);
+	}
+});
+
+test('expandDirectories with negative patterns', async t => {
+	const cwd = temporaryDirectory();
+	fs.mkdirSync(path.join(cwd, 'src', 'components'), {recursive: true});
+	fs.mkdirSync(path.join(cwd, 'lib', 'components'), {recursive: true});
+
+	// Test negative patterns with globstar directories
+	const negativePatterns = [
+		{
+			patterns: ['**/components', '!lib/**/components'],
+			expected: {
+				positive: ['**/components/**'],
+				negative: ['lib/**/components/**'],
+			},
+		},
+		{
+			patterns: ['src/**/components', '!src/**/components'],
+			expected: {
+				positive: ['src/**/components/**'],
+				negative: ['src/**/components/**'],
+			},
+		},
+	];
+
+	for (const {patterns, expected} of negativePatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, patterns, {cwd});
+
+		// Find positive and negative patterns in results
+		const positivePatterns = tasks[0].patterns.filter(p => !p.startsWith('!'));
+		const negativePatterns = tasks[0].options.ignore;
+
+		t.deepEqual(positivePatterns, expected.positive.filter(p => !p.startsWith('!')),
+			`Positive patterns should be expanded correctly for ${patterns.join(', ')}`);
+
+		// Check that negative patterns are properly handled in ignore array
+		const expectedIgnore = new Set(expected.negative.map(p => p.replace(/^!/, '')));
+		t.true(negativePatterns.some(p => expectedIgnore.has(p)),
+			`Negative patterns should be in ignore array for ${patterns.join(', ')}`);
+	}
+});
+
+test('expandDirectories with multiple globstars', async t => {
+	const cwd = temporaryDirectory();
+	fs.mkdirSync(path.join(cwd, 'a', 'b', 'c', 'target'), {recursive: true});
+
+	// Patterns with multiple globstars - should expand the last directory pattern
+	const multiGlobstarPatterns = [
+		{pattern: '**/a/**/target', expected: '**/a/**/target/**'},
+		{pattern: '**/**/target', expected: '**/**/target/**'},
+		{pattern: '**/target/**/nested', expected: '**/target/**/nested/**'},
+	];
+
+	for (const {pattern, expected} of multiGlobstarPatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		t.deepEqual(tasks[0].patterns, [expected], `Multi-globstar pattern ${pattern} should expand to ${expected}`);
+	}
+
+	// Should NOT expand if last part isn't a simple directory
+	const invalidMultiPatterns = [
+		'**/a/**/*.js', // Ends with wildcard extension
+		'**/a/**/b/c', // Has path after last globstar
+		'**/a/**', // Ends with globstar
+	];
+
+	for (const pattern of invalidMultiPatterns) {
+		// eslint-disable-next-line no-await-in-loop
+		const tasks = await runGenerateGlobTasks(t, [pattern], {cwd});
+		t.deepEqual(tasks[0].patterns, [pattern], `Pattern ${pattern} should not be expanded`);
+	}
 });
