@@ -76,6 +76,20 @@ const toRelativePath = (fileOrDirectory, cwd) => {
 		throw new Error(`Path ${fileOrDirectory} is not in cwd ${cwd}`);
 	}
 
+	// Normalize relative paths:
+	// - Git treats './foo' as 'foo' when checking against patterns
+	// - Patterns starting with './' in .gitignore are invalid and don't match anything
+	// - The ignore library expects normalized paths without './' prefix
+	if (fileOrDirectory.startsWith('./')) {
+		return fileOrDirectory.slice(2);
+	}
+
+	// Paths with ../ point outside cwd and cannot match patterns from this directory
+	// Return undefined to indicate this path is outside scope
+	if (fileOrDirectory.startsWith('../')) {
+		return undefined;
+	}
+
 	return fileOrDirectory;
 };
 
@@ -86,6 +100,11 @@ const getIsIgnoredPredicate = (files, cwd) => {
 	return fileOrDirectory => {
 		fileOrDirectory = toPath(fileOrDirectory);
 		fileOrDirectory = toRelativePath(fileOrDirectory, cwd);
+		// If path is outside cwd (undefined), it can't be ignored by patterns in cwd
+		if (fileOrDirectory === undefined) {
+			return false;
+		}
+
 		return fileOrDirectory ? ignores.ignores(slash(fileOrDirectory)) : false;
 	};
 };
