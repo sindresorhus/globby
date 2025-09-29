@@ -380,13 +380,14 @@ test('expandDirectories with negative patterns', async t => {
 		const positivePatterns = tasks[0].patterns.filter(p => !p.startsWith('!'));
 		const negativePatterns = tasks[0].options.ignore;
 
-		t.deepEqual(positivePatterns, expected.positive.filter(p => !p.startsWith('!')),
-			`Positive patterns should be expanded correctly for ${patterns.join(', ')}`);
+		t.deepEqual(positivePatterns, expected.positive.filter(p => !p.startsWith('!')), `Positive patterns should be expanded correctly for ${patterns.join(', ')}`);
 
 		// Check that negative patterns are properly handled in ignore array
 		const expectedIgnore = new Set(expected.negative.map(p => p.replace(/^!/, '')));
-		t.true(negativePatterns.some(p => expectedIgnore.has(p)),
-			`Negative patterns should be in ignore array for ${patterns.join(', ')}`);
+		t.true(
+			negativePatterns.some(p => expectedIgnore.has(p)),
+			`Negative patterns should be in ignore array for ${patterns.join(', ')}`,
+		);
 	}
 });
 

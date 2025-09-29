@@ -209,15 +209,17 @@ test('absolute:true, expandDirectories:false, onlyFiles:false, gitignore:true an
 
 test.serial.failing('relative paths and ignores option', async t => {
 	process.chdir(temporary);
-	for (const cwd of getPathValues(process.cwd())) {
-		// eslint-disable-next-line no-await-in-loop
-		t.deepEqual(await runGlobby(t, '../tmp', {
-			cwd,
-			ignore: ['tmp'],
-		}), []);
+	try {
+		for (const temporaryCwd of getPathValues(process.cwd())) {
+			// eslint-disable-next-line no-await-in-loop
+			t.deepEqual(await runGlobby(t, '../tmp', {
+				cwd: temporaryCwd,
+				ignore: ['tmp'],
+			}), []);
+		}
+	} finally {
+		process.chdir(cwd);
 	}
-
-	process.chdir(cwd);
 });
 
 // Rejected for being an invalid pattern

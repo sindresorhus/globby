@@ -17,7 +17,7 @@
 	},
 	"sideEffects": false,
 	"engines": {
-		"node": ">=18"
+		"node": ">=20"
 	},
 	"scripts": {
 		"bench": "npm update @globby/main-branch glob-stream fast-glob && node bench.js",
@@ -63,22 +63,22 @@
 		"git"
 	],
 	"dependencies": {
-		"@sindresorhus/merge-streams": "^2.1.0",
+		"@sindresorhus/merge-streams": "^4.0.0",
 		"fast-glob": "^3.3.3",
-		"ignore": "^7.0.3",
+		"ignore": "^7.0.5",
 		"path-type": "^6.0.0",
 		"slash": "^5.1.0",
 		"unicorn-magic": "^0.3.0"
 	},
 	"devDependencies": {
 		"@globby/main-branch": "sindresorhus/globby#main",
-		"@types/node": "^22.13.1",
-		"ava": "^5.3.1",
+		"@types/node": "^24.5.2",
+		"ava": "^6.4.1",
 		"benchmark": "2.1.4",
-		"glob-stream": "^8.0.0",
+		"glob-stream": "^8.0.3",
 		"tempy": "^3.1.0",
-		"tsd": "^0.31.2",
-		"xo": "^0.60.0"
+		"tsd": "^0.33.0",
+		"xo": "^1.2.2"
 	},
 	"xo": {
 		"ignores": [

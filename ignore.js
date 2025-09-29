@@ -127,12 +127,10 @@ export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 		...ignoreFilesGlobOptions,
 	});
 
-	const files = await Promise.all(
-		paths.map(async filePath => ({
-			filePath,
-			content: await fsPromises.readFile(filePath, 'utf8'),
-		})),
-	);
+	const files = await Promise.all(paths.map(async filePath => ({
+		filePath,
+		content: await fsPromises.readFile(filePath, 'utf8'),
+	})));
 
 	return getIsIgnoredPredicate(files, cwd);
 };

@@ -73,12 +73,19 @@ export type GitignoreOptions = {
 
 export type GlobbyFilterFunction = (path: URL | string) => boolean;
 
+type AsyncIterableReadable<Value> = Omit<NodeJS.ReadableStream, typeof Symbol.asyncIterator> & {
+	[Symbol.asyncIterator](): NodeJS.AsyncIterator<Value>;
+};
+
 /**
 A readable stream that yields string paths from glob patterns.
 */
-export type GlobbyStream = NodeJS.ReadableStream & {
-	[Symbol.asyncIterator](): NodeJS.AsyncIterator<string>;
-};
+export type GlobbyStream = AsyncIterableReadable<string>;
+
+/**
+A readable stream that yields `GlobEntry` objects from glob patterns when `objectMode` is enabled.
+*/
+export type GlobbyEntryStream = AsyncIterableReadable<GlobEntry>;
 
 /**
 Find files and directories using glob patterns.
@@ -144,6 +151,10 @@ for await (const path of globbyStream('*.tmp')) {
 }
 ```
 */
+export function globbyStream(
+	patterns: string | readonly string[],
+	options: Options & {objectMode: true}
+): GlobbyEntryStream;
 export function globbyStream(
 	patterns: string | readonly string[],
 	options?: Options

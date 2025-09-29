@@ -60,29 +60,30 @@ test('ignore', async t => {
 
 test('ignore - mixed path styles', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
 	for (const cwd of getPathValues(directory)) {
-		t.true(
-			// eslint-disable-next-line no-await-in-loop
-			await runIsGitIgnored(
-				t,
-				{cwd},
-				isIgnored => isIgnored(slash(path.resolve(directory, 'foo.js'))),
-			),
+		// eslint-disable-next-line no-await-in-loop
+		const result = await runIsGitIgnored(
+			t,
+			{cwd},
+			isIgnored => isIgnored(slash(path.resolve(directory, 'foo.js'))),
 		);
+
+		t.true(result);
 	}
 });
 
 test('ignore - os paths', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 	for (const cwd of getPathValues(directory)) {
-		t.true(
-			// eslint-disable-next-line no-await-in-loop
-			await runIsGitIgnored(
-				t,
-				{cwd},
-				isIgnored => isIgnored(path.resolve(directory, 'foo.js')),
-			),
+		// eslint-disable-next-line no-await-in-loop
+		const result = await runIsGitIgnored(
+			t,
+			{cwd},
+			isIgnored => isIgnored(path.resolve(directory, 'foo.js')),
 		);
+
+		t.true(result);
 	}
 });
 
@@ -122,25 +123,25 @@ test('check file', async t => {
 	const directory = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 
 	for (const ignoredFile of getPathValues(path.join(directory, 'foo.js'))) {
-		t.true(
-			// eslint-disable-next-line no-await-in-loop
-			await runIsGitIgnored(
-				t,
-				{cwd: directory},
-				isIgnored => isIgnored(ignoredFile),
-			),
+		// eslint-disable-next-line no-await-in-loop
+		const result = await runIsGitIgnored(
+			t,
+			{cwd: directory},
+			isIgnored => isIgnored(ignoredFile),
 		);
+
+		t.true(result);
 	}
 
 	for (const notIgnoredFile of getPathValues(path.join(directory, 'bar.js'))) {
-		t.false(
-			// eslint-disable-next-line no-await-in-loop
-			await runIsGitIgnored(
-				t,
-				{cwd: directory},
-				isIgnored => isIgnored(notIgnoredFile),
-			),
+		// eslint-disable-next-line no-await-in-loop
+		const result = await runIsGitIgnored(
+			t,
+			{cwd: directory},
+			isIgnored => isIgnored(notIgnoredFile),
 		);
+
+		t.false(result);
 	}
 });
 
@@ -261,14 +262,12 @@ test.serial('bad permissions', async t => {
 
 	await chmod(noReadDirectory, 0o000);
 
-	await t.notThrowsAsync(
-		runIsIgnoredByIgnoreFiles(
-			t,
-			'**/*',
-			{cwd, ignore: ['noread']},
-			() => {},
-		),
-	);
+	await t.notThrowsAsync(runIsIgnoredByIgnoreFiles(
+		t,
+		'**/*',
+		{cwd, ignore: ['noread']},
+		() => {},
+	));
 
 	t.teardown(() => chmod(noReadDirectory, 0o755));
 });

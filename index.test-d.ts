@@ -4,6 +4,7 @@ import {
 	type GlobTask,
 	type GlobEntry,
 	type GlobbyStream,
+	type GlobbyEntryStream,
 	type GlobbyFilterFunction,
 	globby,
 	globbySync,
@@ -22,17 +23,13 @@ expectType<Promise<string[]>>(globby('*.tmp'));
 expectType<Promise<string[]>>(globby(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
 expectType<Promise<string[]>>(globby('*.tmp', {expandDirectories: false}));
-expectType<Promise<string[]>>(
-	globby('*.tmp', {expandDirectories: ['a*', 'b*']}),
-);
-expectType<Promise<string[]>>(
-	globby('*.tmp', {
-		expandDirectories: {
-			files: ['a', 'b'],
-			extensions: ['tmp'],
-		},
-	}),
-);
+expectType<Promise<string[]>>(globby('*.tmp', {expandDirectories: ['a*', 'b*']}));
+expectType<Promise<string[]>>(globby('*.tmp', {
+	expandDirectories: {
+		files: ['a', 'b'],
+		extensions: ['tmp'],
+	},
+}));
 expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
 expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<Promise<GlobEntry[]>>(globby('*.tmp', {objectMode: true}));
@@ -43,14 +40,12 @@ expectType<string[]>(globbySync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
 expectType<string[]>(globbySync('*.tmp', {expandDirectories: false}));
 expectType<string[]>(globbySync('*.tmp', {expandDirectories: ['a*', 'b*']}));
-expectType<string[]>(
-	globbySync('*.tmp', {
-		expandDirectories: {
-			files: ['a', 'b'],
-			extensions: ['tmp'],
-		},
-	}),
-);
+expectType<string[]>(globbySync('*.tmp', {
+	expandDirectories: {
+		files: ['a', 'b'],
+		extensions: ['tmp'],
+	},
+}));
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<GlobEntry[]>(globbySync('*.tmp', {objectMode: true}));
@@ -61,16 +56,16 @@ expectType<GlobbyStream>(globbyStream(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
 expectType<GlobbyStream>(globbyStream('*.tmp', {expandDirectories: false}));
 expectType<GlobbyStream>(globbyStream('*.tmp', {expandDirectories: ['a*', 'b*']}));
-expectType<GlobbyStream>(
-	globbyStream('*.tmp', {
-		expandDirectories: {
-			files: ['a', 'b'],
-			extensions: ['tmp'],
-		},
-	}),
-);
+expectType<GlobbyStream>(globbyStream('*.tmp', {
+	expandDirectories: {
+		files: ['a', 'b'],
+		extensions: ['tmp'],
+	},
+}));
 expectType<GlobbyStream>(globbyStream('*.tmp', {gitignore: true}));
 expectType<GlobbyStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
+expectType<GlobbyEntryStream>(globbyStream('*.tmp', {objectMode: true}));
+expectType<GlobbyEntryStream>(globbyStream('*.tmp', {objectMode: true, gitignore: true}));
 
 // eslint-disable-next-line unicorn/prefer-top-level-await
 (async () => {
@@ -83,22 +78,28 @@ expectType<GlobbyStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
 	expectType<string[]>(streamResult);
 })();
 
+// eslint-disable-next-line unicorn/prefer-top-level-await
+(async () => {
+	const streamResult = [];
+	for await (const entry of globbyStream('*.tmp', {objectMode: true})) {
+		streamResult.push(entry);
+	}
+
+	expectType<GlobEntry[]>(streamResult);
+})();
+
 // GenerateGlobTasks
 expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp'));
 expectType<Promise<GlobTask[]>>(generateGlobTasks(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
 expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {expandDirectories: false}));
-expectType<Promise<GlobTask[]>>(
-	generateGlobTasks('*.tmp', {expandDirectories: ['a*', 'b*']}),
-);
-expectType<Promise<GlobTask[]>>(
-	generateGlobTasks('*.tmp', {
-		expandDirectories: {
-			files: ['a', 'b'],
-			extensions: ['tmp'],
-		},
-	}),
-);
+expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {expandDirectories: ['a*', 'b*']}));
+expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {
+	expandDirectories: {
+		files: ['a', 'b'],
+		extensions: ['tmp'],
+	},
+}));
 expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {gitignore: true}));
 expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
 
@@ -107,17 +108,13 @@ expectType<GlobTask[]>(generateGlobTasksSync('*.tmp'));
 expectType<GlobTask[]>(generateGlobTasksSync(['a.tmp', '*.tmp', '!{c,d,e}.tmp']));
 
 expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {expandDirectories: false}));
-expectType<GlobTask[]>(
-	generateGlobTasksSync('*.tmp', {expandDirectories: ['a*', 'b*']}),
-);
-expectType<GlobTask[]>(
-	generateGlobTasksSync('*.tmp', {
-		expandDirectories: {
-			files: ['a', 'b'],
-			extensions: ['tmp'],
-		},
-	}),
-);
+expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {expandDirectories: ['a*', 'b*']}));
+expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {
+	expandDirectories: {
+		files: ['a', 'b'],
+		extensions: ['tmp'],
+	},
+}));
 expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {gitignore: true}));
 expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {ignore: ['**/b.tmp']}));
 
@@ -130,26 +127,18 @@ expectType<boolean>(isDynamicPattern(['**'], {cwd: __dirname}));
 
 // IsGitIgnored
 expectType<Promise<GlobbyFilterFunction>>(isGitIgnored());
-expectType<Promise<GlobbyFilterFunction>>(
-	isGitIgnored({
-		cwd: __dirname,
-	}),
-);
-expectType<Promise<GlobbyFilterFunction>>(
-	isGitIgnored({
-		cwd: new URL('file:///path/to/cwd'),
-	}),
-);
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	cwd: __dirname,
+}));
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	cwd: new URL('file:///path/to/cwd'),
+}));
 
 // IsGitIgnoredSync
 expectType<GlobbyFilterFunction>(isGitIgnoredSync());
-expectType<GlobbyFilterFunction>(
-	isGitIgnoredSync({
-		cwd: __dirname,
-	}),
-);
-expectType<GlobbyFilterFunction>(
-	isGitIgnoredSync({
-		cwd: new URL('file:///path/to/cwd'),
-	}),
-);
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	cwd: __dirname,
+}));
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	cwd: new URL('file:///path/to/cwd'),
+}));

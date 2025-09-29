@@ -1,6 +1,7 @@
 import process from 'node:process';
 import fs from 'node:fs';
 import nodePath from 'node:path';
+import {Readable} from 'node:stream';
 import mergeStreams from '@sindresorhus/merge-streams';
 import fastGlob from 'fast-glob';
 import {isDirectory, isDirectorySync} from 'path-type';
@@ -135,16 +136,12 @@ const getIgnoreFilesPatterns = options => {
 
 const getFilter = async options => {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
-	return createFilterFunction(
-		ignoreFilesPatterns.length > 0 && await isIgnoredByIgnoreFiles(ignoreFilesPatterns, options),
-	);
+	return createFilterFunction(ignoreFilesPatterns.length > 0 && await isIgnoredByIgnoreFiles(ignoreFilesPatterns, options));
 };
 
 const getFilterSync = options => {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
-	return createFilterFunction(
-		ignoreFilesPatterns.length > 0 && isIgnoredByIgnoreFilesSync(ignoreFilesPatterns, options),
-	);
+	return createFilterFunction(ignoreFilesPatterns.length > 0 && isIgnoredByIgnoreFilesSync(ignoreFilesPatterns, options));
 };
 
 const createFilterFunction = isIgnored => {
@@ -217,21 +214,19 @@ const generateTasks = async (patterns, options) => {
 
 	const directoryToGlobOptions = normalizeExpandDirectoriesOption(expandDirectories, cwd);
 
-	return Promise.all(
-		globTasks.map(async task => {
-			let {patterns, options} = task;
+	return Promise.all(globTasks.map(async task => {
+		let {patterns, options} = task;
 
-			[
-				patterns,
-				options.ignore,
-			] = await Promise.all([
-				directoryToGlob(patterns, directoryToGlobOptions),
-				directoryToGlob(options.ignore, {cwd}),
-			]);
+		[
+			patterns,
+			options.ignore,
+		] = await Promise.all([
+			directoryToGlob(patterns, directoryToGlobOptions),
+			directoryToGlob(options.ignore, {cwd}),
+		]);
 
-			return {patterns, options};
-		}),
-	);
+		return {patterns, options};
+	}));
 };
 
 const generateTasksSync = (patterns, options) => {
@@ -276,17 +271,20 @@ export const globbyStream = normalizeArgumentsSync((patterns, options) => {
 	const tasks = generateTasksSync(patterns, options);
 	const filter = getFilterSync(options);
 	const streams = tasks.map(task => fastGlob.stream(task.patterns, task.options));
+
+	if (streams.length === 0) {
+		return Readable.from([]);
+	}
+
 	const stream = mergeStreams(streams).filter(fastGlobResult => filter(fastGlobResult));
 
-	// TODO: Make it return a web stream at some point.
+	// Returning a web stream will require revisiting once Readable.toWeb integration is viable.
 	// return Readable.toWeb(stream);
 
 	return stream;
 });
 
-export const isDynamicPattern = normalizeArgumentsSync(
-	(patterns, options) => patterns.some(pattern => fastGlob.isDynamicPattern(pattern, options)),
-);
+export const isDynamicPattern = normalizeArgumentsSync((patterns, options) => patterns.some(pattern => fastGlob.isDynamicPattern(pattern, options)));
 
 export const generateGlobTasks = normalizeArguments(generateTasks);
 export const generateGlobTasksSync = normalizeArgumentsSync(generateTasksSync);
