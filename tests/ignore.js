@@ -212,6 +212,20 @@ test('relative paths with ./ and ../ are handled correctly', async t => {
 	t.false(isIgnored('../fixtures/gitignore/foo.js')); // Outside then back in - still treated as outside
 });
 
+test('gitignore patterns starting with ./ or ../ do not match files', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-dotslash');
+	const isIgnored = await isGitIgnored({cwd});
+
+	// Pattern "./foo.js" in .gitignore does NOT match "foo.js" (matches Git behavior)
+	t.false(isIgnored('foo.js'));
+
+	// Pattern "../bar.js" in .gitignore does NOT match anything in cwd
+	t.false(isIgnored('bar.js'));
+
+	// Regular pattern "baz.js" still works normally
+	t.true(isIgnored('baz.js'));
+});
+
 test('custom ignore files', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
 	const files = [
