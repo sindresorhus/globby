@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer';
 import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,6 +11,7 @@ import {
 	globbyStream,
 	isDynamicPattern,
 } from '../index.js';
+import {normalizeDirectoryPatternForFastGlob} from '../utilities.js';
 import {
 	PROJECT_ROOT,
 	getPathValues,
@@ -61,6 +63,125 @@ const runGlobby = async (t, patterns, options) => {
 	return promiseResult;
 };
 
+const blockNodeModulesTraversal = directory => {
+	const normalizedDirectory = path.normalize(directory);
+	const directoryPrefix = `${normalizedDirectory}${path.sep}`;
+	const fsPromises = fs.promises;
+	const originalReaddir = fs.readdir;
+	const originalReaddirSync = fs.readdirSync;
+	const originalReaddirPromise = fsPromises.readdir;
+	const originalOpendir = fs.opendir;
+	const originalOpendirSync = fs.opendirSync;
+	const originalOpendirPromise = fsPromises.opendir;
+
+	const toStringPath = value => {
+		if (typeof value === 'string') {
+			return value;
+		}
+
+		if (value instanceof Buffer) {
+			return value.toString();
+		}
+
+		return value ? String(value) : '';
+	};
+
+	const normalizeCandidate = value => {
+		const stringPath = toStringPath(value);
+		if (!stringPath) {
+			return stringPath;
+		}
+
+		const absolutePath = path.isAbsolute(stringPath)
+			? stringPath
+			: path.join(directory, stringPath);
+		return path.normalize(absolutePath);
+	};
+
+	const shouldBlock = value => {
+		if (!value) {
+			return false;
+		}
+
+		const normalizedPath = normalizeCandidate(value);
+		if (!normalizedPath || !normalizedPath.startsWith(directoryPrefix)) {
+			return false;
+		}
+
+		return normalizedPath.split(path.sep).includes('node_modules');
+	};
+
+	const createPermissionError = value => {
+		const error = new Error('Blocked node_modules traversal');
+		error.code = 'EACCES';
+		error.path = toStringPath(value);
+		return error;
+	};
+
+	const wrapCallbackStyle = original => (...args) => {
+		let pathValue;
+		let options;
+		let callback;
+
+		if (args.length === 2) {
+			[pathValue, callback] = args;
+			options = undefined;
+		} else {
+			[pathValue, options, callback] = args;
+		}
+
+		if (typeof options === 'function') {
+			callback = options;
+			options = undefined;
+		}
+
+		if (shouldBlock(pathValue)) {
+			const error = createPermissionError(pathValue);
+			queueMicrotask(() => callback(error));
+			return;
+		}
+
+		const callArguments = options === undefined ? [pathValue, callback] : [pathValue, options, callback];
+		return original.apply(fs, callArguments);
+	};
+
+	const wrapSync = original => (pathValue, options) => {
+		if (shouldBlock(pathValue)) {
+			throw createPermissionError(pathValue);
+		}
+
+		return options === undefined
+			? original.call(fs, pathValue)
+			: original.call(fs, pathValue, options);
+	};
+
+	const wrapPromise = original => async (pathValue, options) => {
+		if (shouldBlock(pathValue)) {
+			throw createPermissionError(pathValue);
+		}
+
+		return options === undefined
+			? original.call(fsPromises, pathValue)
+			: original.call(fsPromises, pathValue, options);
+	};
+
+	fs.readdir = wrapCallbackStyle(originalReaddir);
+	fs.readdirSync = wrapSync(originalReaddirSync);
+	fsPromises.readdir = wrapPromise(originalReaddirPromise);
+	fs.opendir = wrapCallbackStyle(originalOpendir);
+	fs.opendirSync = wrapSync(originalOpendirSync);
+	fsPromises.opendir = wrapPromise(originalOpendirPromise);
+
+	return () => {
+		fs.readdir = originalReaddir;
+		fs.readdirSync = originalReaddirSync;
+		fsPromises.readdir = originalReaddirPromise;
+		fs.opendir = originalOpendir;
+		fs.opendirSync = originalOpendirSync;
+		fsPromises.opendir = originalOpendirPromise;
+	};
+};
+
 test.before(() => {
 	if (!fs.existsSync(temporary)) {
 		fs.mkdirSync(temporary);
@@ -79,6 +200,15 @@ test.after(() => {
 	}
 
 	fs.rmdirSync(temporary);
+});
+
+test('normalizeDirectoryPatternForFastGlob handles recursive directory patterns', t => {
+	t.is(normalizeDirectoryPatternForFastGlob('node_modules/'), '**/node_modules/**');
+	t.is(normalizeDirectoryPatternForFastGlob('build/'), '**/build/**');
+	t.is(normalizeDirectoryPatternForFastGlob('/dist/'), '/dist/**');
+	t.is(normalizeDirectoryPatternForFastGlob('src/cache/'), 'src/cache/**');
+	t.is(normalizeDirectoryPatternForFastGlob('packages/**/cache/'), 'packages/**/cache/**');
+	t.is(normalizeDirectoryPatternForFastGlob('keep.log'), 'keep.log');
 });
 
 test('glob', async t => {
@@ -278,6 +408,33 @@ test('gitignore option and suppressErrors option', async t => {
 	const result = await runGlobby(t, '**/*', {cwd: temporary, gitignore: true, suppressErrors: true});
 	t.is(result.length, 1);
 	t.truthy(result.includes('bar'));
+});
+
+test.serial('gitignore directory patterns stop fast-glob traversal', async t => {
+	const temporaryCwd = temporaryDirectory();
+	const gitignorePath = path.join(temporaryCwd, '.gitignore');
+	const keepFile = path.join(temporaryCwd, 'keep.js');
+	const nodeModulesFile = path.join(temporaryCwd, 'node_modules/foo/index.js');
+	const nestedNodeModulesFile = path.join(temporaryCwd, 'packages/foo/node_modules/bar/index.js');
+	fs.writeFileSync(gitignorePath, 'node_modules/\n', 'utf8');
+	fs.mkdirSync(path.dirname(nodeModulesFile), {recursive: true});
+	fs.mkdirSync(path.dirname(nestedNodeModulesFile), {recursive: true});
+	fs.writeFileSync(nodeModulesFile, '', 'utf8');
+	fs.writeFileSync(nestedNodeModulesFile, '', 'utf8');
+	fs.writeFileSync(keepFile, '', 'utf8');
+
+	const restoreFs = blockNodeModulesTraversal(temporaryCwd);
+
+	try {
+		const result = await runGlobby(t, '**/*.js', {
+			cwd: temporaryCwd,
+			gitignore: true,
+		});
+		t.deepEqual(result, ['keep.js']);
+	} finally {
+		restoreFs();
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
 });
 
 test('respects ignoreFiles string option', async t => {

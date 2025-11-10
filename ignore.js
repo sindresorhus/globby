@@ -154,5 +154,62 @@ export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
 	return getIsIgnoredPredicate(files, cwd);
 };
 
+const getPatternsFromIgnoreFiles = (files, cwd) => files.flatMap(file => parseIgnoreFile(file, cwd));
+
+/**
+Read ignore files and return both patterns and predicate.
+This avoids reading the same files twice (once for patterns, once for filtering).
+
+@returns {Promise<{patterns: string[], predicate: Function}>}
+*/
+export const getIgnorePatternsAndPredicate = async (patterns, options) => {
+	const {cwd, suppressErrors, deep, ignore} = normalizeOptions(options);
+
+	const paths = await fastGlob(patterns, {
+		cwd,
+		suppressErrors,
+		deep,
+		ignore,
+		...ignoreFilesGlobOptions,
+	});
+
+	const files = await Promise.all(paths.map(async filePath => ({
+		filePath,
+		content: await fsPromises.readFile(filePath, 'utf8'),
+	})));
+
+	return {
+		patterns: getPatternsFromIgnoreFiles(files, cwd),
+		predicate: getIsIgnoredPredicate(files, cwd),
+	};
+};
+
+/**
+Read ignore files and return both patterns and predicate (sync version).
+
+@returns {{patterns: string[], predicate: Function}}
+*/
+export const getIgnorePatternsAndPredicateSync = (patterns, options) => {
+	const {cwd, suppressErrors, deep, ignore} = normalizeOptions(options);
+
+	const paths = fastGlob.sync(patterns, {
+		cwd,
+		suppressErrors,
+		deep,
+		ignore,
+		...ignoreFilesGlobOptions,
+	});
+
+	const files = paths.map(filePath => ({
+		filePath,
+		content: fs.readFileSync(filePath, 'utf8'),
+	}));
+
+	return {
+		patterns: getPatternsFromIgnoreFiles(files, cwd),
+		predicate: getIsIgnoredPredicate(files, cwd),
+	};
+};
+
 export const isGitIgnored = options => isIgnoredByIgnoreFiles(GITIGNORE_FILES_PATTERN, options);
 export const isGitIgnoredSync = options => isIgnoredByIgnoreFilesSync(GITIGNORE_FILES_PATTERN, options);

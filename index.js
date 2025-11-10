@@ -8,10 +8,13 @@ import {isDirectory, isDirectorySync} from 'path-type';
 import {toPath} from 'unicorn-magic';
 import {
 	GITIGNORE_FILES_PATTERN,
-	isIgnoredByIgnoreFiles,
-	isIgnoredByIgnoreFilesSync,
+	getIgnorePatternsAndPredicate,
+	getIgnorePatternsAndPredicateSync,
 } from './ignore.js';
-import {isNegativePattern} from './utilities.js';
+import {
+	isNegativePattern,
+	normalizeDirectoryPatternForFastGlob,
+} from './utilities.js';
 
 const assertPatternsInput = patterns => {
 	if (patterns.some(pattern => typeof pattern !== 'string')) {
@@ -134,14 +137,89 @@ const getIgnoreFilesPatterns = options => {
 	return patterns;
 };
 
-const getFilter = async options => {
+/**
+Apply gitignore patterns to options and return filter predicate.
+
+When negation patterns are present (e.g., '!important.log'), we cannot pass positive patterns to fast-glob because it would filter out files before our predicate can re-include them. In this case, we rely entirely on the predicate for filtering, which handles negations correctly.
+
+When there are no negations, we optimize by passing patterns to fast-glob's ignore option to skip directories during traversal (performance optimization).
+
+All patterns (including negated) are always used in the filter predicate to ensure correct Git-compatible behavior.
+
+@returns {Promise<{options: Object, filter: Function}>}
+*/
+const applyIgnoreFilesAndGetFilter = async options => {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
-	return createFilterFunction(ignoreFilesPatterns.length > 0 && await isIgnoredByIgnoreFiles(ignoreFilesPatterns, options));
+
+	if (ignoreFilesPatterns.length === 0) {
+		return {
+			options,
+			filter: createFilterFunction(false),
+		};
+	}
+
+	// Read ignore files once and get both patterns and predicate
+	const {patterns, predicate} = await getIgnorePatternsAndPredicate(ignoreFilesPatterns, options);
+
+	// Determine which patterns are safe to pass to fast-glob
+	// If there are negation patterns, we can't pass file patterns to fast-glob
+	// because fast-glob doesn't understand negations and would filter out files
+	// that should be re-included by negation patterns.
+	// We only pass patterns to fast-glob if there are NO negations.
+	const hasNegations = patterns.some(pattern => isNegativePattern(pattern));
+	const patternsForFastGlob = hasNegations
+		? [] // With negations, let the predicate handle everything
+		: patterns
+			.filter(pattern => !isNegativePattern(pattern))
+			.map(pattern => normalizeDirectoryPatternForFastGlob(pattern));
+
+	const modifiedOptions = {
+		...options,
+		ignore: [...options.ignore, ...patternsForFastGlob],
+	};
+
+	return {
+		options: modifiedOptions,
+		filter: createFilterFunction(predicate),
+	};
 };
 
-const getFilterSync = options => {
+/**
+Apply gitignore patterns to options and return filter predicate (sync version).
+
+@returns {{options: Object, filter: Function}}
+*/
+const applyIgnoreFilesAndGetFilterSync = options => {
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
-	return createFilterFunction(ignoreFilesPatterns.length > 0 && isIgnoredByIgnoreFilesSync(ignoreFilesPatterns, options));
+
+	if (ignoreFilesPatterns.length === 0) {
+		return {
+			options,
+			filter: createFilterFunction(false),
+		};
+	}
+
+	// Read ignore files once and get both patterns and predicate
+	const {patterns, predicate} = getIgnorePatternsAndPredicateSync(ignoreFilesPatterns, options);
+
+	// Determine which patterns are safe to pass to fast-glob
+	// (same logic as async version - see comments above)
+	const hasNegations = patterns.some(pattern => isNegativePattern(pattern));
+	const patternsForFastGlob = hasNegations
+		? []
+		: patterns
+			.filter(pattern => !isNegativePattern(pattern))
+			.map(pattern => normalizeDirectoryPatternForFastGlob(pattern));
+
+	const modifiedOptions = {
+		...options,
+		ignore: [...options.ignore, ...patternsForFastGlob],
+	};
+
+	return {
+		options: modifiedOptions,
+		filter: createFilterFunction(predicate),
+	};
 };
 
 const createFilterFunction = isIgnored => {
@@ -248,28 +326,34 @@ const generateTasksSync = (patterns, options) => {
 };
 
 export const globby = normalizeArguments(async (patterns, options) => {
-	const [
-		tasks,
-		filter,
-	] = await Promise.all([
-		generateTasks(patterns, options),
-		getFilter(options),
-	]);
+	// Apply ignore files and get filter (reads .gitignore files once)
+	const {options: modifiedOptions, filter} = await applyIgnoreFilesAndGetFilter(options);
+
+	// Generate tasks with modified options (includes gitignore patterns in ignore option)
+	const tasks = await generateTasks(patterns, modifiedOptions);
 
 	const results = await Promise.all(tasks.map(task => fastGlob(task.patterns, task.options)));
 	return unionFastGlobResults(results, filter);
 });
 
 export const globbySync = normalizeArgumentsSync((patterns, options) => {
-	const tasks = generateTasksSync(patterns, options);
-	const filter = getFilterSync(options);
+	// Apply ignore files and get filter (reads .gitignore files once)
+	const {options: modifiedOptions, filter} = applyIgnoreFilesAndGetFilterSync(options);
+
+	// Generate tasks with modified options (includes gitignore patterns in ignore option)
+	const tasks = generateTasksSync(patterns, modifiedOptions);
+
 	const results = tasks.map(task => fastGlob.sync(task.patterns, task.options));
 	return unionFastGlobResults(results, filter);
 });
 
 export const globbyStream = normalizeArgumentsSync((patterns, options) => {
-	const tasks = generateTasksSync(patterns, options);
-	const filter = getFilterSync(options);
+	// Apply ignore files and get filter (reads .gitignore files once)
+	const {options: modifiedOptions, filter} = applyIgnoreFilesAndGetFilterSync(options);
+
+	// Generate tasks with modified options (includes gitignore patterns in ignore option)
+	const tasks = generateTasksSync(patterns, modifiedOptions);
+
 	const streams = tasks.map(task => fastGlob.stream(task.patterns, task.options));
 
 	if (streams.length === 0) {
