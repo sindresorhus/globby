@@ -101,6 +101,15 @@ This is a more generic form of the `gitignore` option, allowing you to find igno
 
 **Performance tip:** Using a specific path like `'.gitignore'` is much faster than recursive patterns.
 
+##### fs
+
+Type: [`FileSystemAdapter`](https://github.com/mrmlnc/fast-glob#fs)\
+Default: `undefined`
+
+Custom file system implementation (useful for testing or virtual file systems).
+
+**Note:** When using `gitignore` or `ignoreFiles`, the custom fs must also provide `readFile`/`readFileSync` methods.
+
 ### globbySync(patterns, options?)
 
 Returns `string[]` of matching paths.
@@ -220,6 +229,15 @@ Type: `boolean`\
 Default: `false`
 
 Throw an error when symbolic link is broken if `true` or safely return `lstat` call if `false`.
+
+##### fs
+
+Type: [`FileSystemAdapter`](https://github.com/mrmlnc/fast-glob#fs)\
+Default: `undefined`
+
+Custom file system implementation (useful for testing or virtual file systems).
+
+**Note:** The custom fs must provide `readFile`/`readFileSync` methods for reading `.gitignore` files.
 
 ```js
 import {isGitIgnored} from 'globby';

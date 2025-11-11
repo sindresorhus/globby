@@ -10,6 +10,7 @@ import {
 } from '../ignore.js';
 import {
 	PROJECT_ROOT,
+	createContextAwareFs,
 	getPathValues,
 } from './utilities.js';
 
@@ -334,11 +335,15 @@ test.serial('bad permissions - suppressErrors option', async t => {
 	await chmod(noReadDirectory, 0o000);
 
 	// With suppressErrors: true, should not throw even when encountering unreadable directories
-	await t.notThrowsAsync(async () => {
-		const isIgnored = await isGitIgnored({cwd, suppressErrors: true});
-		// Should be able to check if files are ignored
-		t.is(typeof isIgnored('test.js'), 'boolean');
-	});
+	await runIsGitIgnored(
+		t,
+		{cwd, suppressErrors: true},
+		predicate => predicate('test.js'),
+	);
+
+	// Should be able to check if files are ignored
+	const isIgnored = await isGitIgnored({cwd, suppressErrors: true});
+	t.is(typeof isIgnored('test.js'), 'boolean');
 
 	// Also test sync version
 	t.notThrows(() => {
@@ -616,4 +621,36 @@ test('isIgnoredByIgnoreFilesSync - multiple options', t => {
 	t.true(isIgnored('ignored-by-eslint.js'));
 	t.true(isIgnored('ignored-by-prettier.js'));
 	t.false(isIgnored('not-ignored.js'));
+});
+
+test('fs option preserves context for gitignore helpers', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+	const fsImplementation = createContextAwareFs();
+
+	const asyncPredicate = await isGitIgnored({cwd, fs: fsImplementation});
+	const syncPredicate = isGitIgnoredSync({cwd, fs: fsImplementation});
+
+	t.true(asyncPredicate('foo.js'));
+	t.true(syncPredicate('foo.js'));
+	t.false(asyncPredicate('bar.js'));
+	t.false(syncPredicate('bar.js'));
+});
+
+test('fs option preserves context for ignore file readers', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+	const fsImplementation = createContextAwareFs();
+
+	const asyncPredicate = await isIgnoredByIgnoreFiles('.eslintignore', {
+		cwd,
+		fs: fsImplementation,
+	});
+	const syncPredicate = isIgnoredByIgnoreFilesSync('.eslintignore', {
+		cwd,
+		fs: fsImplementation,
+	});
+
+	t.true(asyncPredicate('ignored-by-eslint.js'));
+	t.true(syncPredicate('ignored-by-eslint.js'));
+	t.false(asyncPredicate('not-ignored.js'));
+	t.false(syncPredicate('not-ignored.js'));
 });

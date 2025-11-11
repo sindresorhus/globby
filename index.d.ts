@@ -120,6 +120,13 @@ export type GitignoreOptions = {
 	@default false
 	*/
 	readonly throwErrorOnBrokenSymbolicLink?: boolean;
+
+	/**
+	Custom file system implementation (useful for testing or virtual file systems).
+
+	@default undefined
+	*/
+	readonly fs?: FastGlob.Options['fs'];
 };
 
 export type GlobbyFilterFunction = (path: URL | string) => boolean;

@@ -6,7 +6,7 @@ import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import slash from 'slash';
 import {toPath} from 'unicorn-magic';
-import {isNegativePattern} from './utilities.js';
+import {isNegativePattern, bindFsMethod} from './utilities.js';
 
 const defaultIgnoredDirectories = [
 	'**/node_modules',
@@ -20,6 +20,15 @@ const ignoreFilesGlobOptions = {
 };
 
 export const GITIGNORE_FILES_PATTERN = '**/.gitignore';
+
+const getReadFileMethod = fsImplementation =>
+	bindFsMethod(fsImplementation?.promises, 'readFile')
+	?? bindFsMethod(fsImplementation, 'readFile')
+	?? bindFsMethod(fsPromises, 'readFile');
+
+const getReadFileSyncMethod = fsImplementation =>
+	bindFsMethod(fsImplementation, 'readFileSync')
+	?? bindFsMethod(fs, 'readFileSync');
 
 // Apply base path to gitignore patterns based on .gitignore spec 2.22.1
 // https://git-scm.com/docs/gitignore#_pattern_format
@@ -119,7 +128,7 @@ const normalizeOptions = (options = {}) => {
 	// Adjust deep option for fast-glob: fast-glob's deep counts differently than expected
 	// User's deep: 0 = root only -> fast-glob needs: 1
 	// User's deep: 1 = root + 1 level -> fast-glob needs: 2
-	const deep = typeof options.deep === 'number' ? options.deep + 1 : Number.POSITIVE_INFINITY;
+	const deep = typeof options.deep === 'number' ? Math.max(0, options.deep) + 1 : Number.POSITIVE_INFINITY;
 
 	// Only pass through specific fast-glob options that make sense for finding ignore files
 	return {
@@ -130,6 +139,7 @@ const normalizeOptions = (options = {}) => {
 		followSymbolicLinks: options.followSymbolicLinks ?? true,
 		concurrency: options.concurrency,
 		throwErrorOnBrokenSymbolicLink: options.throwErrorOnBrokenSymbolicLink ?? false,
+		fs: options.fs,
 	};
 };
 
@@ -141,9 +151,10 @@ export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
+	const readFileMethod = getReadFileMethod(normalizedOptions.fs);
 	const files = await Promise.all(paths.map(async filePath => ({
 		filePath,
-		content: await fsPromises.readFile(filePath, 'utf8'),
+		content: await readFileMethod(filePath, 'utf8'),
 	})));
 
 	return getIsIgnoredPredicate(files, normalizedOptions.cwd);
@@ -157,9 +168,10 @@ export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
 		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
+	const readFileSyncMethod = getReadFileSyncMethod(normalizedOptions.fs);
 	const files = paths.map(filePath => ({
 		filePath,
-		content: fs.readFileSync(filePath, 'utf8'),
+		content: readFileSyncMethod(filePath, 'utf8'),
 	}));
 
 	return getIsIgnoredPredicate(files, normalizedOptions.cwd);
@@ -181,9 +193,10 @@ export const getIgnorePatternsAndPredicate = async (patterns, options) => {
 		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
+	const readFileMethod = getReadFileMethod(normalizedOptions.fs);
 	const files = await Promise.all(paths.map(async filePath => ({
 		filePath,
-		content: await fsPromises.readFile(filePath, 'utf8'),
+		content: await readFileMethod(filePath, 'utf8'),
 	})));
 
 	return {
@@ -205,9 +218,10 @@ export const getIgnorePatternsAndPredicateSync = (patterns, options) => {
 		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
+	const readFileSyncMethod = getReadFileSyncMethod(normalizedOptions.fs);
 	const files = paths.map(filePath => ({
 		filePath,
-		content: fs.readFileSync(filePath, 'utf8'),
+		content: readFileSyncMethod(filePath, 'utf8'),
 	}));
 
 	return {

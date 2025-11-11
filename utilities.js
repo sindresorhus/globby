@@ -1,5 +1,10 @@
 export const isNegativePattern = pattern => pattern[0] === '!';
 
+export const bindFsMethod = (object, methodName) => {
+	const method = object?.[methodName];
+	return typeof method === 'function' ? method.bind(object) : undefined;
+};
+
 export const normalizeDirectoryPatternForFastGlob = pattern => {
 	if (!pattern.endsWith('/')) {
 		return pattern;

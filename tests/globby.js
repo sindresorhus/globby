@@ -14,6 +14,7 @@ import {
 import {normalizeDirectoryPatternForFastGlob} from '../utilities.js';
 import {
 	PROJECT_ROOT,
+	createContextAwareFs,
 	getPathValues,
 	invalidPatterns,
 	isUnique,
@@ -300,6 +301,12 @@ test('expandDirectories option', async t => {
 			extensions: ['tmp'],
 		},
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
+});
+
+test('fs option preserves context during directory expansion', async t => {
+	const fsImplementation = createContextAwareFs();
+	const result = await runGlobby(t, temporary, {fs: fsImplementation});
+	t.deepEqual(result, ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
 test('expandDirectories:true and onlyFiles:true option', async t => {

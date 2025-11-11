@@ -4,7 +4,6 @@ import nodePath from 'node:path';
 import {Readable} from 'node:stream';
 import mergeStreams from '@sindresorhus/merge-streams';
 import fastGlob from 'fast-glob';
-import {isDirectory, isDirectorySync} from 'path-type';
 import {toPath} from 'unicorn-magic';
 import {
 	GITIGNORE_FILES_PATTERN,
@@ -12,6 +11,7 @@ import {
 	getIgnorePatternsAndPredicateSync,
 } from './ignore.js';
 import {
+	bindFsMethod,
 	isNegativePattern,
 	normalizeDirectoryPatternForFastGlob,
 } from './utilities.js';
@@ -19,6 +19,33 @@ import {
 const assertPatternsInput = patterns => {
 	if (patterns.some(pattern => typeof pattern !== 'string')) {
 		throw new TypeError('Patterns must be a string or an array of strings');
+	}
+};
+
+const getStatMethod = fsImplementation =>
+	bindFsMethod(fsImplementation?.promises, 'stat')
+	?? bindFsMethod(fsImplementation, 'stat')
+	?? bindFsMethod(fs.promises, 'stat');
+
+const getStatSyncMethod = fsImplementation =>
+	bindFsMethod(fsImplementation, 'statSync')
+	?? bindFsMethod(fs, 'statSync');
+
+const isDirectory = async (path, fsImplementation) => {
+	try {
+		const stats = await getStatMethod(fsImplementation)(path);
+		return stats.isDirectory();
+	} catch {
+		return false;
+	}
+};
+
+const isDirectorySync = (path, fsImplementation) => {
+	try {
+		const stats = getStatSyncMethod(fsImplementation)(path);
+		return stats.isDirectory();
+	} catch {
+		return false;
 	}
 };
 
@@ -51,6 +78,7 @@ const directoryToGlob = async (directoryPaths, {
 	cwd = process.cwd(),
 	files,
 	extensions,
+	fs: fsImplementation,
 } = {}) => {
 	const globs = await Promise.all(directoryPaths.map(async directoryPath => {
 		// Check pattern without negative prefix
@@ -63,7 +91,7 @@ const directoryToGlob = async (directoryPaths, {
 
 		// Original logic for checking actual directories
 		const pathToCheck = normalizePathForDirectoryGlob(directoryPath, cwd);
-		return (await isDirectory(pathToCheck)) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath;
+		return (await isDirectory(pathToCheck, fsImplementation)) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath;
 	}));
 
 	return globs.flat();
@@ -73,6 +101,7 @@ const directoryToGlobSync = (directoryPaths, {
 	cwd = process.cwd(),
 	files,
 	extensions,
+	fs: fsImplementation,
 } = {}) => directoryPaths.flatMap(directoryPath => {
 	// Check pattern without negative prefix
 	const checkPattern = isNegativePattern(directoryPath) ? directoryPath.slice(1) : directoryPath;
@@ -84,7 +113,7 @@ const directoryToGlobSync = (directoryPaths, {
 
 	// Original logic for checking actual directories
 	const pathToCheck = normalizePathForDirectoryGlob(directoryPath, cwd);
-	return isDirectorySync(pathToCheck) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath;
+	return isDirectorySync(pathToCheck, fsImplementation) ? getDirectoryGlob({directoryPath, files, extensions}) : directoryPath;
 });
 
 const toPatternsArray = patterns => {
@@ -93,20 +122,19 @@ const toPatternsArray = patterns => {
 	return patterns;
 };
 
-const checkCwdOption = cwd => {
-	if (!cwd) {
+const checkCwdOption = (cwd, fsImplementation = fs) => {
+	if (!cwd || !fsImplementation.statSync) {
 		return;
 	}
 
-	let stat;
 	try {
-		stat = fs.statSync(cwd);
-	} catch {
-		return;
-	}
-
-	if (!stat.isDirectory()) {
-		throw new Error('The `cwd` option must be a path to a directory');
+		if (!fsImplementation.statSync(cwd).isDirectory()) {
+			throw new Error('The `cwd` option must be a path to a directory');
+		}
+	} catch (error) {
+		if (error.message === 'The `cwd` option must be a path to a directory') {
+			throw error;
+		}
 	}
 };
 
@@ -118,7 +146,7 @@ const normalizeOptions = (options = {}) => {
 		cwd: toPath(options.cwd),
 	};
 
-	checkCwdOption(options.cwd);
+	checkCwdOption(options.cwd, options.fs);
 
 	return options;
 };
@@ -284,13 +312,16 @@ const normalizeExpandDirectoriesOption = (options, cwd) => ({
 const generateTasks = async (patterns, options) => {
 	const globTasks = convertNegativePatterns(patterns, options);
 
-	const {cwd, expandDirectories} = options;
+	const {cwd, expandDirectories, fs: fsImplementation} = options;
 
 	if (!expandDirectories) {
 		return globTasks;
 	}
 
-	const directoryToGlobOptions = normalizeExpandDirectoriesOption(expandDirectories, cwd);
+	const directoryToGlobOptions = {
+		...normalizeExpandDirectoriesOption(expandDirectories, cwd),
+		fs: fsImplementation,
+	};
 
 	return Promise.all(globTasks.map(async task => {
 		let {patterns, options} = task;
@@ -300,7 +331,7 @@ const generateTasks = async (patterns, options) => {
 			options.ignore,
 		] = await Promise.all([
 			directoryToGlob(patterns, directoryToGlobOptions),
-			directoryToGlob(options.ignore, {cwd}),
+			directoryToGlob(options.ignore, {cwd, fs: fsImplementation}),
 		]);
 
 		return {patterns, options};
@@ -309,18 +340,21 @@ const generateTasks = async (patterns, options) => {
 
 const generateTasksSync = (patterns, options) => {
 	const globTasks = convertNegativePatterns(patterns, options);
-	const {cwd, expandDirectories} = options;
+	const {cwd, expandDirectories, fs: fsImplementation} = options;
 
 	if (!expandDirectories) {
 		return globTasks;
 	}
 
-	const directoryToGlobSyncOptions = normalizeExpandDirectoriesOption(expandDirectories, cwd);
+	const directoryToGlobSyncOptions = {
+		...normalizeExpandDirectoriesOption(expandDirectories, cwd),
+		fs: fsImplementation,
+	};
 
 	return globTasks.map(task => {
 		let {patterns, options} = task;
 		patterns = directoryToGlobSync(patterns, directoryToGlobSyncOptions);
-		options.ignore = directoryToGlobSync(options.ignore, {cwd});
+		options.ignore = directoryToGlobSync(options.ignore, {cwd, fs: fsImplementation});
 		return {patterns, options};
 	});
 };
