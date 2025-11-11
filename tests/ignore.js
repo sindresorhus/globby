@@ -198,6 +198,26 @@ test('gitignore edge cases with trailing slashes and special patterns', async t 
 	// (tested implicitly - our fixtures may have them)
 });
 
+test('nested gitignore with negation applies recursively (issue #255)', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures', 'gitignore-negation-nested');
+	const isIgnored = await isGitIgnored({cwd});
+
+	// Root .gitignore has 'a*' (ignore all files starting with 'a')
+	// Nested y/.gitignore has '!a2.txt' (un-ignore a2.txt)
+
+	// Files starting with 'a' should be ignored at root level
+	t.true(isIgnored('a1.txt'));
+	t.true(isIgnored('a2.txt'));
+
+	// But a2.txt should NOT be ignored in y/ and its subdirectories due to negation
+	t.false(isIgnored('y/a2.txt'));
+	t.false(isIgnored('y/z/a2.txt')); // The core fix - negation applies recursively
+
+	// Other 'a*' files should still be ignored in y/ (negation is specific to a2.txt)
+	t.true(isIgnored('y/a1.txt'));
+	t.true(isIgnored('y/z/a1.txt'));
+});
+
 test('relative paths with ./ and ../ are handled correctly', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 	const isIgnored = await isGitIgnored({cwd});
@@ -274,6 +294,10 @@ test.serial('bad permissions - ignore option', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/bad-permissions');
 	const noReadDirectory = path.join(cwd, 'noread');
 
+	t.teardown(async () => {
+		await chmod(noReadDirectory, 0o755);
+	});
+
 	await chmod(noReadDirectory, 0o000);
 
 	await t.notThrowsAsync(runIsIgnoredByIgnoreFiles(
@@ -282,27 +306,30 @@ test.serial('bad permissions - ignore option', async t => {
 		{cwd, ignore: ['noread']},
 		() => {},
 	));
-
-	t.teardown(() => chmod(noReadDirectory, 0o755));
 });
 
 test.serial('bad permissions - suppressErrors option', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/bad-permissions');
 	const noReadDirectory = path.join(cwd, 'noread');
 
+	t.teardown(async () => {
+		await chmod(noReadDirectory, 0o755);
+	});
+
 	await chmod(noReadDirectory, 0o000);
 
 	// With suppressErrors: true, should not throw even when encountering unreadable directories
-	const isIgnored = await runIsGitIgnored(
-		t,
-		{cwd, suppressErrors: true},
-		predicate => predicate,
-	);
+	await t.notThrowsAsync(async () => {
+		const isIgnored = await isGitIgnored({cwd, suppressErrors: true});
+		// Should be able to check if files are ignored
+		t.is(typeof isIgnored('test.js'), 'boolean');
+	});
 
-	// Should be able to check if files are ignored
-	t.is(typeof isIgnored('test.js'), 'boolean');
-
-	t.teardown(() => chmod(noReadDirectory, 0o755));
+	// Also test sync version
+	t.notThrows(() => {
+		const isIgnoredSync = isGitIgnoredSync({cwd, suppressErrors: true});
+		t.is(typeof isIgnoredSync('test.js'), 'boolean');
+	});
 });
 
 // Extensive fast-glob options tests

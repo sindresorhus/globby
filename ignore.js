@@ -116,11 +116,16 @@ const normalizeOptions = (options = {}) => {
 
 	const cwd = toPath(options.cwd) ?? process.cwd();
 
+	// Adjust deep option for fast-glob: fast-glob's deep counts differently than expected
+	// User's deep: 0 = root only -> fast-glob needs: 1
+	// User's deep: 1 = root + 1 level -> fast-glob needs: 2
+	const deep = typeof options.deep === 'number' ? options.deep + 1 : Number.POSITIVE_INFINITY;
+
 	// Only pass through specific fast-glob options that make sense for finding ignore files
 	return {
 		cwd,
 		suppressErrors: options.suppressErrors ?? false,
-		deep: typeof options.deep === 'number' ? options.deep : Number.POSITIVE_INFINITY,
+		deep,
 		ignore: [...ignoreOption, ...defaultIgnoredDirectories],
 		followSymbolicLinks: options.followSymbolicLinks ?? true,
 		concurrency: options.concurrency,

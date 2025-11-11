@@ -168,7 +168,11 @@ Suppress errors when encountering directories or files without read permissions.
 Type: `number`\
 Default: `Infinity`
 
-Specifies the maximum depth of `.gitignore` file search relative to the start directory.
+Maximum depth to search for `.gitignore` files.
+
+- `0` - Only search in the start directory
+- `1` - Search in the start directory and one level of subdirectories
+- `2` - Search in the start directory and two levels of subdirectories
 
 ##### ignore
 

@@ -410,6 +410,22 @@ test('gitignore option and suppressErrors option', async t => {
 	t.truthy(result.includes('bar'));
 });
 
+test('nested gitignore with negation applies recursively to globby results (issue #255)', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures', 'gitignore-negation-nested');
+	const result = await runGlobby(t, '**/*.txt', {cwd, gitignore: true});
+
+	// Both y/a2.txt and y/z/a2.txt should be included despite root .gitignore having 'a*'
+	// because y/.gitignore has '!a2.txt' which applies recursively
+	t.true(result.includes('y/a2.txt'));
+	t.true(result.includes('y/z/a2.txt'));
+
+	// These should be excluded by 'a*' pattern
+	t.false(result.includes('a1.txt'));
+	t.false(result.includes('a2.txt'));
+	t.false(result.includes('y/a1.txt'));
+	t.false(result.includes('y/z/a1.txt'));
+});
+
 test.serial('gitignore directory patterns stop fast-glob traversal', async t => {
 	const temporaryCwd = temporaryDirectory();
 	const gitignorePath = path.join(temporaryCwd, '.gitignore');
