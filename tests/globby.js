@@ -359,3 +359,29 @@ test('unique when using objectMode option', async t => {
 	const result = await runGlobby(t, ['a.tmp', '*.tmp'], {cwd, objectMode: true});
 	t.true(isUnique(result.map(({path}) => path)));
 });
+
+// Known limitation: ** in parentheses doesn't work (fast-glob #484)
+test.failing('** inside parentheses', async t => {
+	const testDir = temporaryDirectory();
+	fs.mkdirSync(path.join(testDir, 'test/utils'), {recursive: true});
+	fs.writeFileSync(path.join(testDir, 'test/utils/file.js'), '');
+
+	const result1 = await runGlobby(t, 'test(/utils/**)', {cwd: testDir});
+	const result2 = await runGlobby(t, 'test/utils/**', {cwd: testDir});
+
+	// This fails because ** in parentheses returns empty array
+	t.deepEqual(result1, result2);
+});
+
+// Known limitation: patterns with quotes may not work (fast-glob #494)
+test.failing('patterns with quotes in path segments', async t => {
+	const testDir = temporaryDirectory();
+	const quotedDir = path.join(testDir, '"quoted"');
+	fs.mkdirSync(quotedDir, {recursive: true});
+	fs.writeFileSync(path.join(quotedDir, 'file.js'), '');
+
+	const result = await runGlobby(t, '"quoted"/**', {cwd: testDir});
+
+	// This fails because quoted paths don't match correctly
+	t.deepEqual(result, ['"quoted"/file.js']);
+});
