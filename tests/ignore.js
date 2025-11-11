@@ -270,7 +270,7 @@ test('custom ignore files', async t => {
 	);
 });
 
-test.serial('bad permissions', async t => {
+test.serial('bad permissions - ignore option', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/bad-permissions');
 	const noReadDirectory = path.join(cwd, 'noread');
 
@@ -284,4 +284,294 @@ test.serial('bad permissions', async t => {
 	));
 
 	t.teardown(() => chmod(noReadDirectory, 0o755));
+});
+
+test.serial('bad permissions - suppressErrors option', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/bad-permissions');
+	const noReadDirectory = path.join(cwd, 'noread');
+
+	await chmod(noReadDirectory, 0o000);
+
+	// With suppressErrors: true, should not throw even when encountering unreadable directories
+	const isIgnored = await runIsGitIgnored(
+		t,
+		{cwd, suppressErrors: true},
+		predicate => predicate,
+	);
+
+	// Should be able to check if files are ignored
+	t.is(typeof isIgnored('test.js'), 'boolean');
+
+	t.teardown(() => chmod(noReadDirectory, 0o755));
+});
+
+// Extensive fast-glob options tests
+test('option: suppressErrors - async', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	// Should work without errors
+	const isIgnored = await isGitIgnored({cwd, suppressErrors: true});
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: suppressErrors - sync', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	// Should work without errors
+	const isIgnored = isGitIgnoredSync({cwd, suppressErrors: true});
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: deep - limit depth to 0 (only root .gitignore)', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	// With deep: 0, should only find .gitignore in the root
+	const isIgnored = await isGitIgnored({cwd, deep: 0});
+
+	// Root .gitignore patterns should not be loaded (there isn't one in this fixture)
+	// So nothing should be ignored
+	t.false(isIgnored('subdir/file.log'));
+});
+
+test('option: deep - limit depth to 1', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	// With deep: 1, should find .gitignore in root and direct subdirectories
+	const isIgnored = await isGitIgnored({cwd, deep: 1});
+
+	// Should find subdir/.gitignore
+	t.true(isIgnored('subdir/file.log'));
+	t.false(isIgnored('file.log')); // Not ignored by any .gitignore
+});
+
+test('option: deep - sync version', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	const isIgnored = isGitIgnoredSync({cwd, deep: 1});
+	t.true(isIgnored('subdir/file.log'));
+});
+
+test('option: ignore - exclude specific .gitignore files', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	// Ignore .gitignore files in subdirectories
+	const isIgnored = await isGitIgnored({cwd, ignore: ['**/subdir/**']});
+
+	// Should not load subdir/.gitignore
+	t.false(isIgnored('subdir/file.log'));
+});
+
+test('option: ignore - string format', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	// Test with single string instead of array
+	const isIgnored = await isGitIgnored({cwd, ignore: '**/subdir/**'});
+
+	t.false(isIgnored('subdir/file.log'));
+});
+
+test('option: ignore - sync version', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	const isIgnored = isGitIgnoredSync({cwd, ignore: ['**/subdir/**']});
+	t.false(isIgnored('subdir/file.log'));
+});
+
+test('option: followSymbolicLinks', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	// Test with followSymbolicLinks explicitly set
+	const isIgnored = await isGitIgnored({cwd, followSymbolicLinks: true});
+
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: followSymbolicLinks - sync', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	const isIgnored = isGitIgnoredSync({cwd, followSymbolicLinks: false});
+
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: concurrency', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	// Test with custom concurrency
+	const isIgnored = await isGitIgnored({cwd, concurrency: 2});
+
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: concurrency - sync', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	const isIgnored = isGitIgnoredSync({cwd, concurrency: 4});
+
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: throwErrorOnBrokenSymbolicLink', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	const isIgnored = await isGitIgnored({cwd, throwErrorOnBrokenSymbolicLink: true});
+
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: throwErrorOnBrokenSymbolicLink - sync', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
+
+	const isIgnored = isGitIgnoredSync({cwd, throwErrorOnBrokenSymbolicLink: false});
+
+	t.true(isIgnored('foo.js'));
+	t.false(isIgnored('bar.js'));
+});
+
+test('option: multiple options combined', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	// Test combination of multiple options
+	const isIgnored = await isGitIgnored({
+		cwd,
+		deep: 2,
+		ignore: ['**/deep/deeper/**'],
+		suppressErrors: true,
+		followSymbolicLinks: false,
+		concurrency: 4,
+		throwErrorOnBrokenSymbolicLink: false,
+	});
+
+	// Should respect all options
+	t.true(isIgnored('subdir/file.log'));
+	t.true(isIgnored('subdir/deep/file.log'));
+});
+
+test('option: multiple options combined - sync', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore-nested');
+
+	const isIgnored = isGitIgnoredSync({
+		cwd,
+		deep: 2,
+		ignore: ['**/deep/deeper/**'],
+		suppressErrors: true,
+		followSymbolicLinks: false,
+		concurrency: 2,
+	});
+
+	t.true(isIgnored('subdir/file.log'));
+	t.true(isIgnored('subdir/deep/file.log'));
+});
+
+test('isIgnoredByIgnoreFiles - option: suppressErrors', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+
+	const isIgnored = await isIgnoredByIgnoreFiles('.eslintignore', {
+		cwd,
+		suppressErrors: true,
+	});
+
+	t.true(isIgnored('ignored-by-eslint.js'));
+	t.false(isIgnored('not-ignored.js'));
+});
+
+test('isIgnoredByIgnoreFiles - option: deep', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures');
+
+	// With deep: 0, should only find .eslintignore in fixtures directory
+	const isIgnored = await isIgnoredByIgnoreFiles('**/.eslintignore', {
+		cwd,
+		deep: 1,
+	});
+
+	// Should find ignore-files/.eslintignore
+	t.is(typeof isIgnored('ignored-by-eslint.js'), 'boolean');
+});
+
+test('isIgnoredByIgnoreFiles - option: ignore', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures');
+
+	// Ignore .eslintignore in specific directories
+	const isIgnored = await isIgnoredByIgnoreFiles('**/.eslintignore', {
+		cwd,
+		ignore: '**/ignore-files/**',
+	});
+
+	// Should not find any .eslintignore files
+	t.is(typeof isIgnored('test.js'), 'boolean');
+});
+
+test('isIgnoredByIgnoreFiles - multiple options', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+
+	const isIgnored = await isIgnoredByIgnoreFiles('.{eslint,prettier}ignore', {
+		cwd,
+		suppressErrors: true,
+		deep: 1,
+		followSymbolicLinks: false,
+		concurrency: 2,
+		throwErrorOnBrokenSymbolicLink: false,
+	});
+
+	t.true(isIgnored('ignored-by-eslint.js'));
+	t.true(isIgnored('ignored-by-prettier.js'));
+	t.false(isIgnored('not-ignored.js'));
+});
+
+test('isIgnoredByIgnoreFilesSync - option: suppressErrors', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+
+	const isIgnored = isIgnoredByIgnoreFilesSync('.eslintignore', {
+		cwd,
+		suppressErrors: true,
+	});
+
+	t.true(isIgnored('ignored-by-eslint.js'));
+	t.false(isIgnored('not-ignored.js'));
+});
+
+test('isIgnoredByIgnoreFilesSync - option: deep', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures');
+
+	const isIgnored = isIgnoredByIgnoreFilesSync('**/.eslintignore', {
+		cwd,
+		deep: 1,
+	});
+
+	t.is(typeof isIgnored('test.js'), 'boolean');
+});
+
+test('isIgnoredByIgnoreFilesSync - option: ignore string', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures');
+
+	// Test with string instead of array
+	const isIgnored = isIgnoredByIgnoreFilesSync('**/.eslintignore', {
+		cwd,
+		ignore: '**/node_modules/**',
+	});
+
+	t.is(typeof isIgnored('test.js'), 'boolean');
+});
+
+test('isIgnoredByIgnoreFilesSync - multiple options', t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/ignore-files');
+
+	const isIgnored = isIgnoredByIgnoreFilesSync('.{eslint,prettier}ignore', {
+		cwd,
+		suppressErrors: true,
+		deep: 1,
+		followSymbolicLinks: false,
+		concurrency: 4,
+	});
+
+	t.true(isIgnored('ignored-by-eslint.js'));
+	t.true(isIgnored('ignored-by-prettier.js'));
+	t.false(isIgnored('not-ignored.js'));
 });

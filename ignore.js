@@ -109,22 +109,31 @@ const getIsIgnoredPredicate = (files, cwd) => {
 	};
 };
 
-const normalizeOptions = (options = {}) => ({
-	cwd: toPath(options.cwd) ?? process.cwd(),
-	suppressErrors: Boolean(options.suppressErrors),
-	deep: typeof options.deep === 'number' ? options.deep : Number.POSITIVE_INFINITY,
-	ignore: [...options.ignore ?? [], ...defaultIgnoredDirectories],
-});
+const normalizeOptions = (options = {}) => {
+	const ignoreOption = options.ignore
+		? (Array.isArray(options.ignore) ? options.ignore : [options.ignore])
+		: [];
+
+	const cwd = toPath(options.cwd) ?? process.cwd();
+
+	// Only pass through specific fast-glob options that make sense for finding ignore files
+	return {
+		cwd,
+		suppressErrors: options.suppressErrors ?? false,
+		deep: typeof options.deep === 'number' ? options.deep : Number.POSITIVE_INFINITY,
+		ignore: [...ignoreOption, ...defaultIgnoredDirectories],
+		followSymbolicLinks: options.followSymbolicLinks ?? true,
+		concurrency: options.concurrency,
+		throwErrorOnBrokenSymbolicLink: options.throwErrorOnBrokenSymbolicLink ?? false,
+	};
+};
 
 export const isIgnoredByIgnoreFiles = async (patterns, options) => {
-	const {cwd, suppressErrors, deep, ignore} = normalizeOptions(options);
+	const normalizedOptions = normalizeOptions(options);
 
 	const paths = await fastGlob(patterns, {
-		cwd,
-		suppressErrors,
-		deep,
-		ignore,
-		...ignoreFilesGlobOptions,
+		...normalizedOptions,
+		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
 	const files = await Promise.all(paths.map(async filePath => ({
@@ -132,18 +141,15 @@ export const isIgnoredByIgnoreFiles = async (patterns, options) => {
 		content: await fsPromises.readFile(filePath, 'utf8'),
 	})));
 
-	return getIsIgnoredPredicate(files, cwd);
+	return getIsIgnoredPredicate(files, normalizedOptions.cwd);
 };
 
 export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
-	const {cwd, suppressErrors, deep, ignore} = normalizeOptions(options);
+	const normalizedOptions = normalizeOptions(options);
 
 	const paths = fastGlob.sync(patterns, {
-		cwd,
-		suppressErrors,
-		deep,
-		ignore,
-		...ignoreFilesGlobOptions,
+		...normalizedOptions,
+		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
 	const files = paths.map(filePath => ({
@@ -151,7 +157,7 @@ export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
 		content: fs.readFileSync(filePath, 'utf8'),
 	}));
 
-	return getIsIgnoredPredicate(files, cwd);
+	return getIsIgnoredPredicate(files, normalizedOptions.cwd);
 };
 
 const getPatternsFromIgnoreFiles = (files, cwd) => files.flatMap(file => parseIgnoreFile(file, cwd));
@@ -163,14 +169,11 @@ This avoids reading the same files twice (once for patterns, once for filtering)
 @returns {Promise<{patterns: string[], predicate: Function}>}
 */
 export const getIgnorePatternsAndPredicate = async (patterns, options) => {
-	const {cwd, suppressErrors, deep, ignore} = normalizeOptions(options);
+	const normalizedOptions = normalizeOptions(options);
 
 	const paths = await fastGlob(patterns, {
-		cwd,
-		suppressErrors,
-		deep,
-		ignore,
-		...ignoreFilesGlobOptions,
+		...normalizedOptions,
+		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
 	const files = await Promise.all(paths.map(async filePath => ({
@@ -179,8 +182,8 @@ export const getIgnorePatternsAndPredicate = async (patterns, options) => {
 	})));
 
 	return {
-		patterns: getPatternsFromIgnoreFiles(files, cwd),
-		predicate: getIsIgnoredPredicate(files, cwd),
+		patterns: getPatternsFromIgnoreFiles(files, normalizedOptions.cwd),
+		predicate: getIsIgnoredPredicate(files, normalizedOptions.cwd),
 	};
 };
 
@@ -190,14 +193,11 @@ Read ignore files and return both patterns and predicate (sync version).
 @returns {{patterns: string[], predicate: Function}}
 */
 export const getIgnorePatternsAndPredicateSync = (patterns, options) => {
-	const {cwd, suppressErrors, deep, ignore} = normalizeOptions(options);
+	const normalizedOptions = normalizeOptions(options);
 
 	const paths = fastGlob.sync(patterns, {
-		cwd,
-		suppressErrors,
-		deep,
-		ignore,
-		...ignoreFilesGlobOptions,
+		...normalizedOptions,
+		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
 	});
 
 	const files = paths.map(filePath => ({
@@ -206,8 +206,8 @@ export const getIgnorePatternsAndPredicateSync = (patterns, options) => {
 	}));
 
 	return {
-		patterns: getPatternsFromIgnoreFiles(files, cwd),
-		predicate: getIsIgnoredPredicate(files, cwd),
+		patterns: getPatternsFromIgnoreFiles(files, normalizedOptions.cwd),
+		predicate: getIsIgnoredPredicate(files, normalizedOptions.cwd),
 	};
 };
 

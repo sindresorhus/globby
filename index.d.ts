@@ -68,7 +68,56 @@ export type Options = {
 } & FastGlobOptionsWithoutCwd;
 
 export type GitignoreOptions = {
+	/**
+	The current working directory in which to search.
+
+	@default process.cwd()
+	*/
 	readonly cwd?: URL | string;
+
+	/**
+	Suppress errors when encountering directories or files without read permissions.
+
+	By default, fast-glob only suppresses `ENOENT` errors. Set to `true` to suppress any error.
+
+	@default false
+	*/
+	readonly suppressErrors?: boolean;
+
+	/**
+	Specifies the maximum depth of ignore file search relative to the start directory.
+
+	@default Infinity
+	*/
+	readonly deep?: number;
+
+	/**
+	Glob patterns to exclude from ignore file search.
+
+	@default []
+	*/
+	readonly ignore?: string | readonly string[];
+
+	/**
+	Indicates whether to traverse descendants of symbolic link directories.
+
+	@default true
+	*/
+	readonly followSymbolicLinks?: boolean;
+
+	/**
+	Specifies the maximum number of concurrent requests from a reader to read directories.
+
+	@default os.cpus().length
+	*/
+	readonly concurrency?: number;
+
+	/**
+	Throw an error when symbolic link is broken if `true` or safely return `lstat` call if `false`.
+
+	@default false
+	*/
+	readonly throwErrorOnBrokenSymbolicLink?: boolean;
 };
 
 export type GlobbyFilterFunction = (path: URL | string) => boolean;

@@ -145,7 +145,58 @@ This function is backed by [`fast-glob`](https://github.com/mrmlnc/fast-glob#isd
 
 Returns a `Promise<(path: URL | string) => boolean>` indicating whether a given path is ignored via a `.gitignore` file.
 
-Takes `cwd?: URL | string` as options.
+#### options
+
+Type: `object`
+
+##### cwd
+
+Type: `URL | string`\
+Default: `process.cwd()`
+
+The current working directory in which to search.
+
+##### suppressErrors
+
+Type: `boolean`\
+Default: `false`
+
+Suppress errors when encountering directories or files without read permissions.
+
+##### deep
+
+Type: `number`\
+Default: `Infinity`
+
+Specifies the maximum depth of `.gitignore` file search relative to the start directory.
+
+##### ignore
+
+Type: `string | string[]`\
+Default: `[]`
+
+Glob patterns to exclude from `.gitignore` file search.
+
+##### followSymbolicLinks
+
+Type: `boolean`\
+Default: `true`
+
+Indicates whether to traverse descendants of symbolic link directories.
+
+##### concurrency
+
+Type: `number`\
+Default: `os.cpus().length`
+
+Specifies the maximum number of concurrent requests from a reader to read directories.
+
+##### throwErrorOnBrokenSymbolicLink
+
+Type: `boolean`\
+Default: `false`
+
+Throw an error when symbolic link is broken if `true` or safely return `lstat` call if `false`.
 
 ```js
 import {isGitIgnored} from 'globby';
@@ -155,11 +206,24 @@ const isIgnored = await isGitIgnored();
 console.log(isIgnored('some/file'));
 ```
 
+```js
+// Suppress errors when encountering unreadable directories
+const isIgnored = await isGitIgnored({suppressErrors: true});
+```
+
+```js
+// Limit search depth and exclude certain directories
+const isIgnored = await isGitIgnored({
+	deep: 2,
+	ignore: ['**/node_modules/**', '**/dist/**']
+});
+```
+
 ### isGitIgnoredSync(options?)
 
 Returns a `(path: URL | string) => boolean` indicating whether a given path is ignored via a `.gitignore` file.
 
-Takes `cwd?: URL | string` as options.
+See [`isGitIgnored`](#isgitignoredoptions) for options.
 
 
 ### isIgnoredByIgnoreFiles(patterns, options?)
@@ -168,7 +232,17 @@ Returns a `Promise<(path: URL | string) => boolean>` indicating whether a given 
 
 This is a more generic form of the `isGitIgnored` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
 
-Takes `cwd?: URL | string` as options.
+#### patterns
+
+Type: `string | string[]`
+
+Glob patterns to look for ignore files.
+
+#### options
+
+Type: `object`
+
+See [`isGitIgnored` options](#isgitignoredoptions) for all available options.
 
 ```js
 import {isIgnoredByIgnoreFiles} from 'globby';
@@ -178,13 +252,26 @@ const isIgnored = await isIgnoredByIgnoreFiles("**/.gitignore");
 console.log(isIgnored('some/file'));
 ```
 
+```js
+// Suppress errors when encountering unreadable directories
+const isIgnored = await isIgnoredByIgnoreFiles("**/.eslintignore", {suppressErrors: true});
+```
+
+```js
+// Limit search depth and concurrency
+const isIgnored = await isIgnoredByIgnoreFiles("**/.prettierignore", {
+	deep: 3,
+	concurrency: 4
+});
+```
+
 ### isIgnoredByIgnoreFilesSync(patterns, options?)
 
 Returns a `(path: URL | string) => boolean` indicating whether a given path is ignored via the ignore files.
 
 This is a more generic form of the `isGitIgnoredSync` function, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
 
-Takes `cwd?: URL | string` as options.
+See [`isIgnoredByIgnoreFiles`](#isignoredbyignorefilespatterns-options) for patterns and options.
 
 ```js
 import {isIgnoredByIgnoreFilesSync} from 'globby';

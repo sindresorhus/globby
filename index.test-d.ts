@@ -134,6 +134,47 @@ expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
 	cwd: new URL('file:///path/to/cwd'),
 }));
 
+// Supported option: suppressErrors
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	suppressErrors: true,
+}));
+
+// Supported option: deep
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	deep: 2,
+}));
+
+// Supported option: ignore
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	ignore: ['**/node_modules'],
+}));
+
+// Supported option: followSymbolicLinks
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	followSymbolicLinks: false,
+}));
+
+// Supported option: concurrency
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	concurrency: 4,
+}));
+
+// Supported option: throwErrorOnBrokenSymbolicLink
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	throwErrorOnBrokenSymbolicLink: false,
+}));
+
+// Multiple supported options combined
+expectType<Promise<GlobbyFilterFunction>>(isGitIgnored({
+	cwd: __dirname,
+	suppressErrors: true,
+	deep: 1,
+	ignore: ['**/node_modules', '**/dist'],
+	followSymbolicLinks: false,
+	concurrency: 8,
+	throwErrorOnBrokenSymbolicLink: false,
+}));
+
 // IsGitIgnoredSync
 expectType<GlobbyFilterFunction>(isGitIgnoredSync());
 expectType<GlobbyFilterFunction>(isGitIgnoredSync({
@@ -141,4 +182,45 @@ expectType<GlobbyFilterFunction>(isGitIgnoredSync({
 }));
 expectType<GlobbyFilterFunction>(isGitIgnoredSync({
 	cwd: new URL('file:///path/to/cwd'),
+}));
+
+// Supported option: suppressErrors (sync)
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	suppressErrors: true,
+}));
+
+// Supported option: deep (sync)
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	deep: 2,
+}));
+
+// Supported option: ignore (sync)
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	ignore: ['**/node_modules'],
+}));
+
+// Supported option: followSymbolicLinks (sync)
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	followSymbolicLinks: false,
+}));
+
+// Supported option: concurrency (sync)
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	concurrency: 4,
+}));
+
+// Supported option: throwErrorOnBrokenSymbolicLink (sync)
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	throwErrorOnBrokenSymbolicLink: true,
+}));
+
+// Multiple supported options combined (sync)
+expectType<GlobbyFilterFunction>(isGitIgnoredSync({
+	cwd: __dirname,
+	suppressErrors: true,
+	deep: 1,
+	ignore: ['**/node_modules', '**/dist'],
+	followSymbolicLinks: false,
+	concurrency: 4,
+	throwErrorOnBrokenSymbolicLink: false,
 }));
