@@ -4,6 +4,7 @@ import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
+import isPathInside from 'is-path-inside';
 import slash from 'slash';
 import {toPath} from 'unicorn-magic';
 import {isNegativePattern, bindFsMethod} from './utilities.js';
@@ -76,13 +77,15 @@ const parseIgnoreFile = (file, cwd) => {
 };
 
 const toRelativePath = (fileOrDirectory, cwd) => {
-	cwd = slash(cwd);
 	if (path.isAbsolute(fileOrDirectory)) {
-		if (slash(fileOrDirectory).startsWith(cwd)) {
-			return path.relative(cwd, fileOrDirectory);
+		// When paths are equal, path.relative returns empty string which is valid
+		// isPathInside returns false for equal paths, so check this case first
+		const relativePath = path.relative(cwd, fileOrDirectory);
+		if (relativePath && !isPathInside(fileOrDirectory, cwd)) {
+			throw new Error(`Path ${fileOrDirectory} is not in cwd ${cwd}`);
 		}
 
-		throw new Error(`Path ${fileOrDirectory} is not in cwd ${cwd}`);
+		return relativePath;
 	}
 
 	// Normalize relative paths:

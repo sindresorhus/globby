@@ -66,6 +66,7 @@
 		"@sindresorhus/merge-streams": "^4.0.0",
 		"fast-glob": "^3.3.3",
 		"ignore": "^7.0.5",
+		"is-path-inside": "^4.0.0",
 		"slash": "^5.1.0",
 		"unicorn-magic": "^0.3.0"
 	},
