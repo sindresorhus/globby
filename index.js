@@ -128,14 +128,16 @@ const checkCwdOption = (cwd, fsImplementation = fs) => {
 		return;
 	}
 
+	let stats;
 	try {
-		if (!fsImplementation.statSync(cwd).isDirectory()) {
-			throw new Error('The `cwd` option must be a path to a directory');
-		}
-	} catch (error) {
-		if (error.message === 'The `cwd` option must be a path to a directory') {
-			throw error;
-		}
+		stats = fsImplementation.statSync(cwd);
+	} catch {
+		// If stat fails (e.g., path doesn't exist), let fast-glob handle it
+		return;
+	}
+
+	if (!stats.isDirectory()) {
+		throw new Error(`The \`cwd\` option must be a path to a directory, got: ${cwd}`);
 	}
 };
 

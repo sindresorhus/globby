@@ -14,6 +14,8 @@ import {
 	isUnique,
 } from './utilities.js';
 
+const cwdDirectoryError = {message: /The `cwd` option must be a path to a directory, got:/};
+
 const runGenerateGlobTasks = async (t, patterns, options) => {
 	const promiseResult = await generateGlobTasks(patterns, options);
 	const syncResult = generateGlobTasksSync(patterns, options);
@@ -54,12 +56,10 @@ for (const value of invalidPatterns) {
 }
 
 test('throws when specifying a file as cwd', async t => {
-	const error = {message: 'The `cwd` option must be a path to a directory'};
-
 	for (const file of getPathValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		// eslint-disable-next-line no-await-in-loop
-		await t.throwsAsync(generateGlobTasks('*', {cwd: file}), error);
-		t.throws(() => generateGlobTasksSync('*', {cwd: file}), error);
+		await t.throwsAsync(generateGlobTasks('*', {cwd: file}), cwdDirectoryError);
+		t.throws(() => generateGlobTasksSync('*', {cwd: file}), cwdDirectoryError);
 	}
 });
 

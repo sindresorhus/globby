@@ -23,6 +23,8 @@ import {
 const cwd = process.cwd();
 const temporary = 'tmp';
 
+const cwdDirectoryError = {message: /The `cwd` option must be a path to a directory, got:/};
+
 const fixture = [
 	'a.tmp',
 	'b.tmp',
@@ -704,17 +706,15 @@ test('`{extension: false}` and `expandDirectories.extensions` option', async t =
 });
 
 test('throws when specifying a file as cwd', async t => {
-	const error = {message: 'The `cwd` option must be a path to a directory'};
-
 	for (const file of getPathValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		// eslint-disable-next-line no-await-in-loop
-		await t.throwsAsync(globby('.', {cwd: file}), error);
+		await t.throwsAsync(globby('.', {cwd: file}), cwdDirectoryError);
 		// eslint-disable-next-line no-await-in-loop
-		await t.throwsAsync(globby('*', {cwd: file}), error);
-		t.throws(() => globbySync('.', {cwd: file}), error);
-		t.throws(() => globbySync('*', {cwd: file}), error);
-		t.throws(() => globbyStream('.', {cwd: file}), error);
-		t.throws(() => globbyStream('*', {cwd: file}), error);
+		await t.throwsAsync(globby('*', {cwd: file}), cwdDirectoryError);
+		t.throws(() => globbySync('.', {cwd: file}), cwdDirectoryError);
+		t.throws(() => globbySync('*', {cwd: file}), cwdDirectoryError);
+		t.throws(() => globbyStream('.', {cwd: file}), cwdDirectoryError);
+		t.throws(() => globbyStream('*', {cwd: file}), cwdDirectoryError);
 	}
 });
 
@@ -722,11 +722,11 @@ test('throws when specifying a file as cwd - isDynamicPattern', t => {
 	for (const file of getPathValues(path.resolve('fixtures/gitignore/bar.js'))) {
 		t.throws(() => {
 			isDynamicPattern('.', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
+		}, cwdDirectoryError);
 
 		t.throws(() => {
 			isDynamicPattern('*', {cwd: file});
-		}, {message: 'The `cwd` option must be a path to a directory'});
+		}, cwdDirectoryError);
 	}
 });
 
