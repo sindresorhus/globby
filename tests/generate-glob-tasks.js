@@ -108,6 +108,15 @@ test('expandDirectories option', async t => {
 	}
 });
 
+test('adjust ignore patterns when expandDirectories is false', async t => {
+	const tasks = await runGenerateGlobTasks(t, ['../**'], {
+		ignore: ['**/node_modules/**'],
+		expandDirectories: false,
+	});
+
+	t.deepEqual(tasks[0].options.ignore, ['../**/node_modules/**']);
+});
+
 test('combine tasks', async t => {
 	t.deepEqual(
 		await getTasks(t, ['a', 'b']),

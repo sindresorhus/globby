@@ -14,6 +14,7 @@ import {
 	bindFsMethod,
 	isNegativePattern,
 	normalizeDirectoryPatternForFastGlob,
+	adjustIgnorePatternsForParentDirectories,
 } from './utilities.js';
 
 const assertPatternsInput = patterns => {
@@ -310,6 +311,14 @@ const convertNegativePatterns = (patterns, options) => {
 	return tasks;
 };
 
+const applyParentDirectoryIgnoreAdjustments = tasks => tasks.map(task => ({
+	patterns: task.patterns,
+	options: {
+		...task.options,
+		ignore: adjustIgnorePatternsForParentDirectories(task.patterns, task.options.ignore),
+	},
+}));
+
 const normalizeExpandDirectoriesOption = (options, cwd) => ({
 	...(cwd ? {cwd} : {}),
 	...(Array.isArray(options) ? {files: options} : options),
@@ -321,7 +330,7 @@ const generateTasks = async (patterns, options) => {
 	const {cwd, expandDirectories, fs: fsImplementation} = options;
 
 	if (!expandDirectories) {
-		return globTasks;
+		return applyParentDirectoryIgnoreAdjustments(globTasks);
 	}
 
 	const directoryToGlobOptions = {
@@ -340,6 +349,9 @@ const generateTasks = async (patterns, options) => {
 			directoryToGlob(options.ignore, {cwd, fs: fsImplementation}),
 		]);
 
+		// Adjust ignore patterns for parent directory references
+		options.ignore = adjustIgnorePatternsForParentDirectories(patterns, options.ignore);
+
 		return {patterns, options};
 	}));
 };
@@ -349,7 +361,7 @@ const generateTasksSync = (patterns, options) => {
 	const {cwd, expandDirectories, fs: fsImplementation} = options;
 
 	if (!expandDirectories) {
-		return globTasks;
+		return applyParentDirectoryIgnoreAdjustments(globTasks);
 	}
 
 	const directoryToGlobSyncOptions = {
@@ -361,6 +373,10 @@ const generateTasksSync = (patterns, options) => {
 		let {patterns, options} = task;
 		patterns = directoryToGlobSync(patterns, directoryToGlobSyncOptions);
 		options.ignore = directoryToGlobSync(options.ignore, {cwd, fs: fsImplementation});
+
+		// Adjust ignore patterns for parent directory references
+		options.ignore = adjustIgnorePatternsForParentDirectories(patterns, options.ignore);
+
 		return {patterns, options};
 	});
 };

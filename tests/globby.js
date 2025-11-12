@@ -370,6 +370,198 @@ test.serial.failing('relative paths and ignores option', async t => {
 	}
 });
 
+test.serial('parent directory patterns with ** ignore patterns (issue #90)', async t => {
+	// Create a test directory structure: parent/child/node_modules
+	const temporaryParent = temporaryDirectory();
+	const temporaryChild = path.join(temporaryParent, 'child');
+	const nodeModulesDir = path.join(temporaryParent, 'node_modules', 'foo');
+
+	fs.mkdirSync(nodeModulesDir, {recursive: true});
+	fs.mkdirSync(temporaryChild, {recursive: true});
+
+	const testFile = path.join(temporaryParent, 'test.js');
+	const nodeModulesFile = path.join(nodeModulesDir, 'index.js');
+	const childFile = path.join(temporaryChild, 'child.js');
+
+	fs.writeFileSync(testFile, '', 'utf8');
+	fs.writeFileSync(nodeModulesFile, '', 'utf8');
+	fs.writeFileSync(childFile, '', 'utf8');
+
+	try {
+		// Test with ignore option
+		const result1 = await runGlobby(t, ['..'], {
+			cwd: temporaryChild,
+			ignore: ['**/node_modules/**'],
+		});
+		t.false(result1.some(p => p.includes('node_modules')), 'ignore option should exclude node_modules');
+
+		// Test with negation pattern
+		const result2 = await runGlobby(t, ['..', '!**/node_modules/**'], {
+			cwd: temporaryChild,
+		});
+		t.false(result2.some(p => p.includes('node_modules')), 'negation pattern should exclude node_modules');
+
+		// Both should include the non-node_modules files
+		t.true(result1.some(p => p.endsWith('test.js')), 'should include test.js');
+		t.true(result1.some(p => p.endsWith('child.js')), 'should include child.js');
+	} finally {
+		fs.rmSync(temporaryParent, {recursive: true, force: true});
+	}
+});
+
+test.serial('parent directory patterns - multiple levels (../../)', async t => {
+	const temporaryGrandparent = temporaryDirectory();
+	const temporaryParent = path.join(temporaryGrandparent, 'parent');
+	const temporaryChild = path.join(temporaryParent, 'child');
+	const distDir = path.join(temporaryGrandparent, 'dist');
+
+	fs.mkdirSync(distDir, {recursive: true});
+	fs.mkdirSync(temporaryChild, {recursive: true});
+
+	const rootFile = path.join(temporaryGrandparent, 'root.js');
+	const distFile = path.join(distDir, 'bundle.js');
+
+	fs.writeFileSync(rootFile, '', 'utf8');
+	fs.writeFileSync(distFile, '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, ['../..'], {
+			cwd: temporaryChild,
+			ignore: ['**/dist/**'],
+		});
+
+		t.false(result.some(p => p.includes('dist')), 'should exclude dist directory');
+		t.true(result.some(p => p.endsWith('root.js')), 'should include root.js');
+	} finally {
+		fs.rmSync(temporaryGrandparent, {recursive: true, force: true});
+	}
+});
+
+test.serial('parent directory patterns - already prefixed ignore patterns', async t => {
+	const temporaryParent = temporaryDirectory();
+	const temporaryChild = path.join(temporaryParent, 'child');
+	const buildDir = path.join(temporaryParent, 'build');
+
+	fs.mkdirSync(buildDir, {recursive: true});
+	fs.mkdirSync(temporaryChild, {recursive: true});
+
+	const buildFile = path.join(buildDir, 'output.js');
+	const testFile = path.join(temporaryParent, 'test.js');
+
+	fs.writeFileSync(buildFile, '', 'utf8');
+	fs.writeFileSync(testFile, '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, ['..'], {
+			cwd: temporaryChild,
+			ignore: ['../**/build/**'],
+		});
+
+		t.false(result.some(p => p.includes('build')), 'should exclude build with pre-prefixed ignore');
+		t.true(result.some(p => p.endsWith('test.js')), 'should include test.js');
+	} finally {
+		fs.rmSync(temporaryParent, {recursive: true, force: true});
+	}
+});
+
+test.serial('parent directory patterns - multiple ignore patterns', async t => {
+	const temporaryParent = temporaryDirectory();
+	const temporaryChild = path.join(temporaryParent, 'child');
+	const nodeModulesDir = path.join(temporaryParent, 'node_modules');
+	const distDir = path.join(temporaryParent, 'dist');
+	const buildDir = path.join(temporaryParent, 'build');
+
+	fs.mkdirSync(nodeModulesDir, {recursive: true});
+	fs.mkdirSync(distDir, {recursive: true});
+	fs.mkdirSync(buildDir, {recursive: true});
+	fs.mkdirSync(temporaryChild, {recursive: true});
+
+	const nodeModulesFile = path.join(nodeModulesDir, 'pkg.js');
+	const distFile = path.join(distDir, 'bundle.js');
+	const buildFile = path.join(buildDir, 'output.js');
+	const sourceFile = path.join(temporaryParent, 'source.js');
+
+	fs.writeFileSync(nodeModulesFile, '', 'utf8');
+	fs.writeFileSync(distFile, '', 'utf8');
+	fs.writeFileSync(buildFile, '', 'utf8');
+	fs.writeFileSync(sourceFile, '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, ['..'], {
+			cwd: temporaryChild,
+			ignore: ['**/node_modules/**', '**/dist/**', '**/build/**'],
+		});
+
+		t.false(result.some(p => p.includes('node_modules')), 'should exclude node_modules');
+		t.false(result.some(p => p.includes('dist')), 'should exclude dist');
+		t.false(result.some(p => p.includes('build')), 'should exclude build');
+		t.true(result.some(p => p.endsWith('source.js')), 'should include source.js');
+	} finally {
+		fs.rmSync(temporaryParent, {recursive: true, force: true});
+	}
+});
+
+test.serial('parent directory patterns - mixed patterns should not adjust', async t => {
+	const temporaryParent = temporaryDirectory();
+	const temporaryChild = path.join(temporaryParent, 'child');
+	const nodeModulesDir = path.join(temporaryParent, 'node_modules');
+	const srcDir = path.join(temporaryChild, 'src');
+
+	fs.mkdirSync(nodeModulesDir, {recursive: true});
+	fs.mkdirSync(srcDir, {recursive: true});
+
+	const nodeModulesFile = path.join(nodeModulesDir, 'pkg.js');
+	const srcFile = path.join(srcDir, 'index.js');
+
+	fs.writeFileSync(nodeModulesFile, '', 'utf8');
+	fs.writeFileSync(srcFile, '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, ['..', 'src'], {
+			cwd: temporaryChild,
+			ignore: ['**/node_modules/**'],
+		});
+
+		t.true(result.some(p => p.includes('node_modules')), 'should include node_modules when patterns have mixed bases');
+		t.true(result.some(p => p.includes('src')), 'should include src files');
+	} finally {
+		fs.rmSync(temporaryParent, {recursive: true, force: true});
+	}
+});
+
+test.serial('parent directory patterns - with same prefix patterns', async t => {
+	const temporaryGrandparent = temporaryDirectory();
+	const temporaryParent = path.join(temporaryGrandparent, 'parent');
+	const temporaryChild = path.join(temporaryParent, 'child');
+	const nodeModulesDir = path.join(temporaryGrandparent, 'node_modules');
+	const libDir = path.join(temporaryGrandparent, 'lib');
+
+	fs.mkdirSync(nodeModulesDir, {recursive: true});
+	fs.mkdirSync(libDir, {recursive: true});
+	fs.mkdirSync(temporaryChild, {recursive: true});
+
+	const nodeModulesFile = path.join(nodeModulesDir, 'pkg.js');
+	const libFile = path.join(libDir, 'helper.js');
+	const rootFile = path.join(temporaryGrandparent, 'index.js');
+
+	fs.writeFileSync(nodeModulesFile, '', 'utf8');
+	fs.writeFileSync(libFile, '', 'utf8');
+	fs.writeFileSync(rootFile, '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, ['../../lib/**', '../../*.js'], {
+			cwd: temporaryChild,
+			ignore: ['**/node_modules/**'],
+		});
+
+		t.false(result.some(p => p.includes('node_modules')), 'should exclude node_modules with same prefix');
+		t.true(result.some(p => p.endsWith('helper.js')), 'should include lib files');
+		t.true(result.some(p => p.endsWith('index.js')), 'should include root js files');
+	} finally {
+		fs.rmSync(temporaryGrandparent, {recursive: true, force: true});
+	}
+});
+
 // Rejected for being an invalid pattern
 for (const value of invalidPatterns) {
 	const valueString = format(value);

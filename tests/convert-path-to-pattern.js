@@ -23,6 +23,12 @@ test.before(() => {
 	}
 });
 
+test.after.always(() => {
+	if (fs.existsSync(testDirectory)) {
+		fs.rmSync(testDirectory, {recursive: true, force: true});
+	}
+});
+
 test('paths with parentheses fail without convertPathToPattern', t => {
 	const directory = path.join(testDirectory, 'Program Files (x86)', 'app');
 	const pattern = directory.replaceAll(path.sep, '/') + '/*.txt';
