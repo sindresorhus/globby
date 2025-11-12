@@ -41,6 +41,8 @@ console.log(paths);
 
 Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
 
+**Windows:** Patterns with backslashes will silently fail. Use `path.posix.join()` or [`convertPathToPattern()`](#convertpathtopatternpath).
+
 ### globby(patterns, options?)
 
 Returns a `Promise<string[]>` of matching paths.
@@ -131,7 +133,7 @@ for await (const path of globbyStream('*.tmp')) {
 
 ### convertPathToPattern(path)
 
-Converts a path to a pattern by escaping special glob characters like `()`, `[]`, `{}`.
+Converts a path to a pattern by escaping special glob characters like `()`, `[]`, `{}`. On Windows, also converts backslashes to forward slashes.
 
 Use this when your literal paths contain characters with special meaning in globs.
 

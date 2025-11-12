@@ -150,6 +150,8 @@ Find files and directories using glob patterns.
 
 Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
 
+Windows: Patterns with backslashes will silently fail. Use `path.posix.join()` or `convertPathToPattern()`.
+
 @param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns). Supports negation patterns to exclude files. When using only negation patterns (like `['!*.json']`), globby implicitly prepends a catch-all pattern to match all files before applying negations.
 @param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
 @returns The matching paths.
@@ -296,7 +298,7 @@ export function isGitIgnored(options?: GitignoreOptions): Promise<GlobbyFilterFu
 export function isGitIgnoredSync(options?: GitignoreOptions): GlobbyFilterFunction;
 
 /**
-Converts a path to a pattern by escaping special glob characters like `()`, `[]`, `{}`.
+Converts a path to a pattern by escaping special glob characters like `()`, `[]`, `{}`. On Windows, also converts backslashes to forward slashes.
 
 Use this when your literal paths contain characters with special meaning in globs.
 
