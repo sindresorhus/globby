@@ -82,7 +82,9 @@ const toRelativePath = (fileOrDirectory, cwd) => {
 		// isPathInside returns false for equal paths, so check this case first
 		const relativePath = path.relative(cwd, fileOrDirectory);
 		if (relativePath && !isPathInside(fileOrDirectory, cwd)) {
-			throw new Error(`Path ${fileOrDirectory} is not in cwd ${cwd}`);
+			// Path is outside cwd - it cannot be ignored by patterns in cwd
+			// Return undefined to indicate this path is outside scope
+			return undefined;
 		}
 
 		return relativePath;

@@ -655,17 +655,15 @@ test('fs option preserves context for ignore file readers', async t => {
 	t.false(syncPredicate('not-ignored.js'));
 });
 
-test('path prefix edge case - reject paths with similar prefix outside cwd', async t => {
+test('path prefix edge case - paths with similar prefix outside cwd return false', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
 	const isIgnored = await isGitIgnored({cwd});
 
-	// Test that paths outside the cwd but with similar prefix are rejected
-	// e.g., if cwd is /foo/bar, then /foo/barbaz should throw an error
+	// Test that paths outside the cwd but with similar prefix return false (not ignored)
+	// e.g., if cwd is /foo/bar, then /foo/barextra should not be ignored
+	// because it's outside cwd and gitignore patterns from cwd don't apply to it
 	const outsidePath = cwd + 'extra/file.js'; // Creates path like /foo/gitignoreextra/file.js
 
-	const error = t.throws(() => {
-		isIgnored(outsidePath);
-	});
-
-	t.regex(error.message, /Path .+ is not in cwd/);
+	// Should return false (not ignored) rather than throwing error
+	t.false(isIgnored(outsidePath));
 });

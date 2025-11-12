@@ -638,6 +638,58 @@ test('nested gitignore with negation applies recursively to globby results (issu
 	t.false(result.includes('y/z/a1.txt'));
 });
 
+test.serial('parent directory patterns work with gitignore option (issue #133)', async t => {
+	const temporaryParent = temporaryDirectory();
+	const temporarySrc = path.join(temporaryParent, 'src');
+	const temporaryChild = path.join(temporaryParent, 'child');
+
+	fs.mkdirSync(temporarySrc, {recursive: true});
+	fs.mkdirSync(temporaryChild, {recursive: true});
+
+	const srcFile1 = path.join(temporarySrc, 'test1.ts');
+	const srcFile2 = path.join(temporarySrc, 'test2.ts');
+
+	fs.writeFileSync(srcFile1, 'content1', 'utf8');
+	fs.writeFileSync(srcFile2, 'content2', 'utf8');
+
+	// Add a .gitignore to ensure gitignore processing is active
+	fs.writeFileSync(path.join(temporaryParent, '.gitignore'), 'node_modules\n', 'utf8');
+
+	try {
+		// Test relative parent directory pattern with gitignore:true
+		const relativeResult = await runGlobby(t, '../src/*.ts', {
+			cwd: temporaryChild,
+			gitignore: true,
+			absolute: false,
+		});
+
+		t.deepEqual(relativeResult.sort(), ['../src/test1.ts', '../src/test2.ts']);
+
+		// Test absolute paths with gitignore:true
+		const absoluteResult = await runGlobby(t, '../src/*.ts', {
+			cwd: temporaryChild,
+			gitignore: true,
+			absolute: true,
+		});
+
+		t.is(absoluteResult.length, 2);
+		t.true(absoluteResult.every(p => path.isAbsolute(p)));
+		t.true(absoluteResult.some(p => p.endsWith('test1.ts')));
+		t.true(absoluteResult.some(p => p.endsWith('test2.ts')));
+
+		// Verify it still works with gitignore:false for consistency
+		const withoutGitignoreResult = await runGlobby(t, '../src/*.ts', {
+			cwd: temporaryChild,
+			gitignore: false,
+			absolute: false,
+		});
+
+		t.deepEqual(withoutGitignoreResult.sort(), ['../src/test1.ts', '../src/test2.ts']);
+	} finally {
+		fs.rmSync(temporaryParent, {recursive: true, force: true});
+	}
+});
+
 test.serial('gitignore directory patterns stop fast-glob traversal', async t => {
 	const temporaryCwd = temporaryDirectory();
 	const gitignorePath = path.join(temporaryCwd, '.gitignore');
