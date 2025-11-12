@@ -179,7 +179,7 @@ console.log(paths);
 */
 export function globby(
 	patterns: string | readonly string[],
-	options: Options & {objectMode: true}
+	options: Options & ({objectMode: true} | {stats: true})
 ): Promise<GlobEntry[]>;
 export function globby(
 	patterns: string | readonly string[],
@@ -197,7 +197,7 @@ Note that glob patterns can only contain forward-slashes, not backward-slashes, 
 */
 export function globbySync(
 	patterns: string | readonly string[],
-	options: Options & {objectMode: true}
+	options: Options & ({objectMode: true} | {stats: true})
 ): GlobEntry[];
 export function globbySync(
 	patterns: string | readonly string[],
@@ -224,7 +224,7 @@ for await (const path of globbyStream('*.tmp')) {
 */
 export function globbyStream(
 	patterns: string | readonly string[],
-	options: Options & {objectMode: true}
+	options: Options & ({objectMode: true} | {stats: true})
 ): GlobbyEntryStream;
 export function globbyStream(
 	patterns: string | readonly string[],

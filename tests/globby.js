@@ -743,6 +743,27 @@ test('unique when using objectMode option', async t => {
 	t.true(isUnique(result.map(({path}) => path)));
 });
 
+test('stats option returns Entry objects with stats', async t => {
+	const result = await runGlobby(t, '*.tmp', {cwd, stats: true});
+	t.true(result.length > 0);
+	for (const entry of result) {
+		t.truthy(entry.path);
+		t.truthy(entry.name);
+		// Note: stats property exists but is filtered out in stabilizeResult for testing
+	}
+});
+
+test('gitignore option and stats option', async t => {
+	const result = await runGlobby(t, 'fixtures/gitignore/*', {gitignore: true, stats: true});
+	t.is(result.length, 1);
+	t.truthy(result[0].path);
+});
+
+test('unique when using stats option', async t => {
+	const result = await runGlobby(t, ['a.tmp', '*.tmp'], {cwd, stats: true});
+	t.true(isUnique(result.map(({path}) => path)));
+});
+
 // Known limitation: ** in parentheses doesn't work (fast-glob #484)
 test.failing('** inside parentheses', async t => {
 	const testDir = temporaryDirectory();

@@ -33,6 +33,7 @@ expectType<Promise<string[]>>(globby('*.tmp', {
 expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
 expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<Promise<GlobEntry[]>>(globby('*.tmp', {objectMode: true}));
+expectType<Promise<GlobEntry[]>>(globby('*.tmp', {stats: true}));
 
 // Globby (sync)
 expectType<string[]>(globbySync('*.tmp'));
@@ -49,6 +50,7 @@ expectType<string[]>(globbySync('*.tmp', {
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<GlobEntry[]>(globbySync('*.tmp', {objectMode: true}));
+expectType<GlobEntry[]>(globbySync('*.tmp', {stats: true}));
 
 // Globby (stream)
 expectType<GlobbyStream>(globbyStream('*.tmp'));
@@ -65,7 +67,9 @@ expectType<GlobbyStream>(globbyStream('*.tmp', {
 expectType<GlobbyStream>(globbyStream('*.tmp', {gitignore: true}));
 expectType<GlobbyStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<GlobbyEntryStream>(globbyStream('*.tmp', {objectMode: true}));
+expectType<GlobbyEntryStream>(globbyStream('*.tmp', {stats: true}));
 expectType<GlobbyEntryStream>(globbyStream('*.tmp', {objectMode: true, gitignore: true}));
+expectType<GlobbyEntryStream>(globbyStream('*.tmp', {stats: true, gitignore: true}));
 
 // eslint-disable-next-line unicorn/prefer-top-level-await
 (async () => {
@@ -82,6 +86,16 @@ expectType<GlobbyEntryStream>(globbyStream('*.tmp', {objectMode: true, gitignore
 (async () => {
 	const streamResult = [];
 	for await (const entry of globbyStream('*.tmp', {objectMode: true})) {
+		streamResult.push(entry);
+	}
+
+	expectType<GlobEntry[]>(streamResult);
+})();
+
+// eslint-disable-next-line unicorn/prefer-top-level-await
+(async () => {
+	const streamResult = [];
+	for await (const entry of globbyStream('*.tmp', {stats: true})) {
 		streamResult.push(entry);
 	}
 
