@@ -150,7 +150,7 @@ Find files and directories using glob patterns.
 
 Note that glob patterns can only contain forward-slashes, not backward-slashes, so if you want to construct a glob pattern from path components, you need to use `path.posix.join()` instead of `path.join()`.
 
-@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns).
+@param patterns - See the supported [glob patterns](https://github.com/sindresorhus/globby#globbing-patterns). Supports negation patterns to exclude files. When using only negation patterns (like `['!*.json']`), globby implicitly prepends a catch-all pattern to match all files before applying negations.
 @param options - See the [`fast-glob` options](https://github.com/mrmlnc/fast-glob#options-3) in addition to the ones in this package.
 @returns The matching paths.
 
@@ -162,6 +162,17 @@ const paths = await globby(['*', '!cake']);
 
 console.log(paths);
 //=> ['unicorn', 'rainbow']
+```
+
+@example
+```
+import {globby} from 'globby';
+
+// Negation-only patterns match all files except the negated ones
+const paths = await globby(['!*.json', '!*.xml'], {cwd: 'config'});
+
+console.log(paths);
+//=> ['config.js', 'settings.yaml']
 ```
 */
 export function globby(

@@ -269,6 +269,12 @@ const createFilterFunction = isIgnored => {
 const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
 
 const convertNegativePatterns = (patterns, options) => {
+	// If all patterns are negative, prepend a positive catch-all pattern
+	// This makes negation-only patterns work intuitively (e.g., '!*.json' matches all files except JSON)
+	if (patterns.length > 0 && patterns.every(pattern => isNegativePattern(pattern))) {
+		patterns = ['**/*', ...patterns];
+	}
+
 	const tasks = [];
 
 	while (patterns.length > 0) {

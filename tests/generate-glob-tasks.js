@@ -121,7 +121,7 @@ test('combine tasks', async t => {
 
 	t.deepEqual(
 		await getTasks(t, ['!a']),
-		[],
+		[{patterns: ['**/*'], ignore: ['a']}],
 	);
 
 	t.deepEqual(
@@ -209,15 +209,25 @@ test('random patterns', async t => {
 		const allPatterns = tasks.flatMap(({patterns}) => patterns);
 		const allIgnore = tasks.flatMap(({ignore}) => ignore);
 
+		// When there are only negative patterns, we auto-add '**/*' as a positive pattern
+		const isNegationOnly = positivePatterns.length === 0 && negativePatterns.length > 0;
+		const expectedPatternCount = isNegationOnly ? 1 : positivePatterns.length;
+
 		t.is(
 			new Set(allPatterns).size,
-			positivePatterns.length,
+			expectedPatternCount,
 			`positive patterns should be in patterns: ${patternsToDebug}`,
 		);
 
+		// When there are only negative patterns, all of them go into ignore (including negativePatternsAtStart)
+		// Otherwise, negativePatternsAtStart are discarded
+		const expectedIgnoreCount = isNegationOnly
+			? negativePatterns.length
+			: negativePatterns.length - negativePatternsAtStart.length;
+
 		t.is(
 			new Set(allIgnore).size,
-			negativePatterns.length - negativePatternsAtStart.length,
+			expectedIgnoreCount,
 			`negative patterns should be in ignore: ${patternsToDebug}`,
 		);
 	}

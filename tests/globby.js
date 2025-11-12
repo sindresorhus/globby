@@ -233,8 +233,19 @@ test('respect patterns order', async t => {
 	t.deepEqual(await runGlobby(t, ['!*.tmp', 'a.tmp']), ['a.tmp']);
 });
 
-test('return [] for all negative patterns', async t => {
-	t.deepEqual(await runGlobby(t, ['!a.tmp', '!b.tmp']), []);
+test('negation-only patterns match all files in cwd except negated ones', async t => {
+	// When using negation-only patterns in a scoped directory, it should match all files except the negated ones
+	t.deepEqual(await runGlobby(t, ['!a.tmp', '!b.tmp'], {cwd: temporary}), ['c.tmp', 'd.tmp', 'e.tmp']);
+});
+
+test('single negation-only pattern in scoped directory', async t => {
+	const result = await runGlobby(t, '!a.tmp', {cwd: temporary});
+	t.deepEqual(result, ['b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
+});
+
+test('negation-only with brace expansion in scoped directory', async t => {
+	const result = await runGlobby(t, '!{a,b}.tmp', {cwd: temporary});
+	t.deepEqual(result, ['c.tmp', 'd.tmp', 'e.tmp']);
 });
 
 test('glob - stream async iterator support', async t => {

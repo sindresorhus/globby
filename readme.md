@@ -9,6 +9,7 @@ Based on [`fast-glob`](https://github.com/mrmlnc/fast-glob) but adds a bunch of 
 - Promise API
 - Multiple patterns
 - Negated patterns: `['foo*', '!foobar']`
+- Negation-only patterns: `['!foobar']` → matches all files except `foobar`
 - Expands directories: `foo` → `foo/**/*`
 - Supports `.gitignore` and similar ignore config files
 - Supports `URL` as `cwd`
@@ -331,6 +332,26 @@ Just a quick overview.
 - `**` matches any number of characters, including `/`, as long as it's the only thing in a path part
 - `{}` allows for a comma-separated list of "or" expressions
 - `!` at the beginning of a pattern will negate the match
+
+### Negation patterns
+
+Globby supports negation patterns to exclude files. There are two ways to use them:
+
+**With positive patterns:**
+```js
+await globby(['src/**/*.js', '!src/**/*.test.js']);
+// Matches all .js files except test files
+```
+
+**Negation-only patterns:**
+```js
+await globby(['!*.json', '!*.xml'], {cwd: 'config'});
+// Matches all files in config/ except .json and .xml files
+```
+
+When using only negation patterns, globby implicitly prepends `**/*` to match all files, then applies the negations. This means `['!*.json', '!*.xml']` is equivalent to `['**/*', '!*.json', '!*.xml']`.
+
+**Note:** The prepended `**/*` pattern respects the `dot` option. By default, dotfiles (files starting with `.`) are not matched unless you set `dot: true`.
 
 [Various patterns and expected matches.](https://github.com/sindresorhus/multimatch/blob/main/test/test.js)
 
