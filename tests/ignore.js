@@ -198,6 +198,21 @@ test('gitignore edge cases with trailing slashes and special patterns', async t 
 	// (tested implicitly - our fixtures may have them)
 });
 
+test('npmignore patterns in subdirectories apply recursively (issue #247)', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures', 'npmignore-nested');
+	const isIgnored = await isIgnoredByIgnoreFiles('**/.npmignore', {cwd});
+
+	// Pattern 'a.js' in subdir/.npmignore should ignore files at any level below
+	t.true(isIgnored('subdir/a.js'));
+	t.true(isIgnored('subdir/deep/a.js'));
+	t.false(isIgnored('a.js')); // Not under subdir
+
+	// Pattern '*.log' should also work recursively
+	t.true(isIgnored('subdir/file.log'));
+	t.true(isIgnored('subdir/deep/file.log'));
+	t.false(isIgnored('file.log')); // Not under subdir
+});
+
 test('nested gitignore with negation applies recursively (issue #255)', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures', 'gitignore-negation-nested');
 	const isIgnored = await isGitIgnored({cwd});
