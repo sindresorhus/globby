@@ -12,9 +12,11 @@ import {
 } from './ignore.js';
 import {
 	bindFsMethod,
+	promisifyFsMethod,
 	isNegativePattern,
 	normalizeDirectoryPatternForFastGlob,
 	adjustIgnorePatternsForParentDirectories,
+	convertPatternsForFastGlob,
 } from './utilities.js';
 
 const assertPatternsInput = patterns => {
@@ -25,8 +27,8 @@ const assertPatternsInput = patterns => {
 
 const getStatMethod = fsImplementation =>
 	bindFsMethod(fsImplementation?.promises, 'stat')
-	?? bindFsMethod(fsImplementation, 'stat')
-	?? bindFsMethod(fs.promises, 'stat');
+	?? bindFsMethod(fs.promises, 'stat')
+	?? promisifyFsMethod(fsImplementation, 'stat');
 
 const getStatSyncMethod = fsImplementation =>
 	bindFsMethod(fsImplementation, 'statSync')
@@ -142,9 +144,14 @@ const checkCwdOption = (cwd, fsImplementation = fs) => {
 };
 
 const normalizeOptions = (options = {}) => {
+	// Normalize ignore to an array (fast-glob accepts string but we need array internally)
+	const ignore = options.ignore
+		? (Array.isArray(options.ignore) ? options.ignore : [options.ignore])
+		: [];
+
 	options = {
 		...options,
-		ignore: options.ignore ?? [],
+		ignore,
 		expandDirectories: options.expandDirectories ?? true,
 		cwd: toPath(options.cwd),
 	};
@@ -185,24 +192,17 @@ const applyIgnoreFilesAndGetFilter = async options => {
 	if (ignoreFilesPatterns.length === 0) {
 		return {
 			options,
-			filter: createFilterFunction(false),
+			filter: createFilterFunction(false, options.cwd),
 		};
 	}
 
 	// Read ignore files once and get both patterns and predicate
-	const {patterns, predicate} = await getIgnorePatternsAndPredicate(ignoreFilesPatterns, options);
+	// Enable parent .gitignore search when using gitignore option
+	const includeParentIgnoreFiles = options.gitignore === true;
+	const {patterns, predicate, usingGitRoot} = await getIgnorePatternsAndPredicate(ignoreFilesPatterns, options, includeParentIgnoreFiles);
 
-	// Determine which patterns are safe to pass to fast-glob
-	// If there are negation patterns, we can't pass file patterns to fast-glob
-	// because fast-glob doesn't understand negations and would filter out files
-	// that should be re-included by negation patterns.
-	// We only pass patterns to fast-glob if there are NO negations.
-	const hasNegations = patterns.some(pattern => isNegativePattern(pattern));
-	const patternsForFastGlob = hasNegations
-		? [] // With negations, let the predicate handle everything
-		: patterns
-			.filter(pattern => !isNegativePattern(pattern))
-			.map(pattern => normalizeDirectoryPatternForFastGlob(pattern));
+	// Convert patterns to fast-glob format (may return empty array if predicate should handle everything)
+	const patternsForFastGlob = convertPatternsForFastGlob(patterns, usingGitRoot, normalizeDirectoryPatternForFastGlob);
 
 	const modifiedOptions = {
 		...options,
@@ -211,7 +211,7 @@ const applyIgnoreFilesAndGetFilter = async options => {
 
 	return {
 		options: modifiedOptions,
-		filter: createFilterFunction(predicate),
+		filter: createFilterFunction(predicate, options.cwd),
 	};
 };
 
@@ -226,21 +226,17 @@ const applyIgnoreFilesAndGetFilterSync = options => {
 	if (ignoreFilesPatterns.length === 0) {
 		return {
 			options,
-			filter: createFilterFunction(false),
+			filter: createFilterFunction(false, options.cwd),
 		};
 	}
 
 	// Read ignore files once and get both patterns and predicate
-	const {patterns, predicate} = getIgnorePatternsAndPredicateSync(ignoreFilesPatterns, options);
+	// Enable parent .gitignore search when using gitignore option
+	const includeParentIgnoreFiles = options.gitignore === true;
+	const {patterns, predicate, usingGitRoot} = getIgnorePatternsAndPredicateSync(ignoreFilesPatterns, options, includeParentIgnoreFiles);
 
-	// Determine which patterns are safe to pass to fast-glob
-	// (same logic as async version - see comments above)
-	const hasNegations = patterns.some(pattern => isNegativePattern(pattern));
-	const patternsForFastGlob = hasNegations
-		? []
-		: patterns
-			.filter(pattern => !isNegativePattern(pattern))
-			.map(pattern => normalizeDirectoryPatternForFastGlob(pattern));
+	// Convert patterns to fast-glob format (may return empty array if predicate should handle everything)
+	const patternsForFastGlob = convertPatternsForFastGlob(patterns, usingGitRoot, normalizeDirectoryPatternForFastGlob);
 
 	const modifiedOptions = {
 		...options,
@@ -249,22 +245,43 @@ const applyIgnoreFilesAndGetFilterSync = options => {
 
 	return {
 		options: modifiedOptions,
-		filter: createFilterFunction(predicate),
+		filter: createFilterFunction(predicate, options.cwd),
 	};
 };
 
-const createFilterFunction = isIgnored => {
+const createFilterFunction = (isIgnored, cwd) => {
 	const seen = new Set();
+	const basePath = cwd || process.cwd();
+	const pathCache = new Map(); // Cache for resolved paths
 
 	return fastGlobResult => {
 		const pathKey = nodePath.normalize(fastGlobResult.path ?? fastGlobResult);
 
-		if (seen.has(pathKey) || (isIgnored && isIgnored(pathKey))) {
+		// Check seen set first (fast path)
+		if (seen.has(pathKey)) {
 			return false;
 		}
 
-		seen.add(pathKey);
+		// Only compute absolute path and check predicate if needed
+		if (isIgnored) {
+			let absolutePath = pathCache.get(pathKey);
+			if (absolutePath === undefined) {
+				absolutePath = nodePath.isAbsolute(pathKey) ? pathKey : nodePath.resolve(basePath, pathKey);
+				pathCache.set(pathKey, absolutePath);
 
+				// Only clear path cache if it gets too large
+				// Never clear 'seen' as it's needed for deduplication
+				if (pathCache.size > 10_000) {
+					pathCache.clear();
+				}
+			}
+
+			if (isIgnored(absolutePath)) {
+				return false;
+			}
+		}
+
+		seen.add(pathKey);
 		return true;
 	};
 };

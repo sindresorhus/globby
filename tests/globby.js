@@ -15,6 +15,7 @@ import {normalizeDirectoryPatternForFastGlob} from '../utilities.js';
 import {
 	PROJECT_ROOT,
 	createContextAwareFs,
+	createTemporaryGitRepository,
 	getPathValues,
 	invalidPatterns,
 	isUnique,
@@ -212,6 +213,9 @@ test('normalizeDirectoryPatternForFastGlob handles recursive directory patterns'
 	t.is(normalizeDirectoryPatternForFastGlob('src/cache/'), 'src/cache/**');
 	t.is(normalizeDirectoryPatternForFastGlob('packages/**/cache/'), 'packages/**/cache/**');
 	t.is(normalizeDirectoryPatternForFastGlob('keep.log'), 'keep.log');
+	t.is(normalizeDirectoryPatternForFastGlob('**/'), '**/**', '**/ should normalize to **/** not **/**/**');
+	t.is(normalizeDirectoryPatternForFastGlob('/'), '/**', '/ should normalize to /**');
+	t.is(normalizeDirectoryPatternForFastGlob(''), '', 'empty string should remain empty');
 });
 
 test('glob', async t => {
@@ -657,6 +661,88 @@ test('gitignore option and suppressErrors option', async t => {
 	t.truthy(result.includes('bar'));
 });
 
+test.serial('gitignore option loads parent gitignore files from git root', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'packages/app');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+
+	fs.writeFileSync(path.join(repository, '.gitignore'), 'root-ignored.js\n', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, '.gitignore'), 'child-ignored.js\n', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, 'root-ignored.js'), '', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, 'child-ignored.js'), '', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, 'kept.js'), '', 'utf8');
+
+	const result = await runGlobby(t, '*.js', {cwd: childDirectory, gitignore: true});
+	t.deepEqual(result.sort(), ['kept.js']);
+});
+
+test('gitignore option works with promises-only fs when finding parent gitignores', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'packages/app');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+
+	fs.writeFileSync(path.join(repository, '.gitignore'), 'root-ignored.js\n', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, 'root-ignored.js'), '', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, 'kept.js'), '', 'utf8');
+
+	const asyncOnlyFs = {
+		promises: {
+			readFile: fs.promises.readFile.bind(fs.promises),
+			stat: fs.promises.stat.bind(fs.promises),
+		},
+	};
+
+	const result = await globby('*.js', {
+		cwd: childDirectory,
+		gitignore: true,
+		fs: asyncOnlyFs,
+	});
+
+	t.deepEqual(result, ['kept.js']);
+});
+
+test('gitignore option only loads parent gitignore files when inside a git repository', async t => {
+	const repository = temporaryDirectory();
+	const childDirectory1 = path.join(repository, 'child1');
+	const childDirectory2 = path.join(repository, 'child2');
+
+	fs.mkdirSync(childDirectory1, {recursive: true});
+	fs.mkdirSync(childDirectory2, {recursive: true});
+
+	fs.writeFileSync(path.join(repository, '.gitignore'), 'ignored.js\n', 'utf8');
+	fs.writeFileSync(path.join(childDirectory1, 'ignored.js'), '', 'utf8');
+
+	// Test without git repository - parent gitignore should NOT be loaded
+	const withoutGitRepository = await runGlobby(t, '*.js', {cwd: childDirectory1, gitignore: true});
+	t.true(withoutGitRepository.includes('ignored.js'));
+
+	// Add .git directory to make it a git repository
+	fs.mkdirSync(path.join(repository, '.git'));
+	fs.writeFileSync(path.join(childDirectory2, 'ignored.js'), '', 'utf8');
+
+	// Test with git repository - parent gitignore SHOULD be loaded
+	// Use a different child directory to avoid cache issues
+	const withGitRepository = await runGlobby(t, '*.js', {cwd: childDirectory2, gitignore: true});
+	t.false(withGitRepository.includes('ignored.js'));
+});
+
+test('gitignore option allows child gitignore files to override parent patterns', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'packages/app');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+
+	fs.writeFileSync(path.join(repository, '.gitignore'), '*.js\n', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, '.gitignore'), '!keep.js\n', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, 'keep.js'), '', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, 'drop.js'), '', 'utf8');
+
+	const result = await runGlobby(t, '*.js', {cwd: childDirectory, gitignore: true});
+	t.deepEqual(result, ['keep.js']);
+});
+
 test('suppressErrors option with file patterns (issue #166)', async t => {
 	const temporary = temporaryDirectory();
 	fs.writeFileSync(path.join(temporary, 'validFile.txt'), 'test content', 'utf8');
@@ -897,4 +983,248 @@ test.failing('patterns with quotes in path segments', async t => {
 
 	// This fails because quoted paths don't match correctly
 	t.deepEqual(result, ['"quoted"/file.js']);
+});
+
+test('filter function manages path cache efficiently', async t => {
+	// This test verifies that the path cache is managed properly
+	// The seen Set should NOT be cleared as it's needed for deduplication
+	const temporary = temporaryDirectory();
+
+	// Create test files - some that will be ignored and some that won't
+	for (let i = 0; i < 50; i++) {
+		fs.writeFileSync(path.join(temporary, `file${i}.txt`), 'content');
+		fs.writeFileSync(path.join(temporary, `ignored${i}.txt`), 'content');
+	}
+
+	// Create a gitignore to trigger path resolution
+	fs.writeFileSync(path.join(temporary, '.gitignore'), 'ignored*.txt\n');
+
+	// This should work correctly with path cache management
+	const result = await runGlobby(t, '*.txt', {cwd: temporary, gitignore: true});
+
+	// Should have files but not the ignored ones
+	const ignoredFiles = result.filter(f => f.startsWith('ignored'));
+	t.is(ignoredFiles.length, 0, 'No ignored files should be returned');
+	t.is(result.length, 50, 'Should have exactly 50 non-ignored files');
+	t.true(result.every(f => f.startsWith('file')), 'All results should be file*.txt');
+});
+
+test('parent gitignore files are found and cached correctly', async t => {
+	const repository = createTemporaryGitRepository();
+	const child1 = path.join(repository, 'packages/app1');
+	const child2 = path.join(repository, 'packages/app2');
+
+	fs.mkdirSync(child1, {recursive: true});
+	fs.mkdirSync(child2, {recursive: true});
+
+	// Create gitignore files
+	fs.writeFileSync(path.join(repository, '.gitignore'), 'root-ignored.js\n');
+	fs.writeFileSync(path.join(child1, '.gitignore'), 'child1-ignored.js\n');
+	fs.writeFileSync(path.join(child2, '.gitignore'), 'child2-ignored.js\n');
+
+	// Test files
+	fs.writeFileSync(path.join(child1, 'root-ignored.js'), '');
+	fs.writeFileSync(path.join(child1, 'child1-ignored.js'), '');
+	fs.writeFileSync(path.join(child1, 'kept.js'), '');
+
+	const result = await runGlobby(t, '*.js', {cwd: child1, gitignore: true});
+	t.deepEqual(result.sort(), ['kept.js']);
+
+	// Second call should use cache
+	const result2 = await runGlobby(t, '*.js', {cwd: child1, gitignore: true});
+	t.deepEqual(result2.sort(), ['kept.js']);
+});
+
+test('filter function caches resolved paths for performance', async t => {
+	const temporary = temporaryDirectory();
+
+	// Create test files
+	for (let i = 0; i < 100; i++) {
+		fs.writeFileSync(path.join(temporary, `file${i}.txt`), 'content');
+	}
+
+	// Create gitignore
+	fs.writeFileSync(path.join(temporary, '.gitignore'), 'file5*.txt\n');
+
+	// This should use path caching for repeated path resolution
+	const result = await runGlobby(t, '*.txt', {cwd: temporary, gitignore: true});
+
+	// Verify files starting with file5 are ignored
+	const hasFile5x = result.some(file => file.startsWith('file5'));
+	t.false(hasFile5x);
+
+	// Other files should be present
+	t.true(result.includes('file1.txt'));
+	t.true(result.includes('file60.txt'));
+});
+
+test('handles string ignore option - async', async t => {
+	const temporary = temporaryDirectory();
+	// Create test files
+	for (const element of fixture) {
+		fs.writeFileSync(path.join(temporary, element), '');
+	}
+
+	const result = await runGlobby(t, '*.tmp', {
+		ignore: 'a.tmp',
+		cwd: temporary,
+	});
+
+	t.false(result.includes('a.tmp'), 'should exclude ignored file');
+	t.true(result.includes('b.tmp'), 'should include non-ignored file');
+});
+
+test('handles string ignore option - sync', t => {
+	const temporary = temporaryDirectory();
+	// Create test files
+	for (const element of fixture) {
+		fs.writeFileSync(path.join(temporary, element), '');
+	}
+
+	const result = globbySync('*.tmp', {
+		ignore: 'a.tmp',
+		cwd: temporary,
+	});
+
+	t.false(result.includes('a.tmp'), 'should exclude ignored file');
+	t.true(result.includes('b.tmp'), 'should include non-ignored file');
+});
+
+test('handles string ignore with negative patterns', async t => {
+	const temporary = temporaryDirectory();
+	// Create test files
+	for (const element of fixture) {
+		fs.writeFileSync(path.join(temporary, element), '');
+	}
+
+	const result = await runGlobby(t, ['*.tmp', '!b.tmp'], {
+		ignore: 'c.tmp',
+		cwd: temporary,
+	});
+
+	t.false(result.includes('b.tmp'), 'negative pattern should exclude file');
+	t.false(result.includes('c.tmp'), 'ignore option should exclude file');
+	t.true(result.includes('a.tmp'), 'should include non-ignored file');
+});
+
+test('handles string ignore with directory expansion', async t => {
+	const temporary = temporaryDirectory();
+	fs.mkdirSync(path.join(temporary, 'subdir'), {recursive: true});
+	fs.writeFileSync(path.join(temporary, 'subdir', 'file.txt'), 'content');
+
+	const result = await runGlobby(t, 'subdir', {
+		ignore: '.git',
+		expandDirectories: true,
+		cwd: temporary,
+	});
+
+	t.true(Array.isArray(result), 'should return an array');
+	t.true(result.some(file => file.includes('file.txt')), 'should find file in directory');
+});
+
+test('handles custom fs with callback-style stat', async t => {
+	const temporary = temporaryDirectory();
+	// Create test files
+	for (const element of fixture) {
+		fs.writeFileSync(path.join(temporary, element), '');
+	}
+
+	const customFs = {
+		stat(filePath, callback) {
+			// Simulate callback-style stat
+			process.nextTick(() => {
+				callback(null, {
+					isDirectory() {
+						return false;
+					},
+				});
+			});
+		},
+	};
+
+	// This used to fail with "callback must be a function"
+	const result = await runGlobby(t, '*.tmp', {
+		fs: customFs,
+		expandDirectories: false,
+		cwd: temporary,
+	});
+
+	t.true(Array.isArray(result), 'should handle callback-style fs.stat');
+});
+
+test('handles custom fs with callback-style readFile', async t => {
+	const temporary = temporaryDirectory();
+	// Create test files
+	for (const element of fixture) {
+		fs.writeFileSync(path.join(temporary, element), '');
+	}
+
+	const customFs = {
+		readFile(filePath, encoding, callback) {
+			// Handle both (path, callback) and (path, encoding, callback)
+			if (typeof encoding === 'function') {
+				callback = encoding;
+				encoding = undefined;
+			}
+
+			// Simulate callback-style readFile
+			process.nextTick(() => {
+				if (filePath.endsWith('.gitignore')) {
+					// Return string when encoding is specified
+					const content = encoding === 'utf8' ? 'a.tmp' : Buffer.from('a.tmp');
+					callback(null, content);
+				} else {
+					callback(new Error('File not found'));
+				}
+			});
+		},
+	};
+
+	// Create a .gitignore file
+	fs.writeFileSync(path.join(temporary, '.gitignore'), 'dummy');
+
+	// This used to fail with "callback must be a function"
+	await t.notThrowsAsync(
+		runGlobby(t, '*.tmp', {
+			gitignore: true,
+			fs: customFs,
+			expandDirectories: false,
+			cwd: temporary,
+		}),
+		'should handle callback-style fs.readFile',
+	);
+});
+
+test('integration test with string ignore and custom fs', async t => {
+	const temporary = temporaryDirectory();
+	// Create test files
+	for (const element of fixture) {
+		fs.writeFileSync(path.join(temporary, element), '');
+	}
+
+	const customFs = {
+		promises: {
+			stat: async () => ({
+				isDirectory() {
+					return false;
+				},
+			}),
+			async readFile(path, encoding) {
+				// Return string when encoding is specified (as ignore.js expects)
+				return encoding === 'utf8' ? '' : Buffer.from('');
+			},
+		},
+	};
+
+	// Combines string ignore (fix #1) with custom fs (fixes #2-3)
+	await t.notThrowsAsync(
+		runGlobby(t, '*.tmp', {
+			ignore: 'a.tmp',
+			gitignore: true,
+			fs: customFs,
+			expandDirectories: false,
+			cwd: temporary,
+		}),
+		'should handle all fixes together',
+	);
 });

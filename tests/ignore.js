@@ -1,16 +1,22 @@
+import fs from 'node:fs';
 import {chmod} from 'node:fs/promises';
 import path from 'node:path';
 import test from 'ava';
 import slash from 'slash';
+import {temporaryDirectory} from 'tempy';
 import {
 	isIgnoredByIgnoreFiles,
 	isIgnoredByIgnoreFilesSync,
 	isGitIgnored,
 	isGitIgnoredSync,
+	getIgnorePatternsAndPredicate,
+	GITIGNORE_FILES_PATTERN,
 } from '../ignore.js';
 import {
 	PROJECT_ROOT,
 	createContextAwareFs,
+	createCountingFs,
+	createTemporaryGitRepository,
 	getPathValues,
 } from './utilities.js';
 
@@ -352,6 +358,174 @@ test.serial('bad permissions - suppressErrors option', async t => {
 	});
 });
 
+test.serial('unreadable .gitignore surfaces errors without suppressErrors', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/unreadable-gitignore');
+	const gitignorePath = path.join(cwd, '.gitignore');
+
+	t.teardown(async () => {
+		await chmod(gitignorePath, 0o644);
+	});
+
+	await chmod(gitignorePath, 0o000);
+
+	await t.throwsAsync(
+		() => isGitIgnored({cwd}),
+		{message: /Failed to read ignore file/},
+	);
+	t.throws(
+		() => isGitIgnoredSync({cwd}),
+		{message: /Failed to read ignore file/},
+	);
+
+	await t.throwsAsync(
+		() => isIgnoredByIgnoreFiles('**/.gitignore', {cwd}),
+		{message: /Failed to read ignore file/},
+	);
+	t.throws(
+		() => isIgnoredByIgnoreFilesSync('**/.gitignore', {cwd}),
+		{message: /Failed to read ignore file/},
+	);
+});
+
+test.serial('unreadable .gitignore honours suppressErrors option', async t => {
+	const cwd = path.join(PROJECT_ROOT, 'fixtures/unreadable-gitignore');
+	const gitignorePath = path.join(cwd, '.gitignore');
+
+	t.teardown(async () => {
+		await chmod(gitignorePath, 0o644);
+	});
+
+	await chmod(gitignorePath, 0o000);
+
+	let asyncPredicate;
+	await t.notThrowsAsync(async () => {
+		asyncPredicate = await isGitIgnored({cwd, suppressErrors: true});
+	});
+	t.is(typeof asyncPredicate('foo.js'), 'boolean');
+
+	t.notThrows(() => {
+		const syncPredicate = isGitIgnoredSync({cwd, suppressErrors: true});
+		t.is(typeof syncPredicate('foo.js'), 'boolean');
+	});
+
+	let asyncIgnorePredicate;
+	await t.notThrowsAsync(async () => {
+		asyncIgnorePredicate = await isIgnoredByIgnoreFiles('**/.gitignore', {cwd, suppressErrors: true});
+	});
+	t.is(typeof asyncIgnorePredicate('foo.js'), 'boolean');
+
+	t.notThrows(() => {
+		const syncIgnorePredicate = isIgnoredByIgnoreFilesSync('**/.gitignore', {cwd, suppressErrors: true});
+		t.is(typeof syncIgnorePredicate('foo.js'), 'boolean');
+	});
+});
+
+test('getIgnorePatternsAndPredicate deduplicates overlapping gitignore paths', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'child');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+
+	const rootGitignore = path.join(repository, '.gitignore');
+	const childGitignore = path.join(childDirectory, '.gitignore');
+
+	fs.writeFileSync(rootGitignore, 'root-ignored.js\n', 'utf8');
+	fs.writeFileSync(childGitignore, 'child-ignored.js\n', 'utf8');
+
+	const {fs: countingFs, getReadCount} = createCountingFs();
+
+	await getIgnorePatternsAndPredicate([GITIGNORE_FILES_PATTERN], {
+		cwd: childDirectory,
+		fs: countingFs,
+	}, true);
+
+	t.is(getReadCount(rootGitignore), 1);
+	t.is(getReadCount(childGitignore), 1);
+});
+
+test('getIgnorePatternsAndPredicate locates git root with promises-only fs', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'packages/app');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+
+	const rootGitignore = path.join(repository, '.gitignore');
+	const ignoredFromRoot = path.join(childDirectory, 'root-ignored.js');
+
+	fs.writeFileSync(rootGitignore, 'root-ignored.js\n', 'utf8');
+	fs.writeFileSync(path.join(childDirectory, '.gitignore'), '!keep.js\n', 'utf8');
+	fs.writeFileSync(ignoredFromRoot, '', 'utf8');
+
+	const asyncOnlyFs = {
+		promises: {
+			readFile: fs.promises.readFile.bind(fs.promises),
+			stat: fs.promises.stat.bind(fs.promises),
+		},
+	};
+
+	const {predicate} = await getIgnorePatternsAndPredicate([GITIGNORE_FILES_PATTERN], {
+		cwd: childDirectory,
+		fs: asyncOnlyFs,
+	}, true);
+
+	t.true(predicate(ignoredFromRoot));
+});
+
+test('getIgnorePatternsAndPredicate falls back to sync git root detection when promises API is missing', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'packages/app');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+
+	const rootGitignore = path.join(repository, '.gitignore');
+	const ignoredFromRoot = path.join(childDirectory, 'root-ignored.js');
+
+	fs.writeFileSync(rootGitignore, 'root-ignored.js\n', 'utf8');
+	fs.writeFileSync(ignoredFromRoot, '', 'utf8');
+
+	const syncOnlyFs = {
+		readFileSync: fs.readFileSync.bind(fs),
+		statSync: fs.statSync.bind(fs),
+	};
+
+	const {predicate} = await getIgnorePatternsAndPredicate([GITIGNORE_FILES_PATTERN], {
+		cwd: childDirectory,
+		fs: syncOnlyFs,
+	}, true);
+
+	t.true(predicate(ignoredFromRoot));
+});
+
+test('getIgnorePatternsAndPredicate reports usingGitRoot when repository is detected', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'packages/app');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+	fs.writeFileSync(path.join(childDirectory, '.gitignore'), 'ignored.js\n', 'utf8');
+
+	const {usingGitRoot, predicate} = await getIgnorePatternsAndPredicate([GITIGNORE_FILES_PATTERN], {
+		cwd: childDirectory,
+	}, true);
+
+	t.true(usingGitRoot);
+	t.true(predicate(path.join(childDirectory, 'ignored.js')));
+});
+
+test('getIgnorePatternsAndPredicate does not use git root when repository is missing', async t => {
+	const parentDirectory = temporaryDirectory();
+	const childDirectory = path.join(parentDirectory, 'packages/app');
+
+	fs.mkdirSync(childDirectory, {recursive: true});
+	fs.writeFileSync(path.join(parentDirectory, '.gitignore'), 'should-not-apply.js\n', 'utf8');
+
+	const {usingGitRoot, predicate} = await getIgnorePatternsAndPredicate([GITIGNORE_FILES_PATTERN], {
+		cwd: childDirectory,
+	}, true);
+
+	t.false(usingGitRoot);
+	t.false(predicate(path.join(childDirectory, 'should-not-apply.js')));
+});
+
 // Extensive fast-glob options tests
 test('option: suppressErrors - async', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures/gitignore');
@@ -666,4 +840,46 @@ test('path prefix edge case - paths with similar prefix outside cwd return false
 
 	// Should return false (not ignored) rather than throwing error
 	t.false(isIgnored(outsidePath));
+});
+
+test('createIgnorePredicate normalizes both cwd and baseDir consistently', async t => {
+	const temporary = temporaryDirectory();
+	const gitignorePath = path.join(temporary, '.gitignore');
+	fs.writeFileSync(gitignorePath, 'ignored.js\n');
+
+	const file1 = path.join(temporary, 'ignored.js');
+	const file2 = path.join(temporary, 'kept.js');
+	fs.writeFileSync(file1, '');
+	fs.writeFileSync(file2, '');
+
+	// Test with different path formats (relative, absolute, with ..)
+	const {predicate} = await getIgnorePatternsAndPredicate(
+		['.gitignore'],
+		{cwd: path.join(temporary, '..', path.basename(temporary))},
+	);
+
+	// Should handle normalized paths correctly
+	t.true(predicate(file1));
+	t.false(predicate(file2));
+});
+
+test('dedupePaths removes duplicate gitignore file paths', async t => {
+	const repository = createTemporaryGitRepository();
+	const childDirectory = path.join(repository, 'child');
+
+	fs.mkdirSync(childDirectory);
+	fs.writeFileSync(path.join(repository, '.gitignore'), 'root\n');
+	fs.writeFileSync(path.join(childDirectory, '.gitignore'), 'child\n');
+
+	// This internally uses dedupePaths to avoid reading the same file twice
+	const {patterns} = await getIgnorePatternsAndPredicate(
+		['**/.gitignore'],
+		{cwd: childDirectory},
+		true,
+	);
+
+	// Should have patterns from both files
+	// The patterns are transformed based on their location relative to the git root
+	t.true(patterns.some(p => p.includes('root')), 'Should include root pattern');
+	t.true(patterns.some(p => p.includes('child')), 'Should include child pattern');
 });

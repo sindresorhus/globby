@@ -7,7 +7,14 @@ import gitIgnore from 'ignore';
 import isPathInside from 'is-path-inside';
 import slash from 'slash';
 import {toPath} from 'unicorn-magic';
-import {isNegativePattern, bindFsMethod} from './utilities.js';
+import {
+	isNegativePattern,
+	bindFsMethod,
+	promisifyFsMethod,
+	findGitRoot,
+	findGitRootSync,
+	getParentGitignorePaths,
+} from './utilities.js';
 
 const defaultIgnoredDirectories = [
 	'**/node_modules',
@@ -24,12 +31,104 @@ export const GITIGNORE_FILES_PATTERN = '**/.gitignore';
 
 const getReadFileMethod = fsImplementation =>
 	bindFsMethod(fsImplementation?.promises, 'readFile')
-	?? bindFsMethod(fsImplementation, 'readFile')
-	?? bindFsMethod(fsPromises, 'readFile');
+	?? bindFsMethod(fsPromises, 'readFile')
+	?? promisifyFsMethod(fsImplementation, 'readFile');
 
 const getReadFileSyncMethod = fsImplementation =>
 	bindFsMethod(fsImplementation, 'readFileSync')
 	?? bindFsMethod(fs, 'readFileSync');
+
+const shouldSkipIgnoreFileError = (error, suppressErrors) => {
+	if (!error) {
+		return Boolean(suppressErrors);
+	}
+
+	if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
+		return true;
+	}
+
+	return Boolean(suppressErrors);
+};
+
+const createIgnoreFileReadError = (filePath, error) => {
+	if (error instanceof Error) {
+		error.message = `Failed to read ignore file at ${filePath}: ${error.message}`;
+		return error;
+	}
+
+	return new Error(`Failed to read ignore file at ${filePath}: ${String(error)}`);
+};
+
+const processIgnoreFileCore = (filePath, readMethod, suppressErrors) => {
+	try {
+		const content = readMethod(filePath, 'utf8');
+		return {filePath, content};
+	} catch (error) {
+		if (shouldSkipIgnoreFileError(error, suppressErrors)) {
+			return undefined;
+		}
+
+		throw createIgnoreFileReadError(filePath, error);
+	}
+};
+
+const readIgnoreFilesSafely = async (paths, readFileMethod, suppressErrors) => {
+	const fileResults = await Promise.all(paths.map(async filePath => {
+		try {
+			const content = await readFileMethod(filePath, 'utf8');
+			return {filePath, content};
+		} catch (error) {
+			if (shouldSkipIgnoreFileError(error, suppressErrors)) {
+				return undefined;
+			}
+
+			throw createIgnoreFileReadError(filePath, error);
+		}
+	}));
+
+	return fileResults.filter(Boolean);
+};
+
+const readIgnoreFilesSafelySync = (paths, readFileSyncMethod, suppressErrors) => paths
+	.map(filePath => processIgnoreFileCore(filePath, readFileSyncMethod, suppressErrors))
+	.filter(Boolean);
+
+const dedupePaths = paths => {
+	const seen = new Set();
+	return paths.filter(filePath => {
+		if (seen.has(filePath)) {
+			return false;
+		}
+
+		seen.add(filePath);
+		return true;
+	});
+};
+
+const globIgnoreFiles = (globFunction, patterns, normalizedOptions) => globFunction(patterns, {
+	...normalizedOptions,
+	...ignoreFilesGlobOptions, // Must be last to ensure absolute/dot flags stick
+});
+
+const getParentIgnorePaths = (gitRoot, normalizedOptions) => gitRoot
+	? getParentGitignorePaths(gitRoot, normalizedOptions.cwd)
+	: [];
+
+const combineIgnoreFilePaths = (gitRoot, normalizedOptions, childPaths) => dedupePaths([
+	...getParentIgnorePaths(gitRoot, normalizedOptions),
+	...childPaths,
+]);
+
+const buildIgnoreResult = (files, normalizedOptions, gitRoot) => {
+	const baseDir = gitRoot || normalizedOptions.cwd;
+	const patterns = getPatternsFromIgnoreFiles(files, baseDir);
+
+	return {
+		patterns,
+		predicate: createIgnorePredicate(patterns, normalizedOptions.cwd, baseDir),
+		usingGitRoot: Boolean(gitRoot && gitRoot !== normalizedOptions.cwd),
+	};
+};
 
 // Apply base path to gitignore patterns based on .gitignore spec 2.22.1
 // https://git-scm.com/docs/gitignore#_pattern_format
@@ -107,19 +206,30 @@ const toRelativePath = (fileOrDirectory, cwd) => {
 	return fileOrDirectory;
 };
 
-const getIsIgnoredPredicate = (files, cwd) => {
-	const patterns = files.flatMap(file => parseIgnoreFile(file, cwd));
+const createIgnorePredicate = (patterns, cwd, baseDir) => {
 	const ignores = gitIgnore().add(patterns);
+	// Normalize to handle path separator and . / .. components consistently
+	const resolvedCwd = path.normalize(path.resolve(cwd));
+	const resolvedBaseDir = path.normalize(path.resolve(baseDir));
 
 	return fileOrDirectory => {
 		fileOrDirectory = toPath(fileOrDirectory);
-		fileOrDirectory = toRelativePath(fileOrDirectory, cwd);
-		// If path is outside cwd (undefined), it can't be ignored by patterns in cwd
-		if (fileOrDirectory === undefined) {
+
+		// Never ignore the cwd itself - use normalized comparison
+		const normalizedPath = path.normalize(path.resolve(fileOrDirectory));
+		if (normalizedPath === resolvedCwd) {
 			return false;
 		}
 
-		return fileOrDirectory ? ignores.ignores(slash(fileOrDirectory)) : false;
+		// Convert to relative path from baseDir (use normalized baseDir)
+		const relativePath = toRelativePath(fileOrDirectory, resolvedBaseDir);
+
+		// If path is outside baseDir (undefined), it can't be ignored by patterns
+		if (relativePath === undefined) {
+			return false;
+		}
+
+		return relativePath ? ignores.ignores(slash(relativePath)) : false;
 	};
 };
 
@@ -148,91 +258,79 @@ const normalizeOptions = (options = {}) => {
 	};
 };
 
-export const isIgnoredByIgnoreFiles = async (patterns, options) => {
+const collectIgnoreFileArtifactsAsync = async (patterns, options, includeParentIgnoreFiles) => {
 	const normalizedOptions = normalizeOptions(options);
-
-	const paths = await fastGlob(patterns, {
-		...normalizedOptions,
-		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
-	});
-
+	const childPaths = await globIgnoreFiles(fastGlob, patterns, normalizedOptions);
+	const gitRoot = includeParentIgnoreFiles
+		? await findGitRoot(normalizedOptions.cwd, normalizedOptions.fs)
+		: undefined;
+	const allPaths = combineIgnoreFilePaths(gitRoot, normalizedOptions, childPaths);
 	const readFileMethod = getReadFileMethod(normalizedOptions.fs);
-	const files = await Promise.all(paths.map(async filePath => ({
-		filePath,
-		content: await readFileMethod(filePath, 'utf8'),
-	})));
+	const files = await readIgnoreFilesSafely(allPaths, readFileMethod, normalizedOptions.suppressErrors);
 
-	return getIsIgnoredPredicate(files, normalizedOptions.cwd);
+	return {files, normalizedOptions, gitRoot};
+};
+
+const collectIgnoreFileArtifactsSync = (patterns, options, includeParentIgnoreFiles) => {
+	const normalizedOptions = normalizeOptions(options);
+	const childPaths = globIgnoreFiles(fastGlob.sync, patterns, normalizedOptions);
+	const gitRoot = includeParentIgnoreFiles
+		? findGitRootSync(normalizedOptions.cwd, normalizedOptions.fs)
+		: undefined;
+	const allPaths = combineIgnoreFilePaths(gitRoot, normalizedOptions, childPaths);
+	const readFileSyncMethod = getReadFileSyncMethod(normalizedOptions.fs);
+	const files = readIgnoreFilesSafelySync(allPaths, readFileSyncMethod, normalizedOptions.suppressErrors);
+
+	return {files, normalizedOptions, gitRoot};
+};
+
+export const isIgnoredByIgnoreFiles = async (patterns, options) => {
+	const {files, normalizedOptions, gitRoot} = await collectIgnoreFileArtifactsAsync(patterns, options, false);
+	return buildIgnoreResult(files, normalizedOptions, gitRoot).predicate;
 };
 
 export const isIgnoredByIgnoreFilesSync = (patterns, options) => {
-	const normalizedOptions = normalizeOptions(options);
-
-	const paths = fastGlob.sync(patterns, {
-		...normalizedOptions,
-		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
-	});
-
-	const readFileSyncMethod = getReadFileSyncMethod(normalizedOptions.fs);
-	const files = paths.map(filePath => ({
-		filePath,
-		content: readFileSyncMethod(filePath, 'utf8'),
-	}));
-
-	return getIsIgnoredPredicate(files, normalizedOptions.cwd);
+	const {files, normalizedOptions, gitRoot} = collectIgnoreFileArtifactsSync(patterns, options, false);
+	return buildIgnoreResult(files, normalizedOptions, gitRoot).predicate;
 };
 
-const getPatternsFromIgnoreFiles = (files, cwd) => files.flatMap(file => parseIgnoreFile(file, cwd));
+const getPatternsFromIgnoreFiles = (files, baseDir) => files.flatMap(file => parseIgnoreFile(file, baseDir));
 
 /**
 Read ignore files and return both patterns and predicate.
 This avoids reading the same files twice (once for patterns, once for filtering).
 
-@returns {Promise<{patterns: string[], predicate: Function}>}
+@param {string[]} patterns - Patterns to find ignore files
+@param {Object} options - Options object
+@param {boolean} [includeParentIgnoreFiles=false] - Whether to search for parent .gitignore files
+@returns {Promise<{patterns: string[], predicate: Function, usingGitRoot: boolean}>}
 */
-export const getIgnorePatternsAndPredicate = async (patterns, options) => {
-	const normalizedOptions = normalizeOptions(options);
+export const getIgnorePatternsAndPredicate = async (patterns, options, includeParentIgnoreFiles = false) => {
+	const {files, normalizedOptions, gitRoot} = await collectIgnoreFileArtifactsAsync(
+		patterns,
+		options,
+		includeParentIgnoreFiles,
+	);
 
-	const paths = await fastGlob(patterns, {
-		...normalizedOptions,
-		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
-	});
-
-	const readFileMethod = getReadFileMethod(normalizedOptions.fs);
-	const files = await Promise.all(paths.map(async filePath => ({
-		filePath,
-		content: await readFileMethod(filePath, 'utf8'),
-	})));
-
-	return {
-		patterns: getPatternsFromIgnoreFiles(files, normalizedOptions.cwd),
-		predicate: getIsIgnoredPredicate(files, normalizedOptions.cwd),
-	};
+	return buildIgnoreResult(files, normalizedOptions, gitRoot);
 };
 
 /**
 Read ignore files and return both patterns and predicate (sync version).
 
-@returns {{patterns: string[], predicate: Function}}
+@param {string[]} patterns - Patterns to find ignore files
+@param {Object} options - Options object
+@param {boolean} [includeParentIgnoreFiles=false] - Whether to search for parent .gitignore files
+@returns {{patterns: string[], predicate: Function, usingGitRoot: boolean}}
 */
-export const getIgnorePatternsAndPredicateSync = (patterns, options) => {
-	const normalizedOptions = normalizeOptions(options);
+export const getIgnorePatternsAndPredicateSync = (patterns, options, includeParentIgnoreFiles = false) => {
+	const {files, normalizedOptions, gitRoot} = collectIgnoreFileArtifactsSync(
+		patterns,
+		options,
+		includeParentIgnoreFiles,
+	);
 
-	const paths = fastGlob.sync(patterns, {
-		...normalizedOptions,
-		...ignoreFilesGlobOptions, // Must be last to ensure absolute and dot are always set
-	});
-
-	const readFileSyncMethod = getReadFileSyncMethod(normalizedOptions.fs);
-	const files = paths.map(filePath => ({
-		filePath,
-		content: readFileSyncMethod(filePath, 'utf8'),
-	}));
-
-	return {
-		patterns: getPatternsFromIgnoreFiles(files, normalizedOptions.cwd),
-		predicate: getIsIgnoredPredicate(files, normalizedOptions.cwd),
-	};
+	return buildIgnoreResult(files, normalizedOptions, gitRoot);
 };
 
 export const isGitIgnored = options => isIgnoredByIgnoreFiles(GITIGNORE_FILES_PATTERN, options);
