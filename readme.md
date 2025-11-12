@@ -86,6 +86,8 @@ Default: `false`
 
 Respect ignore patterns in `.gitignore` files that apply to the globbed files.
 
+Gitignore patterns take priority over user patterns, matching Git's behavior. To include gitignored files, set this to `false`.
+
 **Performance:** Globby reads `.gitignore` files before globbing. When there are no negation patterns (like `!important.log`), it passes ignore patterns to fast-glob to skip traversing ignored directories entirely, which significantly improves performance for large `node_modules` or build directories. When negation patterns are present, all filtering is done after traversal to ensure correct Git-compatible behavior. For optimal performance, prefer specific `.gitignore` patterns without negations, or use `ignoreFiles: '.gitignore'` to target only the root ignore file.
 
 ##### ignoreFiles
