@@ -344,6 +344,41 @@ test('expandDirectories and ignores option', async t => {
 	}), ['tmp/a.tmp', 'tmp/b.tmp', 'tmp/c.tmp', 'tmp/d.tmp', 'tmp/e.tmp']);
 });
 
+test('ignore option with trailing slashes on directories (issue #160)', async t => {
+	const temporaryCwd = temporaryDirectory();
+	const ignoreFirst = path.join(temporaryCwd, 'ignore-first');
+	const ignoreSecond = path.join(temporaryCwd, 'ignore-second');
+	const keepThis = path.join(temporaryCwd, 'keep-this.txt');
+
+	fs.mkdirSync(ignoreFirst);
+	fs.mkdirSync(ignoreSecond);
+	fs.writeFileSync(path.join(ignoreFirst, 'file.txt'), '', 'utf8');
+	fs.writeFileSync(path.join(ignoreSecond, 'file.txt'), '', 'utf8');
+	fs.writeFileSync(keepThis, '', 'utf8');
+
+	try {
+		// Test with trailing slash on first directory
+		const result1 = await runGlobby(t, '**/*', {
+			cwd: temporaryCwd,
+			ignore: ['ignore-first/', 'ignore-second'],
+		});
+		t.false(result1.some(file => file.includes('ignore-first')), 'ignore-first/ with trailing slash should be ignored');
+		t.false(result1.some(file => file.includes('ignore-second')), 'ignore-second without trailing slash should be ignored');
+		t.true(result1.includes('keep-this.txt'), 'keep-this.txt should not be ignored');
+
+		// Test with trailing slashes on both directories
+		const result2 = await runGlobby(t, '**/*', {
+			cwd: temporaryCwd,
+			ignore: ['ignore-first/', 'ignore-second/'],
+		});
+		t.false(result2.some(file => file.includes('ignore-first')), 'ignore-first/ should be ignored');
+		t.false(result2.some(file => file.includes('ignore-second')), 'ignore-second/ should be ignored');
+		t.true(result2.includes('keep-this.txt'), 'keep-this.txt should not be ignored');
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
 test('absolute:true, expandDirectories:false, onlyFiles:false, gitignore:true and top level folder', async t => {
 	const result = await runGlobby(t, '.', {
 		absolute: true,
