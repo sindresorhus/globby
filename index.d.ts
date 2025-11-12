@@ -277,6 +277,28 @@ export function isGitIgnored(options?: GitignoreOptions): Promise<GlobbyFilterFu
 */
 export function isGitIgnoredSync(options?: GitignoreOptions): GlobbyFilterFunction;
 
+/**
+Converts a path to a pattern by escaping special glob characters like `()`, `[]`, `{}`.
+
+Use this when your literal paths contain characters with special meaning in globs.
+
+@param source - A file system path to convert to a safe glob pattern.
+@returns The path with special glob characters escaped.
+
+@example
+```
+import {globby, convertPathToPattern} from 'globby';
+
+// ❌ Fails - parentheses are glob syntax
+await globby('C:/Program Files (x86)/*.txt');
+//=> []
+
+// ✅ Works
+const base = convertPathToPattern('C:/Program Files (x86)');
+await globby(`${base}/*.txt`);
+//=> ['C:/Program Files (x86)/file.txt']
+```
+*/
 export function convertPathToPattern(source: string): FastGlob.Pattern;
 
 /**

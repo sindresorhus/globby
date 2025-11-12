@@ -121,7 +121,24 @@ for await (const path of globbyStream('*.tmp')) {
 
 ### convertPathToPattern(path)
 
-Convert a path to a pattern. [Learn more.](https://github.com/mrmlnc/fast-glob#convertpathtopatternpath)
+Converts a path to a pattern by escaping special glob characters like `()`, `[]`, `{}`.
+
+Use this when your literal paths contain characters with special meaning in globs.
+
+```js
+import {globby, convertPathToPattern} from 'globby';
+
+// ❌ Fails - parentheses are glob syntax
+await globby('C:/Program Files (x86)/*.txt');
+//=> []
+
+// ✅ Works
+const base = convertPathToPattern('C:/Program Files (x86)');
+await globby(`${base}/*.txt`);
+//=> ['C:/Program Files (x86)/file.txt']
+```
+
+[Learn more.](https://github.com/mrmlnc/fast-glob#convertpathtopatternpath)
 
 ### generateGlobTasks(patterns, options?)
 
