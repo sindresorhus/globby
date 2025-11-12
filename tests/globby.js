@@ -657,6 +657,28 @@ test('gitignore option and suppressErrors option', async t => {
 	t.truthy(result.includes('bar'));
 });
 
+test('suppressErrors option with file patterns (issue #166)', async t => {
+	const temporary = temporaryDirectory();
+	fs.writeFileSync(path.join(temporary, 'validFile.txt'), 'test content', 'utf8');
+
+	// Without suppressErrors, should throw when trying to treat file as directory
+	await t.throwsAsync(
+		globby(['validFile.txt', 'validFile.txt/**/*.txt'], {cwd: temporary}),
+		{code: 'ENOTDIR'},
+	);
+	t.throws(
+		() => globbySync(['validFile.txt', 'validFile.txt/**/*.txt'], {cwd: temporary}),
+		{code: 'ENOTDIR'},
+	);
+
+	// With suppressErrors, should return the valid file and suppress the error
+	const asyncResult = await runGlobby(t, ['validFile.txt', 'validFile.txt/**/*.txt'], {
+		cwd: temporary,
+		suppressErrors: true,
+	});
+	t.deepEqual(asyncResult, ['validFile.txt']);
+});
+
 test('nested gitignore with negation applies recursively to globby results (issue #255)', async t => {
 	const cwd = path.join(PROJECT_ROOT, 'fixtures', 'gitignore-negation-nested');
 	const result = await runGlobby(t, '**/*.txt', {cwd, gitignore: true});
