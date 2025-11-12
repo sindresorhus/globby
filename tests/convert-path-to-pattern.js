@@ -14,6 +14,10 @@ test.before(() => {
 		path.join(testDirectory, 'Program Files (x86)', 'app'),
 		path.join(testDirectory, 'Folder [a-z]', 'data'),
 		path.join(testDirectory, 'Normal Folder', 'files'),
+		path.join(testDirectory, 'github.com + Globby'), // Issue #81 - plus character
+		path.join(testDirectory, 'folder {with} braces'), // Issue #81 - braces
+		path.join(testDirectory, 'Next.js (app)', '[slug]'), // Issue #81 - Next.js patterns
+		path.join(testDirectory, 'Next.js (app)', '[...error]'), // Issue #81 - Next.js spread patterns
 	];
 
 	for (const directory of directories) {
@@ -110,4 +114,89 @@ test('recursive glob through directory with special characters', t => {
 	for (const expectedPath of expectedPaths) {
 		t.true(result.some(file => file.includes(expectedPath)));
 	}
+});
+
+// Tests for issue #81 - special characters in directory names
+
+test('paths with plus character work without convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'github.com + Globby');
+	const pattern = directory.replaceAll(path.sep, '/') + '/*.txt';
+
+	// Plus character followed by space is treated as literal
+	const result = globbySync(pattern);
+	t.is(result.length, 1);
+	t.true(result[0].includes('test.txt'));
+});
+
+test('paths with plus character work with convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'github.com + Globby');
+	const pattern = convertPathToPattern(directory) + '/*.txt';
+
+	const result = globbySync(pattern);
+	t.is(result.length, 1);
+	t.true(result[0].includes('test.txt'));
+});
+
+test('paths with braces work without convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'folder {with} braces');
+	const pattern = directory.replaceAll(path.sep, '/') + '/*.txt';
+
+	// Braces are only special when they contain comma-separated alternatives like {a,b}
+	// Single words in braces like {with} are treated as literal
+	const result = globbySync(pattern);
+	t.is(result.length, 1);
+	t.true(result[0].includes('test.txt'));
+});
+
+test('paths with braces work with convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'folder {with} braces');
+	const pattern = convertPathToPattern(directory) + '/*.txt';
+
+	const result = globbySync(pattern);
+	t.is(result.length, 1);
+	t.true(result[0].includes('test.txt'));
+});
+
+test('Next.js [slug] pattern fails without convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'Next.js (app)', '[slug]');
+	const pattern = directory.replaceAll(path.sep, '/') + '/*.txt';
+
+	// Without escaping, [] and () are glob syntax
+	const result = globbySync(pattern);
+	t.deepEqual(result, []);
+});
+
+test('Next.js [slug] pattern works with convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'Next.js (app)', '[slug]');
+	const pattern = convertPathToPattern(directory) + '/*.txt';
+
+	const result = globbySync(pattern);
+	t.is(result.length, 1);
+	t.true(result[0].includes('test.txt'));
+});
+
+test('Next.js [...error] pattern fails without convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'Next.js (app)', '[...error]');
+	const pattern = directory.replaceAll(path.sep, '/') + '/*.txt';
+
+	// Without escaping, [] and () are glob syntax
+	const result = globbySync(pattern);
+	t.deepEqual(result, []);
+});
+
+test('Next.js [...error] pattern works with convertPathToPattern', t => {
+	const directory = path.join(testDirectory, 'Next.js (app)', '[...error]');
+	const pattern = convertPathToPattern(directory) + '/*.txt';
+
+	const result = globbySync(pattern);
+	t.is(result.length, 1);
+	t.true(result[0].includes('test.txt'));
+});
+
+test('convertPathToPattern with async globby', async t => {
+	const directory = path.join(testDirectory, 'Next.js (app)', '[slug]');
+	const pattern = convertPathToPattern(directory) + '/**/*';
+
+	const result = await globby(pattern);
+	t.is(result.length, 2); // Test.txt and test.js
 });
