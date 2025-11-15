@@ -6,7 +6,7 @@ import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import isPathInside from 'is-path-inside';
 import slash from 'slash';
-import {toPath} from 'unicorn-magic';
+import {toPath} from 'unicorn-magic/node';
 import {
 	isNegativePattern,
 	bindFsMethod,

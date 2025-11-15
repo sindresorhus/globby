@@ -4,7 +4,7 @@ import nodePath from 'node:path';
 import {Readable} from 'node:stream';
 import mergeStreams from '@sindresorhus/merge-streams';
 import fastGlob from 'fast-glob';
-import {toPath} from 'unicorn-magic';
+import {toPath} from 'unicorn-magic/node';
 import {
 	GITIGNORE_FILES_PATTERN,
 	getIgnorePatternsAndPredicate,

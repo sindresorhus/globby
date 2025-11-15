@@ -68,7 +68,7 @@
 		"ignore": "^7.0.5",
 		"is-path-inside": "^4.0.0",
 		"slash": "^5.1.0",
-		"unicorn-magic": "^0.3.0"
+		"unicorn-magic": "^0.4.0"
 	},
 	"devDependencies": {
 		"@globby/main-branch": "sindresorhus/globby#main",
