@@ -5,6 +5,17 @@ import isPathInside from 'is-path-inside';
 
 export const isNegativePattern = pattern => pattern[0] === '!';
 
+/**
+Normalize an absolute pattern to be relative.
+
+On Unix, patterns starting with `/` are interpreted as absolute paths from the filesystem root. This causes inconsistent behavior across platforms since Windows uses different path roots (like `C:\`).
+
+This function strips leading `/` to make patterns relative to cwd, ensuring consistent cross-platform behavior.
+
+@param {string} pattern - The pattern to normalize.
+*/
+export const normalizeAbsolutePatternToRelative = pattern => pattern.startsWith('/') ? pattern.slice(1) : pattern;
+
 export const bindFsMethod = (object, methodName) => {
 	const method = object?.[methodName];
 	return typeof method === 'function' ? method.bind(object) : undefined;

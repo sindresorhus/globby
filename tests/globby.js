@@ -11,7 +11,7 @@ import {
 	globbyStream,
 	isDynamicPattern,
 } from '../index.js';
-import {normalizeDirectoryPatternForFastGlob} from '../utilities.js';
+import {normalizeDirectoryPatternForFastGlob, normalizeAbsolutePatternToRelative} from '../utilities.js';
 import {
 	PROJECT_ROOT,
 	createContextAwareFs,
@@ -218,6 +218,16 @@ test('normalizeDirectoryPatternForFastGlob handles recursive directory patterns'
 	t.is(normalizeDirectoryPatternForFastGlob(''), '', 'empty string should remain empty');
 });
 
+test('normalizeAbsolutePatternToRelative strips leading slash', t => {
+	t.is(normalizeAbsolutePatternToRelative('/**'), '**');
+	t.is(normalizeAbsolutePatternToRelative('/foo'), 'foo');
+	t.is(normalizeAbsolutePatternToRelative('/foo/**'), 'foo/**');
+	t.is(normalizeAbsolutePatternToRelative('/*.txt'), '*.txt');
+	t.is(normalizeAbsolutePatternToRelative('foo'), 'foo', 'relative patterns unchanged');
+	t.is(normalizeAbsolutePatternToRelative('**'), '**', 'globstar unchanged');
+	t.is(normalizeAbsolutePatternToRelative(''), '', 'empty string unchanged');
+});
+
 test('glob', async t => {
 	const result = await runGlobby(t, '*.tmp');
 	t.deepEqual(result.sort(), ['a.tmp', 'b.tmp', 'c.tmp', 'd.tmp', 'e.tmp']);
@@ -252,6 +262,14 @@ test('single negation-only pattern in scoped directory', async t => {
 test('negation-only with brace expansion in scoped directory', async t => {
 	const result = await runGlobby(t, '!{a,b}.tmp', {cwd: temporary});
 	t.deepEqual(result, ['c.tmp', 'd.tmp', 'e.tmp']);
+});
+
+test('negation pattern with absolute path is normalized to relative', async t => {
+	// !/** should exclude everything (cross-platform consistent behavior)
+	// On Unix, /** is normally an absolute path from filesystem root
+	// We normalize it to ** so it works the same on all platforms
+	const result = await runGlobby(t, '!/**', {cwd: temporary});
+	t.deepEqual(result, []);
 });
 
 test('glob - stream async iterator support', async t => {

@@ -14,6 +14,7 @@ import {
 	bindFsMethod,
 	promisifyFsMethod,
 	isNegativePattern,
+	normalizeAbsolutePatternToRelative,
 	normalizeDirectoryPatternForFastGlob,
 	adjustIgnorePatternsForParentDirectories,
 	convertPatternsForFastGlob,
@@ -294,6 +295,10 @@ const convertNegativePatterns = (patterns, options) => {
 	if (patterns.length > 0 && patterns.every(pattern => isNegativePattern(pattern))) {
 		patterns = ['**/*', ...patterns];
 	}
+
+	patterns = patterns.map(pattern => isNegativePattern(pattern)
+		? `!${normalizeAbsolutePatternToRelative(pattern.slice(1))}`
+		: pattern);
 
 	const tasks = [];
 
