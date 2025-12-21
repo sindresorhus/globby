@@ -272,6 +272,27 @@ test('negation pattern with absolute path is normalized to relative', async t =>
 	t.deepEqual(result, []);
 });
 
+test('expandNegationOnlyPatterns: false returns empty array for negation-only patterns', async t => {
+	const result = await runGlobby(t, ['!a.tmp', '!b.tmp'], {cwd: temporary, expandNegationOnlyPatterns: false});
+	t.deepEqual(result, []);
+});
+
+test('expandNegationOnlyPatterns: false with single negation pattern returns empty array', async t => {
+	const result = await runGlobby(t, '!a.tmp', {cwd: temporary, expandNegationOnlyPatterns: false});
+	t.deepEqual(result, []);
+});
+
+test('expandNegationOnlyPatterns: false does not affect mixed patterns', async t => {
+	// When there are positive patterns, negation-only expansion is not triggered
+	const result = await runGlobby(t, ['*.tmp', '!a.tmp', '!b.tmp'], {cwd: temporary, expandNegationOnlyPatterns: false});
+	t.deepEqual(result, ['c.tmp', 'd.tmp', 'e.tmp']);
+});
+
+test('expandNegationOnlyPatterns: true (default) works with negation-only patterns', async t => {
+	const result = await runGlobby(t, ['!a.tmp', '!b.tmp'], {cwd: temporary, expandNegationOnlyPatterns: true});
+	t.deepEqual(result, ['c.tmp', 'd.tmp', 'e.tmp']);
+});
+
 test('glob - stream async iterator support', async t => {
 	const results = [];
 	for await (const path of globbyStream('*.tmp')) {
