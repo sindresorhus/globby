@@ -11,7 +11,12 @@ import {
 	globbyStream,
 	isDynamicPattern,
 } from '../index.js';
-import {normalizeDirectoryPatternForFastGlob, normalizeAbsolutePatternToRelative} from '../utilities.js';
+import {
+	normalizeDirectoryPatternForFastGlob,
+	normalizeAbsolutePatternToRelative,
+	getStaticAbsolutePathPrefix,
+	normalizeNegativePattern,
+} from '../utilities.js';
 import {
 	PROJECT_ROOT,
 	createContextAwareFs,
@@ -218,14 +223,61 @@ test('normalizeDirectoryPatternForFastGlob handles recursive directory patterns'
 	t.is(normalizeDirectoryPatternForFastGlob(''), '', 'empty string should remain empty');
 });
 
-test('normalizeAbsolutePatternToRelative strips leading slash', t => {
+test('normalizeAbsolutePatternToRelative strips leading slash for anchored globs', t => {
+	// Single-segment patterns are normalized (root-anchored globs)
 	t.is(normalizeAbsolutePatternToRelative('/**'), '**');
 	t.is(normalizeAbsolutePatternToRelative('/foo'), 'foo');
-	t.is(normalizeAbsolutePatternToRelative('/foo/**'), 'foo/**');
 	t.is(normalizeAbsolutePatternToRelative('/*.txt'), '*.txt');
+
+	// Multi-segment patterns with glob in first segment are normalized
+	t.is(normalizeAbsolutePatternToRelative('/{src,dist}/**'), '{src,dist}/**');
+	t.is(normalizeAbsolutePatternToRelative('/@(src|dist)/**'), '@(src|dist)/**');
+	t.is(normalizeAbsolutePatternToRelative('/*/foo'), '*/foo');
+
+	// Multi-segment patterns with non-glob first segment are real absolute paths - preserved
+	t.is(normalizeAbsolutePatternToRelative('/foo/**'), '/foo/**');
+	t.is(normalizeAbsolutePatternToRelative('/Users/foo/bar'), '/Users/foo/bar');
+	t.is(normalizeAbsolutePatternToRelative('/home/user/project/_*'), '/home/user/project/_*');
+
+	// Non-absolute patterns are unchanged
 	t.is(normalizeAbsolutePatternToRelative('foo'), 'foo', 'relative patterns unchanged');
 	t.is(normalizeAbsolutePatternToRelative('**'), '**', 'globstar unchanged');
 	t.is(normalizeAbsolutePatternToRelative(''), '', 'empty string unchanged');
+});
+
+test('getStaticAbsolutePathPrefix returns leading static absolute segments', t => {
+	t.is(getStaticAbsolutePathPrefix('/tmp/project/**/*.js'), '/tmp/project');
+	t.is(getStaticAbsolutePathPrefix('/tmp*/project/**/*.js'), undefined, 'glob in first segment');
+	t.is(getStaticAbsolutePathPrefix('relative/**/*.js'), undefined, 'relative pattern');
+	t.is(getStaticAbsolutePathPrefix('/tmp'), '/tmp', 'single static segment');
+	t.is(getStaticAbsolutePathPrefix('/'), undefined, 'root only');
+	t.is(getStaticAbsolutePathPrefix('/tmp/project'), '/tmp/project', 'fully static path');
+});
+
+test('normalizeNegativePattern handles root-anchored and absolute filesystem patterns', t => {
+	// Dynamic root-anchored: normalized to relative
+	t.is(normalizeNegativePattern('/**'), '**');
+	t.is(normalizeNegativePattern('/{src,dist}/**'), '{src,dist}/**');
+
+	// Single-segment literal: treated as root-anchored (no real filesystem path has just one segment)
+	t.is(normalizeNegativePattern('/src'), 'src');
+
+	// Multi-segment literal without matching positive prefix: strip to cwd-relative
+	t.is(normalizeNegativePattern('/src/**'), 'src/**');
+	t.is(normalizeNegativePattern('/tmp/project/_*', ['/Users/someone']), 'tmp/project/_*');
+
+	// Multi-segment literal with matching positive prefix: preserve as absolute
+	t.is(normalizeNegativePattern('/tmp/project/_*', ['/tmp/project']), '/tmp/project/_*');
+
+	// Mixed positive pattern styles should keep root-anchored literals cwd-relative.
+	t.is(normalizeNegativePattern('/tmp/project/_*', ['/tmp/project'], true), 'tmp/project/_*');
+
+	// Ancestor positive prefixes should not force absolute behavior.
+	t.is(normalizeNegativePattern('/tmp/project/src/**', ['/tmp/project']), 'tmp/project/src/**', 'ancestor positive prefixes should not force absolute negations');
+
+	// Non-absolute: pass through unchanged
+	t.is(normalizeNegativePattern('foo/bar'), 'foo/bar');
+	t.is(normalizeNegativePattern('**'), '**');
 });
 
 test('glob', async t => {
@@ -270,6 +322,210 @@ test('negation pattern with absolute path is normalized to relative', async t =>
 	// We normalize it to ** so it works the same on all platforms
 	const result = await runGlobby(t, '!/**', {cwd: temporary});
 	t.deepEqual(result, []);
+});
+
+test('negation with absolute filesystem paths (issue #275)', async t => {
+	const temporaryCwd = temporaryDirectory();
+
+	fs.writeFileSync(path.join(temporaryCwd, 'app.scss'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, '_partial.scss'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'b.scss'), '', 'utf8');
+
+	try {
+		// Single absolute negation
+		const result = await runGlobby(t, [
+			`${temporaryCwd}/*.scss`,
+			`!${temporaryCwd}/_*`,
+		]);
+
+		t.deepEqual(result.map(filePath => path.basename(filePath)).sort(), ['app.scss', 'b.scss']);
+
+		// Multiple absolute negations
+		const result2 = await runGlobby(t, [
+			`${temporaryCwd}/*.scss`,
+			`!${temporaryCwd}/_*`,
+			`!${temporaryCwd}/b*`,
+		]);
+
+		t.deepEqual(result2.map(filePath => path.basename(filePath)), ['app.scss']);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('negation-only root-anchored extglob excludes directories from cwd root', async t => {
+	const temporaryCwd = temporaryDirectory();
+
+	fs.mkdirSync(path.join(temporaryCwd, 'src'), {recursive: true});
+	fs.mkdirSync(path.join(temporaryCwd, 'dist'), {recursive: true});
+	fs.mkdirSync(path.join(temporaryCwd, 'other'), {recursive: true});
+
+	fs.writeFileSync(path.join(temporaryCwd, 'src', 'a.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'dist', 'b.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'other', 'c.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, ['!/@(src|dist)/**'], {cwd: temporaryCwd});
+		t.deepEqual(result, ['other/c.js']);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('negation-only root-anchored literal excludes directories from cwd root', async t => {
+	const temporaryCwd = temporaryDirectory();
+
+	fs.mkdirSync(path.join(temporaryCwd, 'src'), {recursive: true});
+	fs.mkdirSync(path.join(temporaryCwd, 'other'), {recursive: true});
+
+	fs.writeFileSync(path.join(temporaryCwd, 'src', 'a.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'other', 'c.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, ['!/src/**'], {cwd: temporaryCwd});
+		t.deepEqual(result, ['other/c.js']);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('root-anchored literal negation works with mixed relative and absolute positives', async t => {
+	const temporaryCwd = temporaryDirectory();
+
+	fs.mkdirSync(path.join(temporaryCwd, 'src'), {recursive: true});
+	fs.mkdirSync(path.join(temporaryCwd, 'other'), {recursive: true});
+
+	fs.writeFileSync(path.join(temporaryCwd, 'src', 'a.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'other', 'c.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, [
+			'src/**/*.js',
+			`${temporaryCwd}/other/**/*.js`,
+			'!/src/**',
+		], {cwd: temporaryCwd});
+
+		t.deepEqual(result.map(filePath => path.basename(filePath)).sort(), ['c.js']);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('root-anchored literal negation stays cwd-relative when absolute positive has unknown prefix', async t => {
+	const temporaryCwd = temporaryDirectory();
+
+	fs.mkdirSync(path.join(temporaryCwd, 'src'), {recursive: true});
+	fs.writeFileSync(path.join(temporaryCwd, 'src', 'a.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, [
+			'src/**/*.js',
+			'/tmp*/nomatch/**/*.js',
+			'!/src/**',
+		], {cwd: temporaryCwd});
+
+		t.deepEqual(result, []);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('root-anchored literal negation does not depend on later absolute positive patterns', async t => {
+	const temporaryCwd = temporaryDirectory();
+	const rootSegment = temporaryCwd.split('/').find(Boolean);
+	const rootAnchoredPattern = `!/${rootSegment}/**`;
+
+	fs.mkdirSync(path.join(temporaryCwd, 'other'), {recursive: true});
+	fs.writeFileSync(path.join(temporaryCwd, 'z.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'other', 'c.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, [
+			'**/*.js',
+			rootAnchoredPattern,
+			`${temporaryCwd}/other/**/*.js`,
+		], {cwd: temporaryCwd});
+
+		t.true(result.map(filePath => path.basename(filePath)).includes('z.js'));
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('root-anchored literal negation stays cwd-relative with ancestor absolute positive', async t => {
+	const temporaryCwd = temporaryDirectory();
+	if (path.sep === '\\') {
+		t.pass();
+		return;
+	}
+
+	const rootSegment = temporaryCwd.split('/').find(Boolean);
+	const rootAnchoredPattern = `!/${rootSegment}/**`;
+
+	fs.mkdirSync(path.join(temporaryCwd, 'src'), {recursive: true});
+	fs.mkdirSync(path.join(temporaryCwd, 'other'), {recursive: true});
+	fs.writeFileSync(path.join(temporaryCwd, 'src', 'a.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'other', 'c.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, [
+			'src/**/*.js',
+			`${temporaryCwd}/other/**/*.js`,
+			rootAnchoredPattern,
+		], {cwd: temporaryCwd});
+
+		t.deepEqual(result.map(filePath => path.basename(filePath)).sort(), ['a.js', 'c.js']);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('root-anchored literal negation stays cwd-relative with mixed absolute and relative positives', async t => {
+	const temporaryCwd = temporaryDirectory();
+	if (path.sep === '\\') {
+		t.pass();
+		return;
+	}
+
+	fs.mkdirSync(path.join(temporaryCwd, 'tmp', 'project'), {recursive: true});
+	fs.writeFileSync(path.join(temporaryCwd, 'tmp', 'project', '_partial.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'tmp', 'project', 'app.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, [
+			'tmp/project/**/*.js',
+			'/tmp/**/*.nomatch',
+			'!/tmp/project/_*',
+		], {cwd: temporaryCwd});
+
+		t.deepEqual(result, ['tmp/project/app.js']);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
+});
+
+test('root-anchored literal negation stays cwd-relative when absolute positive shares exact prefix', async t => {
+	const temporaryCwd = temporaryDirectory();
+	if (path.sep === '\\') {
+		t.pass();
+		return;
+	}
+
+	fs.mkdirSync(path.join(temporaryCwd, 'tmp', 'project'), {recursive: true});
+	fs.writeFileSync(path.join(temporaryCwd, 'tmp', 'project', '_partial.js'), '', 'utf8');
+	fs.writeFileSync(path.join(temporaryCwd, 'tmp', 'project', 'app.js'), '', 'utf8');
+
+	try {
+		const result = await runGlobby(t, [
+			'tmp/project/**/*.js',
+			'/tmp/project/**/*.nomatch',
+			'!/tmp/project/_*',
+		], {cwd: temporaryCwd});
+
+		t.deepEqual(result, ['tmp/project/app.js']);
+	} finally {
+		fs.rmSync(temporaryCwd, {recursive: true, force: true});
+	}
 });
 
 test('expandNegationOnlyPatterns: false returns empty array for negation-only patterns', async t => {

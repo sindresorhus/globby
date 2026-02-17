@@ -14,7 +14,8 @@ import {
 	bindFsMethod,
 	promisifyFsMethod,
 	isNegativePattern,
-	normalizeAbsolutePatternToRelative,
+	getStaticAbsolutePathPrefix,
+	normalizeNegativePattern,
 	normalizeDirectoryPatternForFastGlob,
 	adjustIgnorePatternsForParentDirectories,
 	convertPatternsForFastGlob,
@@ -301,9 +302,28 @@ const convertNegativePatterns = (patterns, options) => {
 		patterns = ['**/*', ...patterns];
 	}
 
-	patterns = patterns.map(pattern => isNegativePattern(pattern)
-		? `!${normalizeAbsolutePatternToRelative(pattern.slice(1))}`
-		: pattern);
+	const positiveAbsolutePathPrefixes = [];
+	let hasRelativePositivePattern = false;
+	const normalizedPatterns = [];
+
+	for (const pattern of patterns) {
+		if (isNegativePattern(pattern)) {
+			normalizedPatterns.push(`!${normalizeNegativePattern(pattern.slice(1), positiveAbsolutePathPrefixes, hasRelativePositivePattern)}`);
+			continue;
+		}
+
+		normalizedPatterns.push(pattern);
+
+		const staticAbsolutePathPrefix = getStaticAbsolutePathPrefix(pattern);
+		if (staticAbsolutePathPrefix === undefined) {
+			hasRelativePositivePattern = true;
+			continue;
+		}
+
+		positiveAbsolutePathPrefixes.push(staticAbsolutePathPrefix);
+	}
+
+	patterns = normalizedPatterns;
 
 	const tasks = [];
 

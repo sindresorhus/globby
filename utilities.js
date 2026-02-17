@@ -1,20 +1,103 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {promisify} from 'node:util';
+import fastGlob from 'fast-glob';
 import isPathInside from 'is-path-inside';
 
 export const isNegativePattern = pattern => pattern[0] === '!';
 
 /**
-Normalize an absolute pattern to be relative.
+Normalize a root-anchored pattern to be relative.
 
 On Unix, patterns starting with `/` are interpreted as absolute paths from the filesystem root. This causes inconsistent behavior across platforms since Windows uses different path roots (like `C:\`).
 
-This function strips leading `/` to make patterns relative to cwd, ensuring consistent cross-platform behavior.
+This function strips leading `/` only for root-anchored glob patterns (e.g., `/**`, `/*.txt`, `/foo`), not for real absolute filesystem paths (e.g., `/Users/foo/bar`, `/home/user/project`).
+
+The heuristic: if the pattern has multiple path segments and the first segment contains no glob characters, it's treated as a real absolute path and left unchanged.
 
 @param {string} pattern - The pattern to normalize.
 */
-export const normalizeAbsolutePatternToRelative = pattern => pattern.startsWith('/') ? pattern.slice(1) : pattern;
+export const normalizeAbsolutePatternToRelative = pattern => {
+	if (!pattern.startsWith('/')) {
+		return pattern;
+	}
+
+	const inner = pattern.slice(1);
+	const firstSlashIndex = inner.indexOf('/');
+	const firstSegment = firstSlashIndex > 0 ? inner.slice(0, firstSlashIndex) : inner;
+
+	// Preserve real absolute paths (multi-segment, non-glob first component like /Users/foo/bar)
+	if (firstSlashIndex > 0 && !fastGlob.isDynamicPattern(firstSegment)) {
+		return pattern;
+	}
+
+	// Strip leading / from root-anchored globs (/**, /*.txt, /foo, /{src,dist}/**)
+	return inner;
+};
+
+const absolutePrefixesMatch = (positivePrefix, negativePrefix) => negativePrefix === positivePrefix;
+
+/**
+Get the leading static prefix from an absolute pattern.
+
+@param {string} pattern - The pattern to inspect.
+@returns {string|undefined} Static absolute prefix, for example `/tmp/project`.
+*/
+export const getStaticAbsolutePathPrefix = pattern => {
+	if (!path.isAbsolute(pattern)) {
+		return undefined;
+	}
+
+	const staticSegments = [];
+	for (const segment of pattern.split('/')) {
+		if (!segment) {
+			continue;
+		}
+
+		if (fastGlob.isDynamicPattern(segment)) {
+			break;
+		}
+
+		staticSegments.push(segment);
+	}
+
+	return staticSegments.length === 0 ? undefined : `/${staticSegments.join('/')}`;
+};
+
+/**
+Normalize a negative pattern while preserving true absolute paths when needed.
+
+@param {string} pattern - A negative pattern without the leading `!`.
+@param {string[]} [positiveAbsolutePathPrefixes] - Static prefixes from previous positive absolute patterns.
+@param {boolean} [hasRelativePositivePattern] - Whether a relative positive pattern has been seen before this negation.
+@returns {string} Normalized pattern.
+*/
+export const normalizeNegativePattern = (pattern, positiveAbsolutePathPrefixes = [], hasRelativePositivePattern = false) => {
+	// Non-absolute patterns pass through unchanged.
+	if (!pattern.startsWith('/')) {
+		return pattern;
+	}
+
+	const normalizedPattern = normalizeAbsolutePatternToRelative(pattern);
+
+	// Dynamic root-anchored patterns (e.g. `/{src,dist}/**`) are always normalized to relative.
+	if (normalizedPattern !== pattern) {
+		return normalizedPattern;
+	}
+
+	// In mixed relative/absolute pattern sets, keep root-anchored literals cwd-relative.
+	if (hasRelativePositivePattern) {
+		return pattern.slice(1);
+	}
+
+	// Literal absolute patterns are treated as cwd-relative unless they clearly target
+	// the same absolute filesystem area as a positive absolute pattern seen so far.
+	const negativeAbsolutePathPrefix = getStaticAbsolutePathPrefix(pattern);
+	const preserveAsAbsolutePattern = negativeAbsolutePathPrefix !== undefined
+		&& positiveAbsolutePathPrefixes.some(positiveAbsolutePathPrefix => absolutePrefixesMatch(positiveAbsolutePathPrefix, negativeAbsolutePathPrefix));
+
+	return preserveAsAbsolutePattern ? pattern : pattern.slice(1);
+};
 
 export const bindFsMethod = (object, methodName) => {
 	const method = object?.[methodName];
