@@ -494,7 +494,7 @@ test('root-anchored literal negation stays cwd-relative with mixed absolute and 
 	try {
 		const result = await runGlobby(t, [
 			'tmp/project/**/*.js',
-			'/tmp/**/*.nomatch',
+			`${temporaryCwd}/**/*.nomatch`,
 			'!/tmp/project/_*',
 		], {cwd: temporaryCwd});
 
