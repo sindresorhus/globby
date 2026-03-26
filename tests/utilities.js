@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {temporaryDirectory} from 'tempy';
 
@@ -141,3 +142,24 @@ export const invalidPatterns = [
 ];
 
 export const isUnique = array => new Set(array).size === array.length;
+
+export const setGitConfigGlobal = (t, configFile) => {
+	const original = process.env.GIT_CONFIG_GLOBAL;
+	process.env.GIT_CONFIG_GLOBAL = configFile;
+	t.teardown(() => {
+		if (original === undefined) {
+			delete process.env.GIT_CONFIG_GLOBAL;
+		} else {
+			process.env.GIT_CONFIG_GLOBAL = original;
+		}
+	});
+};
+
+export const createGlobalGitignoreConfig = content => {
+	const directory = temporaryDirectory();
+	const globalIgnorePath = path.join(directory, '.gitignore_global');
+	const configFile = path.join(directory, '.gitconfig');
+	fs.writeFileSync(globalIgnorePath, content, 'utf8');
+	fs.writeFileSync(configFile, `[core]\n\texcludesfile = ${globalIgnorePath}\n`, 'utf8');
+	return {globalIgnorePath, configFile};
+};

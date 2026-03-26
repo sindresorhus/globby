@@ -9,6 +9,9 @@ import {
 	GITIGNORE_FILES_PATTERN,
 	getIgnorePatternsAndPredicate,
 	getIgnorePatternsAndPredicateSync,
+	getGlobalGitignoreFile,
+	getGlobalGitignoreFileAsync,
+	buildGlobalMatcher,
 } from './ignore.js';
 import {
 	bindFsMethod,
@@ -19,6 +22,8 @@ import {
 	normalizeDirectoryPatternForFastGlob,
 	adjustIgnorePatternsForParentDirectories,
 	convertPatternsForFastGlob,
+	findGitRoot,
+	findGitRootSync,
 } from './utilities.js';
 
 const assertPatternsInput = patterns => {
@@ -27,10 +32,14 @@ const assertPatternsInput = patterns => {
 	}
 };
 
-const getStatMethod = fsImplementation =>
-	bindFsMethod(fsImplementation?.promises, 'stat')
-	?? bindFsMethod(fs.promises, 'stat')
-	?? promisifyFsMethod(fsImplementation, 'stat');
+const getStatMethod = fsImplementation => {
+	if (fsImplementation) {
+		return bindFsMethod(fsImplementation.promises, 'stat')
+			?? promisifyFsMethod(fsImplementation, 'stat');
+	}
+
+	return bindFsMethod(fs.promises, 'stat');
+};
 
 const getStatSyncMethod = fsImplementation =>
 	bindFsMethod(fsImplementation, 'statSync')
@@ -177,6 +186,68 @@ const getIgnoreFilesPatterns = options => {
 	return patterns;
 };
 
+const isPathIgnored = (matcher, globalMatcher, path) => {
+	const globalResult = globalMatcher ? globalMatcher(path) : undefined;
+	const result = matcher ? matcher(path) : undefined;
+
+	if (result?.unignored) {
+		return false;
+	}
+
+	return Boolean(result?.ignored || globalResult?.ignored);
+};
+
+const hasIgnoredAncestorDirectory = (matcher, globalMatcher, file) => {
+	let currentPath = file;
+
+	while (true) {
+		const parentDirectory = nodePath.dirname(currentPath);
+		if (parentDirectory === currentPath) {
+			return false;
+		}
+
+		if (isPathIgnored(matcher, globalMatcher, `${parentDirectory}${nodePath.sep}`)) {
+			return true;
+		}
+
+		currentPath = parentDirectory;
+	}
+};
+
+const combinePredicate = (matcher, globalMatcher) => {
+	if (!matcher && !globalMatcher) {
+		return false;
+	}
+
+	return file => {
+		const result = matcher ? matcher(file) : undefined;
+
+		// A local negation (e.g. `!file`) re-includes the file, unless
+		// a parent directory is ignored by either matcher.
+		if (result?.unignored) {
+			const globalResult = globalMatcher ? globalMatcher(file) : undefined;
+			return globalResult?.ignored && hasIgnoredAncestorDirectory(matcher, globalMatcher, file);
+		}
+
+		return isPathIgnored(matcher, globalMatcher, file);
+	};
+};
+
+const buildIgnoreFilterResult = (options, cwd, {patterns, matcher, usingGitRoot}, globalMatcher, createFilter) => {
+	const finalPredicate = combinePredicate(matcher, globalMatcher);
+
+	// Convert patterns to fast-glob format (may return empty array if predicate should handle everything)
+	const patternsForFastGlob = convertPatternsForFastGlob(patterns, usingGitRoot, normalizeDirectoryPatternForFastGlob);
+
+	return {
+		options: {
+			...options,
+			ignore: [...options.ignore, ...patternsForFastGlob],
+		},
+		filter: createFilter(finalPredicate, cwd, options.fs),
+	};
+};
+
 /**
 Apply gitignore patterns to options and return filter predicate.
 
@@ -189,32 +260,28 @@ All patterns (including negated) are always used in the filter predicate to ensu
 @returns {Promise<{options: Object, filter: Function}>}
 */
 const applyIgnoreFilesAndGetFilter = async options => {
+	const cwd = options.cwd ?? process.cwd();
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
+	const globalIgnoreFile = options.globalGitignore ? await getGlobalGitignoreFileAsync(options) : undefined;
 
-	if (ignoreFilesPatterns.length === 0) {
+	if (ignoreFilesPatterns.length === 0 && !globalIgnoreFile) {
 		return {
 			options,
-			filter: createFilterFunction(false, options.cwd),
+			filter: createFilterFunctionAsync(false, cwd, options.fs),
 		};
 	}
 
 	// Read ignore files once and get both patterns and predicate
 	// Enable parent .gitignore search when using gitignore option
 	const includeParentIgnoreFiles = options.gitignore === true;
-	const {patterns, predicate, usingGitRoot} = await getIgnorePatternsAndPredicate(ignoreFilesPatterns, options, includeParentIgnoreFiles);
+	const ignoreResult = ignoreFilesPatterns.length > 0
+		? await getIgnorePatternsAndPredicate(ignoreFilesPatterns, options, includeParentIgnoreFiles)
+		: {patterns: [], matcher: false, usingGitRoot: false};
 
-	// Convert patterns to fast-glob format (may return empty array if predicate should handle everything)
-	const patternsForFastGlob = convertPatternsForFastGlob(patterns, usingGitRoot, normalizeDirectoryPatternForFastGlob);
+	const globalGitRoot = globalIgnoreFile ? await findGitRoot(cwd, options.fs) : undefined;
+	const globalMatcher = globalIgnoreFile ? buildGlobalMatcher(globalIgnoreFile, cwd, globalGitRoot ?? cwd) : undefined;
 
-	const modifiedOptions = {
-		...options,
-		ignore: [...options.ignore, ...patternsForFastGlob],
-	};
-
-	return {
-		options: modifiedOptions,
-		filter: createFilterFunction(predicate, options.cwd),
-	};
+	return buildIgnoreFilterResult(options, cwd, ignoreResult, globalMatcher, createFilterFunctionAsync);
 };
 
 /**
@@ -223,62 +290,153 @@ Apply gitignore patterns to options and return filter predicate (sync version).
 @returns {{options: Object, filter: Function}}
 */
 const applyIgnoreFilesAndGetFilterSync = options => {
+	const cwd = options.cwd ?? process.cwd();
 	const ignoreFilesPatterns = getIgnoreFilesPatterns(options);
+	const globalIgnoreFile = options.globalGitignore ? getGlobalGitignoreFile(options) : undefined;
 
-	if (ignoreFilesPatterns.length === 0) {
+	if (ignoreFilesPatterns.length === 0 && !globalIgnoreFile) {
 		return {
 			options,
-			filter: createFilterFunction(false, options.cwd),
+			filter: createFilterFunction(false, cwd, options.fs),
 		};
 	}
 
 	// Read ignore files once and get both patterns and predicate
 	// Enable parent .gitignore search when using gitignore option
 	const includeParentIgnoreFiles = options.gitignore === true;
-	const {patterns, predicate, usingGitRoot} = getIgnorePatternsAndPredicateSync(ignoreFilesPatterns, options, includeParentIgnoreFiles);
+	const ignoreResult = ignoreFilesPatterns.length > 0
+		? getIgnorePatternsAndPredicateSync(ignoreFilesPatterns, options, includeParentIgnoreFiles)
+		: {patterns: [], matcher: false, usingGitRoot: false};
 
-	// Convert patterns to fast-glob format (may return empty array if predicate should handle everything)
-	const patternsForFastGlob = convertPatternsForFastGlob(patterns, usingGitRoot, normalizeDirectoryPatternForFastGlob);
+	const globalGitRoot = globalIgnoreFile ? findGitRootSync(cwd, options.fs) : undefined;
+	const globalMatcher = globalIgnoreFile ? buildGlobalMatcher(globalIgnoreFile, cwd, globalGitRoot ?? cwd) : undefined;
 
-	const modifiedOptions = {
-		...options,
-		ignore: [...options.ignore, ...patternsForFastGlob],
-	};
+	return buildIgnoreFilterResult(options, cwd, ignoreResult, globalMatcher, createFilterFunction);
+};
 
-	return {
-		options: modifiedOptions,
-		filter: createFilterFunction(predicate, options.cwd),
+const assertGlobalGitignoreSyncSupport = options => {
+	if (options.globalGitignore && options.fs && !options.fs.statSync) {
+		throw new Error('The `globalGitignore` option in `globbySync()` requires `fs.statSync` when a custom `fs` is provided.');
+	}
+};
+
+const globalGitignoreAsyncStatErrorMessage = 'The `globalGitignore` option in `globby()` and `globbyStream()` requires `fs.promises.stat` or `fs.stat` when a custom `fs` is provided.';
+
+const assertGlobalGitignoreAsyncSupport = options => {
+	if (!options.globalGitignore || !options.fs) {
+		return;
+	}
+
+	if (!options.fs.promises?.stat && !options.fs.stat) {
+		throw new Error(globalGitignoreAsyncStatErrorMessage);
+	}
+};
+
+const createPathResolver = cwd => {
+	const basePath = cwd || process.cwd();
+	const pathCache = new Map();
+
+	return pathKey => {
+		let absolutePath = pathCache.get(pathKey);
+		if (absolutePath === undefined) {
+			if (pathCache.size > 10_000) {
+				pathCache.clear();
+			}
+
+			absolutePath = nodePath.isAbsolute(pathKey) ? pathKey : nodePath.resolve(basePath, pathKey);
+			pathCache.set(pathKey, absolutePath);
+		}
+
+		return absolutePath;
 	};
 };
 
-const createFilterFunction = (isIgnored, cwd) => {
+const createAsyncDirectoryCheck = fsMethod => {
+	const directoryCache = new Map();
+
+	return async absolutePath => {
+		let isDirectory = directoryCache.get(absolutePath);
+		if (isDirectory !== undefined) {
+			return isDirectory;
+		}
+
+		try {
+			const stats = await fsMethod?.(absolutePath);
+			isDirectory = Boolean(stats?.isDirectory());
+		} catch {
+			isDirectory = false;
+		}
+
+		if (directoryCache.size > 10_000) {
+			directoryCache.clear();
+		}
+
+		directoryCache.set(absolutePath, isDirectory);
+		return isDirectory;
+	};
+};
+
+const createDirectoryCheck = fsMethod => {
+	const directoryCache = new Map();
+
+	return absolutePath => {
+		let isDirectory = directoryCache.get(absolutePath);
+		if (isDirectory !== undefined) {
+			return isDirectory;
+		}
+
+		try {
+			isDirectory = Boolean(fsMethod?.(absolutePath)?.isDirectory());
+		} catch {
+			isDirectory = false;
+		}
+
+		if (directoryCache.size > 10_000) {
+			directoryCache.clear();
+		}
+
+		directoryCache.set(absolutePath, isDirectory);
+		return isDirectory;
+	};
+};
+
+const createFilterFunctionAsync = (isIgnored, cwd, fsImplementation) => {
+	const resolveAbsolutePath = createPathResolver(cwd);
+	const isDirectoryEntry = createAsyncDirectoryCheck(getStatMethod(fsImplementation));
+
+	return async fastGlobResult => {
+		if (!isIgnored) {
+			return true;
+		}
+
+		const absolutePath = resolveAbsolutePath(nodePath.normalize(fastGlobResult.path ?? fastGlobResult));
+		if (isIgnored(absolutePath)) {
+			return false;
+		}
+
+		return !(await isDirectoryEntry(absolutePath) && isIgnored(`${absolutePath}${nodePath.sep}`));
+	};
+};
+
+const createFilterFunction = (isIgnored, cwd, fsImplementation) => {
 	const seen = new Set();
-	const basePath = cwd || process.cwd();
-	const pathCache = new Map(); // Cache for resolved paths
+	const resolveAbsolutePath = createPathResolver(cwd);
+	const isDirectoryEntry = createDirectoryCheck(getStatSyncMethod(fsImplementation));
 
 	return fastGlobResult => {
 		const pathKey = nodePath.normalize(fastGlobResult.path ?? fastGlobResult);
 
-		// Check seen set first (fast path)
 		if (seen.has(pathKey)) {
 			return false;
 		}
 
-		// Only compute absolute path and check predicate if needed
 		if (isIgnored) {
-			let absolutePath = pathCache.get(pathKey);
-			if (absolutePath === undefined) {
-				absolutePath = nodePath.isAbsolute(pathKey) ? pathKey : nodePath.resolve(basePath, pathKey);
-				pathCache.set(pathKey, absolutePath);
-
-				// Only clear path cache if it gets too large
-				// Never clear 'seen' as it's needed for deduplication
-				if (pathCache.size > 10_000) {
-					pathCache.clear();
-				}
+			const absolutePath = resolveAbsolutePath(pathKey);
+			if (isIgnored(absolutePath)) {
+				return false;
 			}
 
-			if (isIgnored(absolutePath)) {
+			if (isDirectoryEntry(absolutePath) && isIgnored(`${absolutePath}${nodePath.sep}`)) {
 				return false;
 			}
 		}
@@ -289,6 +447,25 @@ const createFilterFunction = (isIgnored, cwd) => {
 };
 
 const unionFastGlobResults = (results, filter) => results.flat().filter(fastGlobResult => filter(fastGlobResult));
+const unionFastGlobResultsAsync = async (results, filter) => {
+	results = results.flat();
+	const matches = await Promise.all(results.map(fastGlobResult => filter(fastGlobResult)));
+	const seen = new Set();
+
+	return results.filter((fastGlobResult, index) => {
+		if (!matches[index]) {
+			return false;
+		}
+
+		const pathKey = nodePath.normalize(fastGlobResult.path ?? fastGlobResult);
+		if (seen.has(pathKey)) {
+			return false;
+		}
+
+		seen.add(pathKey);
+		return true;
+	});
+};
 
 const convertNegativePatterns = (patterns, options) => {
 	// If all patterns are negative and expandNegationOnlyPatterns is enabled (default),
@@ -431,6 +608,8 @@ const generateTasksSync = (patterns, options) => {
 };
 
 export const globby = normalizeArguments(async (patterns, options) => {
+	assertGlobalGitignoreAsyncSupport(options);
+
 	// Apply ignore files and get filter (reads .gitignore files once)
 	const {options: modifiedOptions, filter} = await applyIgnoreFilesAndGetFilter(options);
 
@@ -438,10 +617,12 @@ export const globby = normalizeArguments(async (patterns, options) => {
 	const tasks = await generateTasks(patterns, modifiedOptions);
 
 	const results = await Promise.all(tasks.map(task => fastGlob(task.patterns, task.options)));
-	return unionFastGlobResults(results, filter);
+	return unionFastGlobResultsAsync(results, filter);
 });
 
 export const globbySync = normalizeArgumentsSync((patterns, options) => {
+	assertGlobalGitignoreSyncSupport(options);
+
 	// Apply ignore files and get filter (reads .gitignore files once)
 	const {options: modifiedOptions, filter} = applyIgnoreFilesAndGetFilterSync(options);
 
@@ -453,19 +634,30 @@ export const globbySync = normalizeArgumentsSync((patterns, options) => {
 });
 
 export const globbyStream = normalizeArgumentsSync((patterns, options) => {
-	// Apply ignore files and get filter (reads .gitignore files once)
-	const {options: modifiedOptions, filter} = applyIgnoreFilesAndGetFilterSync(options);
+	assertGlobalGitignoreAsyncSupport(options);
 
-	// Generate tasks with modified options (includes gitignore patterns in ignore option)
-	const tasks = generateTasksSync(patterns, modifiedOptions);
+	const seen = new Set();
+	const stream = Readable.from((async function * () {
+		// Apply ignore files and get filter (reads .gitignore files once)
+		const {options: modifiedOptions, filter} = await applyIgnoreFilesAndGetFilter(options);
 
-	const streams = tasks.map(task => fastGlob.stream(task.patterns, task.options));
+		// Generate tasks with modified options (includes gitignore patterns in ignore option)
+		const tasks = await generateTasks(patterns, modifiedOptions);
 
-	if (streams.length === 0) {
-		return Readable.from([]);
-	}
+		if (tasks.length === 0) {
+			return;
+		}
 
-	const stream = mergeStreams(streams).filter(fastGlobResult => filter(fastGlobResult));
+		const streams = tasks.map(task => fastGlob.stream(task.patterns, task.options));
+
+		for await (const fastGlobResult of mergeStreams(streams)) {
+			const pathKey = nodePath.normalize(fastGlobResult.path ?? fastGlobResult);
+			if (!seen.has(pathKey) && await filter(fastGlobResult)) {
+				seen.add(pathKey);
+				yield fastGlobResult;
+			}
+		}
+	})());
 
 	// Returning a web stream will require revisiting once Readable.toWeb integration is viable.
 	// return Readable.toWeb(stream);

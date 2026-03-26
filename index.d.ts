@@ -93,6 +93,23 @@ export type Options = {
 	readonly cwd?: URL | string;
 } & FastGlobOptionsWithoutCwd;
 
+export type GlobbyOptions = Options & {
+	/**
+	Respect ignore patterns in the global gitignore file configured via `git config core.excludesfile`.
+
+	Values from `[include]` and `gitdir` or `gitdir/i` `[includeIf]` sections inside those user-level config files are also respected.
+
+	Patterns in the global gitignore are treated as root-level patterns, matching Git's own behavior.
+
+	This option only reads the user-level Git config (`GIT_CONFIG_GLOBAL`, `$XDG_CONFIG_HOME/git/config`, and `~/.gitconfig`). When `core.excludesfile` is unset, it falls back to Git's default user-level ignore file at `$XDG_CONFIG_HOME/git/ignore` or `~/.config/git/ignore`. Repository `.git/config` and system config are intentionally not consulted. Other `includeIf` predicates such as `onbranch:` are intentionally not supported.
+
+	When used with a custom `fs`, `globby()` and `globbyStream()` also require `fs.promises.stat` or `fs.stat`, and `globbySync()` requires `statSync`.
+
+	@default false
+	*/
+	readonly globalGitignore?: boolean;
+};
+
 export type GitignoreOptions = {
 	/**
 	The current working directory in which to search.
@@ -147,6 +164,8 @@ export type GitignoreOptions = {
 
 	/**
 	Custom file system implementation (useful for testing or virtual file systems).
+
+	The custom fs must also provide `readFile`/`readFileSync` methods.
 
 	@default undefined
 	*/
@@ -203,11 +222,11 @@ console.log(paths);
 */
 export function globby(
 	patterns: string | readonly string[],
-	options: Options & ({objectMode: true} | {stats: true})
+	options: GlobbyOptions & ({objectMode: true} | {stats: true})
 ): Promise<GlobEntry[]>;
 export function globby(
 	patterns: string | readonly string[],
-	options?: Options
+	options?: GlobbyOptions
 ): Promise<string[]>;
 
 /**
@@ -221,11 +240,11 @@ Note that glob patterns can only contain forward-slashes, not backward-slashes, 
 */
 export function globbySync(
 	patterns: string | readonly string[],
-	options: Options & ({objectMode: true} | {stats: true})
+	options: GlobbyOptions & ({objectMode: true} | {stats: true})
 ): GlobEntry[];
 export function globbySync(
 	patterns: string | readonly string[],
-	options?: Options
+	options?: GlobbyOptions
 ): string[];
 
 /**
@@ -248,11 +267,11 @@ for await (const path of globbyStream('*.tmp')) {
 */
 export function globbyStream(
 	patterns: string | readonly string[],
-	options: Options & ({objectMode: true} | {stats: true})
+	options: GlobbyOptions & ({objectMode: true} | {stats: true})
 ): GlobbyEntryStream;
 export function globbyStream(
 	patterns: string | readonly string[],
-	options?: Options
+	options?: GlobbyOptions
 ): GlobbyStream;
 
 /**

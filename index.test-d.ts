@@ -1,5 +1,5 @@
 import {type Buffer} from 'node:buffer';
-import {expectType} from 'tsd';
+import {expectError, expectType} from 'tsd';
 import {
 	type GlobTask,
 	type GlobEntry,
@@ -14,6 +14,8 @@ import {
 	isDynamicPattern,
 	isGitIgnored,
 	isGitIgnoredSync,
+	isIgnoredByIgnoreFiles,
+	isIgnoredByIgnoreFilesSync,
 } from './index.js';
 
 const __dirname = '';
@@ -31,6 +33,7 @@ expectType<Promise<string[]>>(globby('*.tmp', {
 	},
 }));
 expectType<Promise<string[]>>(globby('*.tmp', {gitignore: true}));
+expectType<Promise<string[]>>(globby('*.tmp', {globalGitignore: true}));
 expectType<Promise<string[]>>(globby('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<Promise<GlobEntry[]>>(globby('*.tmp', {objectMode: true}));
 expectType<Promise<GlobEntry[]>>(globby('*.tmp', {stats: true}));
@@ -48,6 +51,7 @@ expectType<string[]>(globbySync('*.tmp', {
 	},
 }));
 expectType<string[]>(globbySync('*.tmp', {gitignore: true}));
+expectType<string[]>(globbySync('*.tmp', {globalGitignore: true}));
 expectType<string[]>(globbySync('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<GlobEntry[]>(globbySync('*.tmp', {objectMode: true}));
 expectType<GlobEntry[]>(globbySync('*.tmp', {stats: true}));
@@ -65,6 +69,7 @@ expectType<GlobbyStream>(globbyStream('*.tmp', {
 	},
 }));
 expectType<GlobbyStream>(globbyStream('*.tmp', {gitignore: true}));
+expectType<GlobbyStream>(globbyStream('*.tmp', {globalGitignore: true}));
 expectType<GlobbyStream>(globbyStream('*.tmp', {ignore: ['**/b.tmp']}));
 expectType<GlobbyEntryStream>(globbyStream('*.tmp', {objectMode: true}));
 expectType<GlobbyEntryStream>(globbyStream('*.tmp', {stats: true}));
@@ -116,6 +121,7 @@ expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {
 }));
 expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {gitignore: true}));
 expectType<Promise<GlobTask[]>>(generateGlobTasks('*.tmp', {ignore: ['**/b.tmp']}));
+expectError(generateGlobTasks('*.tmp', {globalGitignore: true}));
 
 // GenerateGlobTasksSync
 expectType<GlobTask[]>(generateGlobTasksSync('*.tmp'));
@@ -131,6 +137,7 @@ expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {
 }));
 expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {gitignore: true}));
 expectType<GlobTask[]>(generateGlobTasksSync('*.tmp', {ignore: ['**/b.tmp']}));
+expectError(generateGlobTasksSync('*.tmp', {globalGitignore: true}));
 
 // IsDynamicPattern
 expectType<boolean>(isDynamicPattern('**'));
@@ -238,3 +245,6 @@ expectType<GlobbyFilterFunction>(isGitIgnoredSync({
 	concurrency: 4,
 	throwErrorOnBrokenSymbolicLink: false,
 }));
+
+expectError(isIgnoredByIgnoreFiles('**/.gitignore', {globalGitignore: true}));
+expectError(isIgnoredByIgnoreFilesSync('**/.gitignore', {globalGitignore: true}));

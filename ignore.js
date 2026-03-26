@@ -2,6 +2,7 @@ import process from 'node:process';
 import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import fastGlob from 'fast-glob';
 import gitIgnore from 'ignore';
 import isPathInside from 'is-path-inside';
@@ -29,6 +30,9 @@ const ignoreFilesGlobOptions = {
 
 export const GITIGNORE_FILES_PATTERN = '**/.gitignore';
 
+// Maximum depth for [include] chains to prevent stack overflow (git uses 10)
+const MAX_INCLUDE_DEPTH = 10;
+
 const getReadFileMethod = fsImplementation =>
 	bindFsMethod(fsImplementation?.promises, 'readFile')
 	?? bindFsMethod(fsPromises, 'readFile')
@@ -50,14 +54,17 @@ const shouldSkipIgnoreFileError = (error, suppressErrors) => {
 	return Boolean(suppressErrors);
 };
 
-const createIgnoreFileReadError = (filePath, error) => {
+const createReadError = (kind, filePath, error) => {
+	const prefix = `Failed to read ${kind} at ${filePath}`;
 	if (error instanceof Error) {
-		error.message = `Failed to read ignore file at ${filePath}: ${error.message}`;
-		return error;
+		return new Error(`${prefix}: ${error.message}`, {cause: error});
 	}
 
-	return new Error(`Failed to read ignore file at ${filePath}: ${String(error)}`);
+	return new Error(`${prefix}: ${String(error)}`);
 };
+
+const createIgnoreFileReadError = (filePath, error) => createReadError('ignore file', filePath, error);
+const createGitConfigReadError = (filePath, error) => createReadError('git config', filePath, error);
 
 const processIgnoreFileCore = (filePath, readMethod, suppressErrors) => {
 	try {
@@ -122,10 +129,12 @@ const combineIgnoreFilePaths = (gitRoot, normalizedOptions, childPaths) => dedup
 const buildIgnoreResult = (files, normalizedOptions, gitRoot) => {
 	const baseDir = gitRoot || normalizedOptions.cwd;
 	const patterns = getPatternsFromIgnoreFiles(files, baseDir);
+	const matcher = createIgnoreMatcher(patterns, normalizedOptions.cwd, baseDir);
 
 	return {
 		patterns,
-		predicate: createIgnorePredicate(patterns, normalizedOptions.cwd, baseDir),
+		matcher,
+		predicate: fileOrDirectory => matcher(fileOrDirectory).ignored,
 		usingGitRoot: Boolean(gitRoot && gitRoot !== normalizedOptions.cwd),
 	};
 };
@@ -206,7 +215,9 @@ const toRelativePath = (fileOrDirectory, cwd) => {
 	return fileOrDirectory;
 };
 
-const createIgnorePredicate = (patterns, cwd, baseDir) => {
+const notIgnored = {ignored: false, unignored: false};
+
+const createIgnoreMatcher = (patterns, cwd, baseDir) => {
 	const ignores = gitIgnore().add(patterns);
 	// Normalize to handle path separator and . / .. components consistently
 	const resolvedCwd = path.normalize(path.resolve(cwd));
@@ -214,22 +225,31 @@ const createIgnorePredicate = (patterns, cwd, baseDir) => {
 
 	return fileOrDirectory => {
 		fileOrDirectory = toPath(fileOrDirectory);
+		const hasTrailingSeparator = /[/\\]$/.test(fileOrDirectory);
 
 		// Never ignore the cwd itself - use normalized comparison
 		const normalizedPath = path.normalize(path.resolve(fileOrDirectory));
 		if (normalizedPath === resolvedCwd) {
-			return false;
+			return notIgnored;
 		}
 
 		// Convert to relative path from baseDir (use normalized baseDir)
-		const relativePath = toRelativePath(fileOrDirectory, resolvedBaseDir);
+		let relativePath = toRelativePath(fileOrDirectory, resolvedBaseDir);
 
 		// If path is outside baseDir (undefined), it can't be ignored by patterns
 		if (relativePath === undefined) {
-			return false;
+			return notIgnored;
 		}
 
-		return relativePath ? ignores.ignores(slash(relativePath)) : false;
+		if (!relativePath) {
+			return notIgnored;
+		}
+
+		if (hasTrailingSeparator && !relativePath.endsWith(path.sep)) {
+			relativePath += path.sep;
+		}
+
+		return ignores.test(slash(relativePath));
 	};
 };
 
@@ -256,6 +276,517 @@ const normalizeOptions = (options = {}) => {
 		throwErrorOnBrokenSymbolicLink: options.throwErrorOnBrokenSymbolicLink ?? false,
 		fs: options.fs,
 	};
+};
+
+const unescapeGitQuotedValue = value => value.replaceAll(/\\(["\\abfnrtv])/g, (_match, escapedCharacter) => {
+	switch (escapedCharacter) {
+		case 'a': {
+			return '\u0007';
+		}
+
+		case 'b': {
+			return '\b';
+		}
+
+		case 'f': {
+			return '\f';
+		}
+
+		case 'n': {
+			return '\n';
+		}
+
+		case 'r': {
+			return '\r';
+		}
+
+		case 't': {
+			return '\t';
+		}
+
+		case 'v': {
+			return '\v';
+		}
+
+		default: {
+			return escapedCharacter;
+		}
+	}
+});
+
+const parseGitConfigValue = value => {
+	const trimmedValue = value.trim();
+	const quotedMatch = trimmedValue.match(/^"((?:[^"\\]|\\.)*)"\s*(?:[#;].*)?$/);
+
+	if (quotedMatch) {
+		return unescapeGitQuotedValue(quotedMatch[1]);
+	}
+
+	return trimmedValue.replace(/\s[#;].*$/, '').trim();
+};
+
+const resolveConfigPath = (filePath, configPath) => {
+	if (configPath.startsWith('~/')) {
+		const homeDirectory = os.homedir();
+		const resolved = path.join(homeDirectory, configPath.slice(2));
+		// Ensure the resolved path is within the home directory to prevent traversal via ~/..
+		if (!isPathInside(resolved, homeDirectory)) {
+			// Invalid path, return a path that won't exist
+			return path.join(homeDirectory, '.globby-invalid-path-traversal');
+		}
+
+		return resolved;
+	}
+
+	if (path.isAbsolute(configPath)) {
+		return configPath;
+	}
+
+	return path.resolve(path.dirname(filePath), configPath);
+};
+
+const parseGitConfigSection = line => {
+	if (!line.startsWith('[')) {
+		return undefined;
+	}
+
+	let inQuotes = false;
+	let isEscaped = false;
+
+	for (let index = 1; index < line.length; index++) {
+		const character = line[index];
+
+		if (isEscaped) {
+			isEscaped = false;
+			continue;
+		}
+
+		if (character === '\\') {
+			isEscaped = true;
+			continue;
+		}
+
+		if (character === '"') {
+			inQuotes = !inQuotes;
+			continue;
+		}
+
+		if (character === ']' && !inQuotes) {
+			const remainder = line.slice(index + 1).trimStart();
+			if (remainder && !remainder.startsWith('#') && !remainder.startsWith(';')) {
+				return undefined;
+			}
+
+			return line.slice(1, index).trim();
+		}
+	}
+
+	return undefined;
+};
+
+const parseGitConfigEntry = line => {
+	const match = line.match(/^([A-Za-z\d-.]+)\s*=\s*(.*)$/);
+
+	if (!match) {
+		return undefined;
+	}
+
+	return {
+		key: match[1].toLowerCase(),
+		value: parseGitConfigValue(match[2]),
+	};
+};
+
+const parseIncludeIfCondition = section => {
+	if (!section) {
+		return undefined;
+	}
+
+	const match = section.match(/^includeif\s+"([^"]+)"$/i);
+	return match ? match[1] : undefined;
+};
+
+const normalizeGitConfigConditionPattern = (pattern, configFilePath) => {
+	if (pattern.startsWith('~/')) {
+		pattern = path.join(os.homedir(), pattern.slice(2));
+	} else if (pattern.startsWith('./')) {
+		pattern = path.resolve(path.dirname(configFilePath), pattern.slice(2));
+	} else if (!path.isAbsolute(pattern)) {
+		pattern = `**/${pattern}`;
+	}
+
+	if (pattern.endsWith('/')) {
+		pattern += '**';
+	}
+
+	return slash(pattern);
+};
+
+const gitConfigGlobToRegex = (pattern, flags) => {
+	let regex = '';
+
+	for (let index = 0; index < pattern.length; index++) {
+		const character = pattern[index];
+		const nextCharacter = pattern[index + 1];
+		const nextNextCharacter = pattern[index + 2];
+
+		if (character === '*' && nextCharacter === '*' && nextNextCharacter === '/') {
+			regex += '(?:.*/)?';
+			index += 2;
+			continue;
+		}
+
+		if (character === '*' && nextCharacter === '*') {
+			regex += '.*';
+			index += 1;
+			continue;
+		}
+
+		if (character === '*') {
+			regex += '[^/]*';
+			continue;
+		}
+
+		if (character === '?') {
+			regex += '[^/]';
+			continue;
+		}
+
+		if (character === '[') {
+			const closingBracketIndex = pattern.indexOf(']', index + 1);
+			if (closingBracketIndex !== -1) {
+				const bracketContent = pattern.slice(index + 1, closingBracketIndex);
+				if (bracketContent) {
+					const negatedBracketContent = bracketContent[0] === '!' ? `^${bracketContent.slice(1)}` : bracketContent;
+					regex += `[${negatedBracketContent}]`;
+					index = closingBracketIndex;
+					continue;
+				}
+			}
+		}
+
+		regex += /[|\\{}()[\]^$+?.]/.test(character) ? `\\${character}` : character;
+	}
+
+	try {
+		return new RegExp(`^${regex}$`, flags);
+	} catch {
+		// If regex construction fails (e.g., invalid bracket expression), return a non-matching pattern
+		return /(?!)/;
+	}
+};
+
+const matchesIncludeIfCondition = (condition, gitDirectory, configFilePath) => {
+	if (!gitDirectory) {
+		return false;
+	}
+
+	const match = condition.match(/^(gitdir|gitdir\/i):(.*)$/i);
+	if (!match) {
+		return false;
+	}
+
+	const [, keyword, rawPattern] = match;
+	const pattern = normalizeGitConfigConditionPattern(rawPattern.trim(), configFilePath);
+	const isCaseInsensitive = keyword.toLowerCase() === 'gitdir/i';
+	const regularExpression = gitConfigGlobToRegex(pattern, isCaseInsensitive ? 'i' : undefined);
+	const normalizedGitDirectory = slash(path.resolve(gitDirectory));
+
+	return regularExpression.test(normalizedGitDirectory);
+};
+
+const shouldIncludeConfigSection = (section, gitDirectory, configFilePath) => {
+	if (section?.toLowerCase() === 'include') {
+		return true;
+	}
+
+	// `globalGitignore` intentionally keeps `includeIf` support narrow.
+	// Only `gitdir:` and `gitdir/i:` conditions are treated as active here.
+	// Other Git predicates such as `onbranch:` are outside this feature's
+	// supported boundary and are documented as unsupported.
+	const condition = parseIncludeIfCondition(section);
+	return condition ? matchesIncludeIfCondition(condition, gitDirectory, configFilePath) : false;
+};
+
+const createExcludesFileValue = (value, declaringFilePath) => ({
+	value,
+	declaringFilePath,
+});
+
+/**
+Parse git config content and return the excludesFile value and any include paths to recurse into.
+The caller is responsible for reading files and recursing (sync or async).
+*/
+const parseGitConfigForExcludesFile = (content, normalizedPath, gitDirectory) => {
+	let currentSection;
+	let excludesFile;
+	const includePaths = [];
+
+	for (const line of content.split(/\r?\n/)) {
+		const trimmed = line.trim();
+
+		if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith(';')) {
+			continue;
+		}
+
+		if (trimmed.startsWith('[')) {
+			currentSection = parseGitConfigSection(trimmed);
+			continue;
+		}
+
+		const entry = parseGitConfigEntry(trimmed);
+		if (!entry) {
+			continue;
+		}
+
+		if (currentSection?.toLowerCase() === 'core' && entry.key === 'excludesfile') {
+			excludesFile = createExcludesFileValue(entry.value, normalizedPath);
+			continue;
+		}
+
+		if (shouldIncludeConfigSection(currentSection, gitDirectory, normalizedPath) && entry.key === 'path' && entry.value) {
+			includePaths.push(resolveConfigPath(normalizedPath, entry.value));
+		}
+	}
+
+	return {excludesFile, includePaths};
+};
+
+const readGitConfigFile = (normalizedPath, readMethod, suppressErrors) => {
+	try {
+		return readMethod(normalizedPath, 'utf8');
+	} catch (error) {
+		if (shouldSkipIgnoreFileError(error, suppressErrors)) {
+			return undefined;
+		}
+
+		throw createGitConfigReadError(normalizedPath, error);
+	}
+};
+
+const getExcludesFileFromGitConfigSync = (filePath, readFileSync, gitDirectory, options = {}) => {
+	const {suppressErrors, includeStack = new Set(), depth = 0} = options;
+	const normalizedPath = path.resolve(filePath);
+
+	if (includeStack.has(normalizedPath)) {
+		return undefined;
+	}
+
+	if (depth >= MAX_INCLUDE_DEPTH) {
+		return undefined;
+	}
+
+	includeStack.add(normalizedPath);
+
+	const content = readGitConfigFile(normalizedPath, readFileSync, suppressErrors);
+	if (content === undefined) {
+		includeStack.delete(normalizedPath);
+		return undefined;
+	}
+
+	let {excludesFile, includePaths} = parseGitConfigForExcludesFile(content, normalizedPath, gitDirectory);
+
+	for (const includePath of includePaths) {
+		const includedExcludesFile = getExcludesFileFromGitConfigSync(includePath, readFileSync, gitDirectory, {suppressErrors, includeStack, depth: depth + 1});
+		if (includedExcludesFile !== undefined) {
+			excludesFile = includedExcludesFile;
+		}
+	}
+
+	includeStack.delete(normalizedPath);
+	return excludesFile;
+};
+
+const getExcludesFileFromGitConfigAsync = async (filePath, readFile, gitDirectory, options = {}) => {
+	const {suppressErrors, includeStack = new Set(), depth = 0} = options;
+	const normalizedPath = path.resolve(filePath);
+
+	if (includeStack.has(normalizedPath)) {
+		return undefined;
+	}
+
+	if (depth >= MAX_INCLUDE_DEPTH) {
+		return undefined;
+	}
+
+	includeStack.add(normalizedPath);
+
+	let content;
+	try {
+		content = await readFile(normalizedPath, 'utf8');
+	} catch (error) {
+		includeStack.delete(normalizedPath);
+		if (shouldSkipIgnoreFileError(error, suppressErrors)) {
+			return undefined;
+		}
+
+		throw createGitConfigReadError(normalizedPath, error);
+	}
+
+	let {excludesFile, includePaths} = parseGitConfigForExcludesFile(content, normalizedPath, gitDirectory);
+
+	for (const includePath of includePaths) {
+		// eslint-disable-next-line no-await-in-loop
+		const includedExcludesFile = await getExcludesFileFromGitConfigAsync(includePath, readFile, gitDirectory, {suppressErrors, includeStack, depth: depth + 1});
+		if (includedExcludesFile !== undefined) {
+			excludesFile = includedExcludesFile;
+		}
+	}
+
+	includeStack.delete(normalizedPath);
+	return excludesFile;
+};
+
+const resolveGitDirectoryFromFile = (gitFilePath, content) => {
+	const match = content.match(/^gitdir:\s*(.+?)\s*$/i);
+	if (!match) {
+		return gitFilePath;
+	}
+
+	return path.resolve(path.dirname(gitFilePath), match[1]);
+};
+
+const getGitDirectorySync = (gitRoot, readFileSync) => {
+	if (!gitRoot) {
+		return undefined;
+	}
+
+	const gitFilePath = path.join(gitRoot, '.git');
+
+	try {
+		return resolveGitDirectoryFromFile(gitFilePath, readFileSync(gitFilePath, 'utf8'));
+	} catch {
+		return gitFilePath;
+	}
+};
+
+const getGitDirectoryAsync = async (gitRoot, readFile) => {
+	if (!gitRoot) {
+		return undefined;
+	}
+
+	const gitFilePath = path.join(gitRoot, '.git');
+
+	try {
+		return resolveGitDirectoryFromFile(gitFilePath, await readFile(gitFilePath, 'utf8'));
+	} catch {
+		return gitFilePath;
+	}
+};
+
+const getXdgConfigHome = () => process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+
+const getGitConfigPaths = () => {
+	// `globalGitignore` intentionally reads only user-level Git config.
+	// It does not try to emulate every Git config scope such as repository
+	// `.git/config` or system config. This keeps the feature boundary small
+	// and predictable while still covering the common user-level excludes file.
+	//
+	// `GIT_CONFIG_GLOBAL` replaces the user-level config entirely.
+	if ('GIT_CONFIG_GLOBAL' in process.env) {
+		const value = process.env.GIT_CONFIG_GLOBAL;
+		return value ? [value] : [];
+	}
+
+	return [
+		path.join(getXdgConfigHome(), 'git', 'config'),
+		path.join(os.homedir(), '.gitconfig'),
+	];
+};
+
+const getDefaultGlobalGitignorePath = () => path.join(getXdgConfigHome(), 'git', 'ignore');
+
+const resolveExcludesFilePath = excludesFileConfig => {
+	// An explicit empty value disables the global gitignore entirely.
+	if (excludesFileConfig?.value === '') {
+		return undefined;
+	}
+
+	// When no core.excludesFile was configured, fall back to Git's default
+	// user-level ignore file. This matches Git's behavior: the default path
+	// applies even when GIT_CONFIG_GLOBAL="" suppresses config file reading.
+	if (excludesFileConfig === undefined) {
+		return getDefaultGlobalGitignorePath();
+	}
+
+	// Relative core.excludesfile values are resolved from the config file that
+	// declared them. Do not resolve them from the repository root.
+	return resolveConfigPath(excludesFileConfig.declaringFilePath, excludesFileConfig.value);
+};
+
+const readGlobalGitignoreContent = (filePath, readMethod, suppressErrors) => {
+	try {
+		const content = readMethod(filePath, 'utf8');
+		return {filePath, content};
+	} catch (error) {
+		if (shouldSkipIgnoreFileError(error, suppressErrors)) {
+			return undefined;
+		}
+
+		throw createIgnoreFileReadError(filePath, error);
+	}
+};
+
+export const getGlobalGitignoreFile = (options = {}) => {
+	const cwd = toPath(options.cwd) ?? process.cwd();
+	const readFileSync = getReadFileSyncMethod(options.fs);
+	const gitRoot = findGitRootSync(cwd, options.fs);
+	const gitDirectory = getGitDirectorySync(gitRoot, readFileSync);
+	let excludesFileConfig;
+
+	for (const gitConfigPath of getGitConfigPaths()) {
+		const value = getExcludesFileFromGitConfigSync(gitConfigPath, readFileSync, gitDirectory, {suppressErrors: options.suppressErrors});
+		if (value !== undefined) {
+			excludesFileConfig = value;
+		}
+	}
+
+	const filePath = resolveExcludesFilePath(excludesFileConfig);
+	return filePath === undefined ? undefined : readGlobalGitignoreContent(filePath, readFileSync, options.suppressErrors);
+};
+
+export const getGlobalGitignoreFileAsync = async (options = {}) => {
+	const cwd = toPath(options.cwd) ?? process.cwd();
+	const readFile = getReadFileMethod(options.fs);
+	const gitRoot = await findGitRoot(cwd, options.fs);
+	const gitDirectory = await getGitDirectoryAsync(gitRoot, readFile);
+	const excludesFileValues = await Promise.all(getGitConfigPaths().map(gitConfigPath => getExcludesFileFromGitConfigAsync(
+		gitConfigPath,
+		readFile,
+		gitDirectory,
+		{suppressErrors: options.suppressErrors},
+	)));
+	const excludesFileConfig = excludesFileValues.findLast(value => value !== undefined);
+
+	const filePath = resolveExcludesFilePath(excludesFileConfig);
+	if (filePath === undefined) {
+		return undefined;
+	}
+
+	try {
+		const content = await readFile(filePath, 'utf8');
+		return {filePath, content};
+	} catch (error) {
+		if (shouldSkipIgnoreFileError(error, options.suppressErrors)) {
+			return undefined;
+		}
+
+		throw createIgnoreFileReadError(filePath, error);
+	}
+};
+
+export const buildGlobalMatcher = (globalIgnoreFile, cwd, rootDirectory = cwd) => {
+	// Passing the file's own directory as cwd gives base='', so patterns stay
+	// unchanged and are interpreted relative to the project root (cwd). This
+	// matches Git's behavior: patterns without slashes match at any depth,
+	// patterns starting with / are anchored to the project root.
+	const patterns = parseIgnoreFile(globalIgnoreFile, path.dirname(globalIgnoreFile.filePath));
+	return createIgnoreMatcher(patterns, cwd, rootDirectory);
+};
+
+export const buildGlobalPredicate = (globalIgnoreFile, cwd, rootDirectory = cwd) => {
+	const matcher = buildGlobalMatcher(globalIgnoreFile, cwd, rootDirectory);
+	return fileOrDirectory => matcher(fileOrDirectory).ignored;
 };
 
 const collectIgnoreFileArtifactsAsync = async (patterns, options, includeParentIgnoreFiles) => {
@@ -303,7 +834,7 @@ This avoids reading the same files twice (once for patterns, once for filtering)
 @param {string[]} patterns - Patterns to find ignore files
 @param {Object} options - Options object
 @param {boolean} [includeParentIgnoreFiles=false] - Whether to search for parent .gitignore files
-@returns {Promise<{patterns: string[], predicate: Function, usingGitRoot: boolean}>}
+@returns {Promise<{patterns: string[], matcher: Function, predicate: Function, usingGitRoot: boolean}>}
 */
 export const getIgnorePatternsAndPredicate = async (patterns, options, includeParentIgnoreFiles = false) => {
 	const {files, normalizedOptions, gitRoot} = await collectIgnoreFileArtifactsAsync(
@@ -321,7 +852,7 @@ Read ignore files and return both patterns and predicate (sync version).
 @param {string[]} patterns - Patterns to find ignore files
 @param {Object} options - Options object
 @param {boolean} [includeParentIgnoreFiles=false] - Whether to search for parent .gitignore files
-@returns {{patterns: string[], predicate: Function, usingGitRoot: boolean}}
+@returns {{patterns: string[], matcher: Function, predicate: Function, usingGitRoot: boolean}}
 */
 export const getIgnorePatternsAndPredicateSync = (patterns, options, includeParentIgnoreFiles = false) => {
 	const {files, normalizedOptions, gitRoot} = collectIgnoreFileArtifactsSync(

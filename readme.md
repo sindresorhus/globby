@@ -95,6 +95,19 @@ Gitignore patterns take priority over user patterns, matching Git's behavior. To
 
 **Performance:** Globby reads `.gitignore` files before globbing. When there are no negation patterns (like `!important.log`) and no parent `.gitignore` files are found, it passes ignore patterns to fast-glob to skip traversing ignored directories entirely, which significantly improves performance for large `node_modules` or build directories. When negation patterns or parent `.gitignore` files are present, all filtering is done after traversal to ensure correct Git-compatible behavior. For optimal performance, prefer specific `.gitignore` patterns without negations, or use `ignoreFiles: '.gitignore'` to target only the root ignore file.
 
+##### globalGitignore
+
+Type: `boolean`\
+Default: `false`
+
+Respect ignore patterns in the global gitignore file configured via `git config core.excludesfile`.
+
+Values from `[include]` and `gitdir` or `gitdir/i` `[includeIf]` sections inside those user-level config files are also respected.
+
+Patterns in the global gitignore are treated as root-level patterns, matching Git's own behavior.
+
+This option only reads the user-level Git config (`GIT_CONFIG_GLOBAL`, `$XDG_CONFIG_HOME/git/config`, and `~/.gitconfig`). When `core.excludesfile` is unset, it falls back to Git's default user-level ignore file at `$XDG_CONFIG_HOME/git/ignore` or `~/.config/git/ignore`. Repository `.git/config` and system config are intentionally not consulted. Other `includeIf` predicates such as `onbranch:` are intentionally not supported.
+
 ##### ignoreFiles
 
 Type: `string | string[]`\
@@ -134,7 +147,7 @@ Default: `undefined`
 
 Custom file system implementation (useful for testing or virtual file systems).
 
-**Note:** When using `gitignore` or `ignoreFiles`, the custom fs must also provide `readFile`/`readFileSync` methods.
+**Note:** When using `gitignore`, `ignoreFiles`, or `globalGitignore`, the custom fs must also provide `readFile`/`readFileSync` methods. With `globalGitignore`, `globby()` and `globbyStream()` also require `fs.promises.stat` or `fs.stat`, and `globbySync()` requires `fs.statSync`.
 
 ### globbySync(patterns, options?)
 
