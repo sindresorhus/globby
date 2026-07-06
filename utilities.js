@@ -375,7 +375,13 @@ export const convertPatternsForFastGlob = (patterns, usingGitRoot, normalizeDire
 			break; // Early exit on first negation
 		}
 
-		result.push(normalizeDirectoryPatternForFastGlob(pattern));
+		// `.gitignore` patterns are relative to the repo root, but an anchored pattern like
+		// `/foo` looks like an absolute path to globby's directory-to-glob expansion, which
+		// resolves it against the real filesystem. When the checkout lives under a matching
+		// `/foo/…` path, `/foo` is a real ancestor directory and expands to `/foo/**`, which
+		// ignores the whole tree. Drop the leading slash so the pattern stays anchored to the
+		// cwd instead, letting fast-glob still skip the directory during traversal.
+		result.push(normalizeDirectoryPatternForFastGlob(pattern).replace(/^\//, ''));
 	}
 
 	return hasNegations ? [] : result;

@@ -937,6 +937,34 @@ test('gitignore option with absolute option', async t => {
 	t.false(result.includes('node_modules'));
 });
 
+test('gitignore option with absolute option does not over-ignore a checkout under an anchored ancestor', async t => {
+	// An anchored pattern like `/foo` is repo-root-relative, so git only ignores `<repo>/foo`.
+	// With `absolute: true` the pattern must not be matched against the absolute candidate
+	// paths, otherwise a checkout that itself lives under a matching `/foo/…` directory is
+	// pruned entirely. Anchor the pattern to the checkout's own leading path segment to
+	// recreate that: only `<repo>/<segment>` should be ignored, never everything.
+	const repository = createTemporaryGitRepository();
+	const segment = path.resolve(repository).split(path.sep).find(Boolean);
+
+	fs.writeFileSync(path.join(repository, '.gitignore'), `/${segment}\n`, 'utf8');
+	fs.writeFileSync(path.join(repository, 'a.md'), '', 'utf8');
+	fs.writeFileSync(path.join(repository, 'b.md'), '', 'utf8');
+	fs.mkdirSync(path.join(repository, segment));
+	fs.writeFileSync(path.join(repository, segment, 'ignored.md'), '', 'utf8');
+
+	const result = await runGlobby(t, '**/*.md', {
+		cwd: repository,
+		absolute: true,
+		dot: true,
+		gitignore: true,
+	});
+
+	t.deepEqual(
+		result.map(file => path.relative(repository, file)).sort(),
+		['a.md', 'b.md'],
+	);
+});
+
 test('gitignore option and objectMode option', async t => {
 	const result = await runGlobby(t, 'fixtures/gitignore/*', {gitignore: true, objectMode: true});
 	t.is(result.length, 1);
