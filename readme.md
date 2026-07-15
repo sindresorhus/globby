@@ -93,7 +93,7 @@ When enabled, globby searches for `.gitignore` files from the current working di
 
 Gitignore patterns take priority over user patterns, matching Git's behavior. To include gitignored files, set this to `false`.
 
-**Performance:** Globby reads `.gitignore` files before globbing. When there are no negation patterns (like `!important.log`) and no parent `.gitignore` files are found, it passes ignore patterns to fast-glob to skip traversing ignored directories entirely, which significantly improves performance for large `node_modules` or build directories. When negation patterns or parent `.gitignore` files are present, all filtering is done after traversal to ensure correct Git-compatible behavior. For optimal performance, prefer specific `.gitignore` patterns without negations, or use `ignoreFiles: '.gitignore'` to target only the root ignore file.
+**Performance:** Globby reads `.gitignore` files before globbing and hands fast-glob patterns for the directories it can prove are ignored, so whole ignored directories (like large `node_modules` or build outputs) are skipped during traversal instead of being enumerated and filtered afterwards. This holds even when negation patterns (like `!important.log`) or parent `.gitignore` files are present: only the rules that provably cannot be re-included by a negation are used to skip directories, while the final filtering always matches Git's behavior. To read fewer ignore files, use `ignoreFiles: '.gitignore'` to target only the root ignore file.
 
 ##### globalGitignore
 

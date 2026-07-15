@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {promisify} from 'node:util';
 import fastGlob from 'fast-glob';
+import gitIgnore from 'ignore';
 import isPathInside from 'is-path-inside';
+import slash from 'slash';
 
 export const isNegativePattern = pattern => pattern[0] === '!';
 
@@ -343,46 +345,210 @@ export const getParentGitignorePaths = (gitRoot, cwd) => {
 		.map(directory => path.join(directory, '.gitignore'));
 };
 
+// The wildcards gitignore itself understands, when not escaped. Other characters micromatch
+// treats as syntax ((){}, extglobs, alternation) are literal in gitignore.
+const GITIGNORE_WILDCARDS = /(?<!\\)[*?[]/u;
+
+const hasGitignoreWildcards = value => GITIGNORE_WILDCARDS.test(value);
+
+// Characters micromatch reads as syntax where gitignore does not. A glob rule containing them
+// cannot be translated, and backslash escapes inside a glob cannot be safely carried through
+// the path handling below, so such rules are left to the predicate.
+const MICROMATCH_ONLY_SYNTAX = /[(){}|\\]/u;
+
+// In gitignore, `\x` means the literal character x.
+const unescapeGitignorePattern = value => value.replaceAll(/\\(.)/gu, '$1');
+
+// Turn gitignore-literal text into fast-glob-literal text, so characters like `+(` cannot be
+// misread as micromatch syntax.
+const toLiteralPattern = value => fastGlob.escapePath(unescapeGitignorePattern(value));
+
+const finalSegment = value => value.replace(/\/+$/u, '').split('/').pop();
+
+const isInsideCwd = relativePath => relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+
 /**
-Convert ignore patterns to fast-glob compatible format.
-Returns empty array if patterns should be handled by predicate only.
+Resolve a pattern anchored at the directory of its ignore file into a cwd-relative one.
 
-@param {string[]} patterns - Ignore patterns from .gitignore files
-@param {boolean} usingGitRoot - Whether patterns are relative to git root
-@param {Function} normalizeDirectoryPatternForFastGlob - Function to normalize directory patterns
-@returns {string[]} Patterns safe to pass to fast-glob, or empty array
+@param {string} directory - Directory of the ignore file that declared the rule.
+@param {string} body - The rule body, relative to that directory.
+@param {string} cwd - Directory the glob runs from.
+@returns {string|undefined} The cwd-relative pattern, or undefined when it targets something outside the cwd.
 */
-export const convertPatternsForFastGlob = (patterns, usingGitRoot, normalizeDirectoryPatternForFastGlob) => {
-	// Determine which patterns are safe to pass to fast-glob
-	// If there are negation patterns, we can't pass file patterns to fast-glob
-	// because fast-glob doesn't understand negations and would filter out files
-	// that should be re-included by negation patterns.
-	// If we're using git root, patterns are relative to git root not cwd,
-	// so we can't pass them to fast-glob which expects cwd-relative patterns.
-	// We only pass patterns to fast-glob if there are NO negations AND we're not using git root.
+const anchorToCwd = (directory, body, cwd) => {
+	const relativePath = slash(path.relative(cwd, path.join(directory, body)));
+	return isInsideCwd(relativePath) ? relativePath : undefined;
+};
 
-	if (usingGitRoot) {
-		return []; // Patterns are relative to git root, not cwd
-	}
-
-	const result = [];
-	let hasNegations = false;
-
-	// Single pass to check for negations and collect positive patterns
-	for (const pattern of patterns) {
-		if (isNegativePattern(pattern)) {
-			hasNegations = true;
-			break; // Early exit on first negation
+// Compare names with the `ignore` package instead of guessing from the syntax, since it is the
+// same engine the predicate uses for the real decision.
+const createNameComparer = () => {
+	const nameMatchers = new Map();
+	const matchesName = (pattern, name) => {
+		let nameMatcher = nameMatchers.get(pattern);
+		if (!nameMatcher) {
+			nameMatcher = gitIgnore().add([pattern]);
+			nameMatchers.set(pattern, nameMatcher);
 		}
 
-		// `.gitignore` patterns are relative to the repo root, but an anchored pattern like
-		// `/foo` looks like an absolute path to globby's directory-to-glob expansion, which
-		// resolves it against the real filesystem. When the checkout lives under a matching
-		// `/foo/…` path, `/foo` is a real ancestor directory and expands to `/foo/**`, which
-		// ignores the whole tree. Drop the leading slash so the pattern stays anchored to the
-		// cwd instead, letting fast-glob still skip the directory during traversal.
-		result.push(normalizeDirectoryPatternForFastGlob(pattern).replace(/^\//, ''));
+		return nameMatcher.ignores(name);
+	};
+
+	// A negation can only re-include the excluded path itself; nothing below it can be re-included once the directory is excluded. Two globs cannot be compared this way, so treat them as a possible match.
+	return (pattern, name) => {
+		if (hasGitignoreWildcards(pattern) && hasGitignoreWildcards(name)) {
+			return true;
+		}
+
+		return hasGitignoreWildcards(name) ? matchesName(name, pattern) : matchesName(pattern, name);
+	};
+};
+
+const getNegationFinalSegments = rules => rules
+	.filter(rule => isNegativePattern(rule.pattern))
+	.map(rule => finalSegment(rule.pattern.slice(1)))
+	.filter(Boolean);
+
+/**
+Check whether any negation in the given rules could re-include a path with one of the given names.
+
+Used after the pruned ignore-file search: a negation found by that search can re-include a directory the prune patterns skipped, which means ignore files inside it were never discovered.
+
+@param {Array<{pattern: string, directory: string}>} rules - Raw ignore-file lines and the directory of the ignore file that declared them.
+@param {string[]} names - The guard names returned by `buildPrunePatternsAndGuards`.
+@returns {boolean} Whether a negation could name one of them.
+*/
+export const negationsCouldRescue = (rules, names) => {
+	if (names.length === 0) {
+		return false;
 	}
 
-	return hasNegations ? [] : result;
+	const couldNameTheSamePath = createNameComparer();
+	return getNegationFinalSegments(rules).some(negation => names.some(name => couldNameTheSamePath(name, negation)));
 };
+
+// Compute the prune pattern for a single rule, or undefined when the rule cannot be skipped safely. The returned object also carries the guard name (if any) whose skipping relies on the rule set being complete.
+const getRulePrune = ({pattern, directory}, {cwd, matcher, hasNegations, canSkipAtAnyDepth, canMatchIgnoreFile, gitignoreOnlySearch}) => {
+	if (isNegativePattern(pattern)) {
+		return undefined;
+	}
+
+	const isDirectoryPattern = pattern.endsWith('/');
+	const clean = pattern.replace(/\/+$/u, '');
+	if (!clean) {
+		return undefined;
+	}
+
+	// A leading `**/` is gitignore's explicit spelling of "match at any depth"; for a single trailing segment it is identical to the bare name (`**/foo` == `foo`). Drop it so the rule takes the any-depth branch below instead of being treated as an anchored glob.
+	const body = clean.startsWith('**/') && !clean.slice(3).includes('/')
+		? clean.slice(3)
+		: clean;
+
+	if (canMatchIgnoreFile(finalSegment(body))) {
+		// Contents-only rules such as `foo/*` still allow traversal to `foo/.gitignore`, so the ignore-file search must read it before pruning foo's contents.
+		return undefined;
+	}
+
+	const isGlob = hasGitignoreWildcards(body);
+	if (isGlob && MICROMATCH_ONLY_SYNTAX.test(body)) {
+		return undefined;
+	}
+
+	// The leading slash stops the normalizer from prefixing `**/`; the passed value already encodes the depth, and an extra `**/` would un-anchor an anchored rule.
+	const toFastGlob = value =>
+		normalizeDirectoryPatternForFastGlob(`/${value}${isDirectoryPattern ? '/' : ''}`).replace(/^\//u, '');
+
+	// No separator: matches at any depth below the ignore file that declared it.
+	if (!body.includes('/') && canSkipAtAnyDepth(body)) {
+		const relativeDirectory = slash(path.relative(cwd, directory));
+		const prefix = isInsideCwd(relativeDirectory) ? `${fastGlob.escapePath(relativeDirectory)}/` : '';
+		return {pattern: toFastGlob(`${prefix}**/${isGlob ? body : toLiteralPattern(body)}`), guardName: body};
+	}
+
+	// Otherwise fall back to the single occurrence beside the ignore file, which names a concrete path that the matcher can verify directly.
+	const anchoredBody = body.replace(/^\//u, '');
+	const target = anchorToCwd(directory, isGlob ? anchoredBody : unescapeGitignorePattern(anchoredBody), cwd);
+	if (target === undefined) {
+		return undefined;
+	}
+
+	if (isGlob) {
+		// A glob does not name a concrete path, so the matcher cannot confirm it is ignored.
+		return hasNegations
+			? undefined
+			: {pattern: toFastGlob(target), guardName: finalSegment(target)};
+	}
+
+	if (!matcher(path.resolve(cwd, target) + path.sep).ignored) {
+		return undefined;
+	}
+
+	// A direct child of the cwd can only be re-included by a rule at or above the cwd, and in a pure gitignore search those rules are all known already. A deeper target has intermediate directories whose ignore files may not have been read yet.
+	const needsGuard = !gitignoreOnlySearch || target.includes('/');
+	return {
+		pattern: toFastGlob(fastGlob.escapePath(target)),
+		guardName: needsGuard ? finalSegment(target) : undefined,
+	};
+};
+
+/**
+Build the ignore patterns handed to fast-glob so it can skip ignored directories while traversing.
+
+The authoritative filter is always the predicate, so these patterns only ever need to be safe:
+skipping something the predicate would have kept loses files, while skipping less than possible
+merely costs time. Two facts from the gitignore spec make aggressive skipping safe anyway:
+
+- "It is not possible to re-include a file if a parent directory of that file is excluded."
+  So a directory that is still ignored once every negation has been applied can be skipped whole.
+- A pattern with no separator matches at any depth below its own ignore file, and one with a
+  separator is anchored to that file's directory. Working from the raw rules - rather than from
+  patterns already rebased onto some other directory - keeps that distinction intact, which is
+  what lets this work from a subdirectory of the repository too.
+
+The returned guard names are the directory names whose skipping relies on the given rules being
+complete. A caller working from a partial rule set (the ignore-file search) must watch for later
+negations that could name one of them; see `negationsCouldRescue`.
+
+@param {Array<{pattern: string, directory: string}>} rules - Raw ignore-file lines and the directory of the ignore file that declared them.
+@param {Function} matcher - The authoritative gitignore matcher.
+@param {string} cwd - Directory the glob runs from.
+@param {Object} [options] - Options.
+@param {boolean} [options.gitignoreOnlySearch] - Whether the rule set can only grow through nested `.gitignore` files.
+@param {boolean} [options.searchesForGitignoreFiles] - Whether the search includes `.gitignore` files.
+@returns {{patterns: string[], guardNames: string[]}} Patterns safe to pass to fast-glob, and the names their safety depends on.
+*/
+export const buildPrunePatternsAndGuards = (rules, matcher, cwd, {gitignoreOnlySearch = false, searchesForGitignoreFiles = false} = {}) => {
+	if (!matcher || !cwd || !rules || rules.length === 0) {
+		return {patterns: [], guardNames: []};
+	}
+
+	const negationNames = getNegationFinalSegments(rules);
+	const couldNameTheSamePath = createNameComparer();
+	const context = {
+		cwd,
+		matcher,
+		hasNegations: negationNames.length > 0,
+		canSkipAtAnyDepth: pattern => !negationNames.some(name => couldNameTheSamePath(pattern, name)),
+		canMatchIgnoreFile: pattern => searchesForGitignoreFiles && couldNameTheSamePath(pattern, '.gitignore'),
+		gitignoreOnlySearch,
+	};
+
+	const patterns = [];
+	const guardNames = [];
+
+	for (const rule of rules) {
+		const prune = getRulePrune(rule, context);
+		if (!prune) {
+			continue;
+		}
+
+		patterns.push(prune.pattern);
+		if (prune.guardName !== undefined) {
+			guardNames.push(prune.guardName);
+		}
+	}
+
+	return {patterns, guardNames};
+};
+
+export const convertPatternsForFastGlob = (rules, matcher, cwd) => buildPrunePatternsAndGuards(rules, matcher, cwd).patterns;

@@ -10,6 +10,7 @@ import {
 	isGitIgnored,
 	isGitIgnoredSync,
 	getIgnorePatternsAndPredicate,
+	getIgnorePatternsAndPredicateSync,
 	GITIGNORE_FILES_PATTERN,
 } from '../ignore.js';
 import {
@@ -312,9 +313,10 @@ test('custom ignore files', async t => {
 	);
 });
 
-test.serial('bad permissions - ignore option', async t => {
-	const cwd = path.join(PROJECT_ROOT, 'fixtures/bad-permissions');
+test('bad permissions - ignore option', async t => {
+	const cwd = temporaryDirectory();
 	const noReadDirectory = path.join(cwd, 'noread');
+	fs.mkdirSync(noReadDirectory);
 
 	t.teardown(async () => {
 		await chmod(noReadDirectory, 0o755);
@@ -330,9 +332,10 @@ test.serial('bad permissions - ignore option', async t => {
 	));
 });
 
-test.serial('bad permissions - suppressErrors option', async t => {
-	const cwd = path.join(PROJECT_ROOT, 'fixtures/bad-permissions');
+test('bad permissions - suppressErrors option', async t => {
+	const cwd = temporaryDirectory();
 	const noReadDirectory = path.join(cwd, 'noread');
+	fs.mkdirSync(noReadDirectory);
 
 	t.teardown(async () => {
 		await chmod(noReadDirectory, 0o755);
@@ -727,6 +730,96 @@ test('isIgnoredByIgnoreFiles - option: ignore', async t => {
 
 	// Should not find any .eslintignore files
 	t.is(typeof isIgnored('test.js'), 'boolean');
+});
+
+test('isIgnoredByIgnoreFiles - option: ignore excludes known files', async t => {
+	const cwd = temporaryDirectory();
+	fs.writeFileSync(path.join(cwd, '.gitignore'), 'ignored.js\n');
+
+	const result = await runIsIgnoredByIgnoreFiles(
+		t,
+		'**/.gitignore',
+		{cwd, ignore: '**/.gitignore'},
+		isIgnored => isIgnored('ignored.js'),
+	);
+
+	t.false(result);
+});
+
+test('isIgnoredByIgnoreFiles - negative search pattern excludes known files', async t => {
+	const cwd = temporaryDirectory();
+	fs.writeFileSync(path.join(cwd, '.gitignore'), 'ignored.js\n');
+
+	const result = await runIsIgnoredByIgnoreFiles(
+		t,
+		['**/.gitignore', '!**/.gitignore'],
+		{cwd},
+		isIgnored => isIgnored('ignored.js'),
+	);
+
+	t.false(result);
+});
+
+test('isIgnoredByIgnoreFiles - mixed search exclusions only remove matching known files', async t => {
+	const cwd = temporaryDirectory();
+	fs.writeFileSync(path.join(cwd, '.gitignore'), 'ignored-by-gitignore.js\n');
+	fs.writeFileSync(path.join(cwd, '.customignore'), 'ignored-by-customignore.js\n');
+
+	const result = await runIsIgnoredByIgnoreFiles(
+		t,
+		[GITIGNORE_FILES_PATTERN, '**/.customignore'],
+		{cwd, ignore: '**/.gitignore'},
+		isIgnored => [
+			isIgnored('ignored-by-gitignore.js'),
+			isIgnored('ignored-by-customignore.js'),
+		],
+	);
+
+	t.deepEqual(result, [false, true]);
+});
+
+test('parent ignore files survive unrelated search exclusions', async t => {
+	const repository = createTemporaryGitRepository();
+	const cwd = path.join(repository, 'child');
+	const ignoredFile = path.join(cwd, 'ignored.js');
+	fs.mkdirSync(cwd);
+	fs.writeFileSync(path.join(repository, '.gitignore'), 'ignored.js\n');
+	fs.writeFileSync(ignoredFile, '');
+
+	for (const [patterns, options] of [
+		[GITIGNORE_FILES_PATTERN, {cwd, ignore: '**/unrelated/**'}],
+		[[GITIGNORE_FILES_PATTERN, '!**/unrelated/**'], {cwd}],
+		[GITIGNORE_FILES_PATTERN, {cwd, ignore: '**/unrelated/**', fs: createContextAwareFs()}],
+	]) {
+		// eslint-disable-next-line no-await-in-loop
+		const asyncResult = await getIgnorePatternsAndPredicate(patterns, options, true);
+		const syncResult = getIgnorePatternsAndPredicateSync(patterns, options, true);
+		t.true(asyncResult.predicate(ignoredFile));
+		t.true(syncResult.predicate(ignoredFile));
+	}
+});
+
+test('relative exclusions apply to known parent ignore files', async t => {
+	const repository = createTemporaryGitRepository();
+	const cwd = path.join(repository, 'child');
+	const ignoredFile = path.join(cwd, 'child.js');
+	fs.mkdirSync(cwd);
+	fs.writeFileSync(path.join(repository, '.gitignore'), '*.js\n');
+	fs.writeFileSync(path.join(cwd, '.gitignore'), '!child.js\n');
+	fs.writeFileSync(ignoredFile, '');
+
+	for (const [patterns, options] of [
+		[GITIGNORE_FILES_PATTERN, {cwd, ignore: '.gitignore'}],
+		[[GITIGNORE_FILES_PATTERN, '!.gitignore'], {cwd}],
+		[GITIGNORE_FILES_PATTERN, {cwd, ignore: '.gitignore', fs: createContextAwareFs()}],
+		[[GITIGNORE_FILES_PATTERN, '!.gitignore'], {cwd, fs: createContextAwareFs()}],
+	]) {
+		// eslint-disable-next-line no-await-in-loop
+		const asyncResult = await getIgnorePatternsAndPredicate(patterns, options, true);
+		const syncResult = getIgnorePatternsAndPredicateSync(patterns, options, true);
+		t.true(asyncResult.predicate(ignoredFile));
+		t.true(syncResult.predicate(ignoredFile));
+	}
 });
 
 test('isIgnoredByIgnoreFiles - multiple options', async t => {

@@ -298,27 +298,72 @@ test('findGitRoot respects custom filesystem implementations', async t => {
 	t.is(findGitRootSync(virtualProjectRoot, virtualFs), virtualProjectRoot);
 });
 
-// Test for pattern conversion optimization
-test('convertPatternsForFastGlob optimizes with single pass', t => {
-	const normalizer = pattern => `normalized:${pattern}`;
+// Test for the patterns handed to fast-glob so it can skip ignored directories.
+test('convertPatternsForFastGlob builds prune patterns from ignore rules', t => {
+	const repository = path.resolve('/repo');
+	const ignored = () => ({ignored: true, unignored: false});
+	const convert = (rules, cwd = repository) => convertPatternsForFastGlob(rules, ignored, cwd);
 
-	// Test early exit on first negation
-	const patterns1 = ['file1.js', 'file2.js', '!important.js', 'file3.js'];
-	const result1 = convertPatternsForFastGlob(patterns1, false, normalizer);
-	t.deepEqual(result1, []); // Should return empty on negation
+	// No separator: the rule matches at any depth below its own ignore file.
+	t.deepEqual(convert([{pattern: 'node_modules/', directory: repository}]), ['**/node_modules/**']);
 
-	// Test with no negations
-	const patterns2 = ['file1.js', 'file2.js', 'file3.js'];
-	const result2 = convertPatternsForFastGlob(patterns2, false, normalizer);
-	t.deepEqual(result2, [
-		'normalized:file1.js',
-		'normalized:file2.js',
-		'normalized:file3.js',
-	]);
+	// A separator anchors the rule to the directory of its ignore file.
+	t.deepEqual(convert([{pattern: '/build/', directory: repository}]), ['build/**']);
 
-	// Test with git root
-	const result3 = convertPatternsForFastGlob(patterns2, true, normalizer);
-	t.deepEqual(result3, []); // Should return empty when using git root
+	// A rule from a parent ignore file still prunes when the glob runs from a subdirectory.
+	t.deepEqual(
+		convert([{pattern: 'node_modules/', directory: repository}], path.resolve('/repo/packages/app')),
+		['**/node_modules/**'],
+	);
+
+	// An anchored rule pointing outside the cwd has nothing to prune.
+	t.deepEqual(
+		convert([{pattern: '/build/', directory: repository}], path.resolve('/repo/packages/app')),
+		[],
+	);
+
+	// A negation that could name the directory rules out skipping it at every depth, so only the
+	// occurrence beside the ignore file (which the matcher can verify) is pruned.
+	t.deepEqual(
+		convert([
+			{pattern: 'mount/', directory: repository},
+			{pattern: '!sub/mount/', directory: repository},
+		]),
+		['mount/**'],
+	);
+
+	// A negation that cannot name the directory leaves the rule prunable at any depth.
+	t.deepEqual(
+		convert([
+			{pattern: 'mount/', directory: repository},
+			{pattern: '!keep.log', directory: repository},
+		]),
+		['**/mount/**'],
+	);
+
+	// Micromatch-special characters in a literal name are escaped so they cannot be misread as syntax.
+	t.deepEqual(convert([{pattern: '/a+(b)/', directory: repository}]), [String.raw`a\+\(b\)/**`]);
+
+	// A glob rule containing syntax gitignore treats literally cannot be translated, so nothing is pruned.
+	t.deepEqual(convert([{pattern: '/gen*(x)/', directory: repository}]), []);
+
+	// `?` and `[...]` are gitignore wildcards fast-glob also understands, so they translate like `*`.
+	t.deepEqual(convert([{pattern: 'bui?d/', directory: repository}]), ['**/bui?d/**']);
+	t.deepEqual(convert([{pattern: '[bc]ache/', directory: repository}]), ['**/[bc]ache/**']);
+
+	// An explicit `**/` prefix is equivalent to a bare directory name and prunes the same way,
+	// including at any depth when an unrelated negation is present (a plain glob could not).
+	t.deepEqual(convert([{pattern: '**/generated/', directory: repository}]), ['**/generated/**']);
+	t.deepEqual(
+		convert([
+			{pattern: '**/build/', directory: repository},
+			{pattern: '!keep.log', directory: repository},
+		]),
+		['**/build/**'],
+	);
+
+	// Without a matcher nothing can be verified, so nothing is pruned.
+	t.deepEqual(convertPatternsForFastGlob([{pattern: 'a/', directory: repository}], undefined, repository), []);
 });
 
 // Test for no stack overflow with deep directories
