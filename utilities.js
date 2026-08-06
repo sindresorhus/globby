@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {promisify} from 'node:util';
 import fastGlob from 'fast-glob';
-import gitIgnore from 'ignore';
+import gitIgnore, {isPathValid} from 'ignore';
 import isPathInside from 'is-path-inside';
 import slash from 'slash';
 
@@ -359,11 +359,17 @@ const MICROMATCH_ONLY_SYNTAX = /[(){}|\\]/u;
 // In gitignore, `\x` means the literal character x.
 const unescapeGitignorePattern = value => value.replaceAll(/\\(.)/gu, '$1');
 
+// Normalize ordinary escaped characters for the ignore package, while preserving escapes that it handles as literals. An escaped question mark is widened to a wildcard because the ignore package does not match it literally, and a possible match is safer here than pruning too much.
+const normalizeGitignorePatternForIgnore = value => value.replaceAll(/\\(.)/gu, (match, character) => '*[]\\'.includes(character) ? match : character);
+
 // Turn gitignore-literal text into fast-glob-literal text, so characters like `+(` cannot be
 // misread as micromatch syntax.
 const toLiteralPattern = value => fastGlob.escapePath(unescapeGitignorePattern(value));
 
 const finalSegment = value => value.replace(/\/+$/u, '').split('/').pop();
+
+// A fragment of rule text is not a rule on its own: `#name` would open a comment and `!name` a negation, both of which stop naming anything. Escape the leading character so the fragment keeps naming what it did inside the rule it came from.
+const toStandaloneRule = value => value.replace(/^([#!])/u, String.raw`\$1`);
 
 const isInsideCwd = relativePath => relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
 
@@ -385,13 +391,20 @@ const anchorToCwd = (directory, body, cwd) => {
 const createNameComparer = () => {
 	const nameMatchers = new Map();
 	const matchesName = (pattern, name) => {
-		let nameMatcher = nameMatchers.get(pattern);
-		if (!nameMatcher) {
-			nameMatcher = gitIgnore().add([pattern]);
-			nameMatchers.set(pattern, nameMatcher);
+		// The name is rule text, not a path: in gitignore `\#foo` names the file `#foo`. `Ignore#ignores()` only accepts a `path.relative()`d string and throws otherwise, so unescape first and treat whatever it still rejects (`.`, `..`, anything anchored) as a possible match.
+		const namePath = unescapeGitignorePattern(name);
+		if (!isPathValid(namePath)) {
+			return true;
 		}
 
-		return nameMatcher.ignores(name);
+		const normalizedPattern = normalizeGitignorePatternForIgnore(pattern);
+		let nameMatcher = nameMatchers.get(normalizedPattern);
+		if (!nameMatcher) {
+			nameMatcher = gitIgnore().add([toStandaloneRule(normalizedPattern)]);
+			nameMatchers.set(normalizedPattern, nameMatcher);
+		}
+
+		return nameMatcher.ignores(namePath);
 	};
 
 	// A negation can only re-include the excluded path itself; nothing below it can be re-included once the directory is excluded. Two globs cannot be compared this way, so treat them as a possible match.
@@ -472,11 +485,14 @@ const getRulePrune = ({pattern, directory}, {cwd, matcher, hasNegations, canSkip
 		return undefined;
 	}
 
+	// The guard name is compared against negations as rule text, so it has to keep the escapes the rule was written with; the target has already lost them.
+	const guardName = finalSegment(anchoredBody);
+
 	if (isGlob) {
 		// A glob does not name a concrete path, so the matcher cannot confirm it is ignored.
 		return hasNegations
 			? undefined
-			: {pattern: toFastGlob(target), guardName: finalSegment(target)};
+			: {pattern: toFastGlob(target), guardName};
 	}
 
 	if (!matcher(path.resolve(cwd, target) + path.sep).ignored) {
@@ -487,7 +503,7 @@ const getRulePrune = ({pattern, directory}, {cwd, matcher, hasNegations, canSkip
 	const needsGuard = !gitignoreOnlySearch || target.includes('/');
 	return {
 		pattern: toFastGlob(fastGlob.escapePath(target)),
-		guardName: needsGuard ? finalSegment(target) : undefined,
+		guardName: needsGuard ? guardName : undefined,
 	};
 };
 

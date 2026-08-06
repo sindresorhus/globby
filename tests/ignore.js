@@ -361,15 +361,23 @@ test('bad permissions - suppressErrors option', async t => {
 	});
 });
 
-test.serial('unreadable .gitignore surfaces errors without suppressErrors', async t => {
-	const cwd = path.join(PROJECT_ROOT, 'fixtures/unreadable-gitignore');
+// The fixture lives outside the project so concurrently running test files never glob over it.
+const createUnreadableGitignore = t => {
+	const cwd = createTemporaryGitRepository();
 	const gitignorePath = path.join(cwd, '.gitignore');
+	fs.writeFileSync(gitignorePath, 'ignored.js\n');
 
-	t.teardown(async () => {
-		await chmod(gitignorePath, 0o644);
+	t.teardown(() => {
+		fs.chmodSync(gitignorePath, 0o644);
 	});
 
-	await chmod(gitignorePath, 0o000);
+	fs.chmodSync(gitignorePath, 0o000);
+
+	return cwd;
+};
+
+test('unreadable .gitignore surfaces errors without suppressErrors', async t => {
+	const cwd = createUnreadableGitignore(t);
 
 	await t.throwsAsync(
 		() => isGitIgnored({cwd}),
@@ -390,15 +398,8 @@ test.serial('unreadable .gitignore surfaces errors without suppressErrors', asyn
 	);
 });
 
-test.serial('unreadable .gitignore honours suppressErrors option', async t => {
-	const cwd = path.join(PROJECT_ROOT, 'fixtures/unreadable-gitignore');
-	const gitignorePath = path.join(cwd, '.gitignore');
-
-	t.teardown(async () => {
-		await chmod(gitignorePath, 0o644);
-	});
-
-	await chmod(gitignorePath, 0o000);
+test('unreadable .gitignore honours suppressErrors option', async t => {
+	const cwd = createUnreadableGitignore(t);
 
 	let asyncPredicate;
 	await t.notThrowsAsync(async () => {

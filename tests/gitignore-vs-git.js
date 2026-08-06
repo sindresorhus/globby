@@ -448,6 +448,87 @@ test('backslash-escaped leading ! is a literal rule, not a negation', matchesGit
 	files: ['app.js', '!secret/data.js', 'safe/keep.js'],
 });
 
+// Deciding whether a directory may be skipped compares a rule against the negations by name,
+// and both sides are rule text rather than paths. The escapes have to be resolved before the
+// comparison: `\*build` and `*build` name the same directory, and missing that would skip a
+// directory the negation re-includes.
+test('escaped-name rule re-included by an escaped-name negation', matchesGit, {
+	gitignore: '\\*build/\n!\\*build\n',
+	files: ['app.js', '*build/keep.js'],
+});
+
+// Escaping an ordinary character still names the unescaped directory. The matcher used for the pruning safety check must normalize the rule as well as the compared name, or it can skip the directory that the negation re-includes.
+test('escaped ordinary character re-included by an escaped ordinary character negation', matchesGit, {
+	gitignore: '\\c/\n!\\c\n',
+	files: ['app.js', 'c/keep.js'],
+});
+
+// The ignore package does not match an escaped question mark literally, so the comparer must treat it as a possible match rather than pruning a directory Git re-includes.
+test('escaped question mark re-included by an escaped question mark negation', matchesGit, {
+	gitignore: '\\?/\n!\\?\n',
+	files: ['app.js', '?/keep.js'],
+});
+
+// `\#name` is the documented way to ignore a name that starts with `#`, since a bare `#` opens
+// a comment. The escape must not leak into the comparison against the `*.keep` negation.
+test('escaped # rule beside a wildcard negation', matchesGit, {
+	gitignore: '\\#hashname\n!*.keep\n',
+	files: ['app.js', '#hashname', 'a.keep'],
+});
+
+// Backslash junk like this appears in real gitignore files (for example microsoft/data-formulator).
+// The name is lowercase on purpose: git's own wildmatch lowercases the text but not the character
+// behind a backslash, so on a case-insensitive checkout (`core.ignorecase`, the macOS default) an
+// escaped uppercase letter never matches anything and git would be the odd one out.
+test('backslash junk rule beside a wildcard negation', matchesGit, {
+	gitignore: '\\.\\nul\n!*.keep\n',
+	files: ['app.js', '.nul', 'a.keep'],
+});
+
+// The escaped rule ignores the directory, the glob negation names it back, and only then is the
+// gitignore inside it reachable.
+test('nested gitignore inside a directory re-included past an escaped rule', matchesGit, {
+	gitignore: {
+		'.gitignore': '\\#build/\n!*build\n',
+		'#build/.gitignore': 'out.js\n',
+	},
+	files: ['app.js', '#build/keep.js', '#build/out.js'],
+});
+
+// The guard names carried out of the pruned ignore-file search are rule text too, so a negation
+// in a gitignore found by that search is compared against them the same way.
+test('deeper negation re-includes a directory ignored by an escaped rule', matchesGit, {
+	gitignore: {
+		'.gitignore': '\\#build\n',
+		'sub/.gitignore': '!*build\n',
+	},
+	files: ['app.js', '#build/a.txt', 'sub/keep.js', 'sub/#build/b.txt'],
+});
+
+// A `#` only opens a comment at the start of a line, so `sub/#build` needs no escape to name a
+// directory. Comparing that name against the negation feeds it to the ignore engine on its own,
+// where the leading `#` would turn the whole name into a comment and stop it naming anything.
+test('directory whose name starts with # re-included by a deeper negation', matchesGit, {
+	gitignore: {
+		'.gitignore': 'sub/#build\n',
+		'sub/.gitignore': '!#build\n',
+		'sub/#build/.gitignore': 'out.js\n',
+	},
+	files: ['app.js', 'sub/#build/keep.js', 'sub/#build/out.js'],
+});
+
+// The negation is compared against the name of the directory the rule anchors to, and that name
+// is rule text: dropping the escape would leave `[abc]` behind, which names one of `a`, `b`, `c`
+// rather than the directory literally called `[abc]`.
+test('escaped character class rule re-included by a deeper negation', matchesGit, {
+	gitignore: {
+		'.gitignore': 'sub/\\[abc]/\n',
+		'sub/.gitignore': '!\\[abc]\n',
+		'sub/[abc]/.gitignore': 'out.js\n',
+	},
+	files: ['app.js', 'sub/[abc]/keep.js', 'sub/[abc]/out.js'],
+});
+
 // A byte order mark and CRLF line endings, common in files authored on Windows, are read the
 // way git reads them.
 test('gitignore with a leading byte order mark', matchesGit, {
