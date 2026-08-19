@@ -67,6 +67,7 @@
 		"fast-glob": "^3.3.3",
 		"ignore": "^7.0.5",
 		"is-path-inside": "^4.0.0",
+		"micromatch": "^4.0.8",
 		"slash": "^5.1.0",
 		"unicorn-magic": "^0.4.0"
 	},

@@ -21,6 +21,7 @@ import {
 	normalizeNegativePattern,
 	adjustIgnorePatternsForParentDirectories,
 	convertPatternsForFastGlob,
+	convertIgnorePatternsForIgnoreFileSearch,
 	findGitRoot,
 	findGitRootSync,
 } from './utilities.js';
@@ -245,6 +246,12 @@ const buildIgnoreFilterResult = ({options, cwd, ignoreResult: {rules, matcher}, 
 	};
 };
 
+// The ignore files are searched for with the same options as the glob itself, except for `ignore`, which excludes paths from the results and must not decide which ignore files are read. The patterns that cannot hide one are still passed on, so the search keeps skipping the directories they name.
+const getIgnoreFileSearchOptions = (options, searchPatterns) => ({
+	...options,
+	ignore: convertIgnorePatternsForIgnoreFileSearch(options.ignore, searchPatterns),
+});
+
 /**
 Apply ignore files to options and return the filter predicate.
 
@@ -272,7 +279,7 @@ const applyIgnoreFilesAndGetFilter = async options => {
 	// Enable parent .gitignore search when using gitignore option
 	const includeParentIgnoreFiles = options.gitignore === true;
 	const ignoreResult = ignoreFilesPatterns.length > 0
-		? await getIgnorePatternsAndPredicate(ignoreFilesPatterns, options, includeParentIgnoreFiles)
+		? await getIgnorePatternsAndPredicate(ignoreFilesPatterns, getIgnoreFileSearchOptions(options, ignoreFilesPatterns), includeParentIgnoreFiles)
 		: {rules: [], matcher: false};
 
 	const globalGitRoot = globalIgnoreFile ? await findGitRoot(cwd, options.fs) : undefined;
@@ -309,7 +316,7 @@ const applyIgnoreFilesAndGetFilterSync = options => {
 	// Enable parent .gitignore search when using gitignore option
 	const includeParentIgnoreFiles = options.gitignore === true;
 	const ignoreResult = ignoreFilesPatterns.length > 0
-		? getIgnorePatternsAndPredicateSync(ignoreFilesPatterns, options, includeParentIgnoreFiles)
+		? getIgnorePatternsAndPredicateSync(ignoreFilesPatterns, getIgnoreFileSearchOptions(options, ignoreFilesPatterns), includeParentIgnoreFiles)
 		: {rules: [], matcher: false};
 
 	const globalGitRoot = globalIgnoreFile ? findGitRootSync(cwd, options.fs) : undefined;

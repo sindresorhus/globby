@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {temporaryDirectory} from 'tempy';
+import {globby, globbySync, globbyStream} from '../index.js';
 
 export const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -162,4 +163,37 @@ export const createGlobalGitignoreConfig = content => {
 	fs.writeFileSync(globalIgnorePath, content, 'utf8');
 	fs.writeFileSync(configFile, `[core]\n\texcludesfile = ${globalIgnorePath}\n`, 'utf8');
 	return {globalIgnorePath, configFile};
+};
+
+const stabilizeResult = result => result
+	.map(fastGlobResult => {
+		// In `objectMode`, `fastGlobResult.dirent` contains a function that makes `t.deepEqual` assertion fail.
+		// `fastGlobResult.stats` contains different `atime`.
+		if (typeof fastGlobResult === 'object') {
+			const {dirent, stats, ...rest} = fastGlobResult;
+			return rest;
+		}
+
+		return fastGlobResult;
+	})
+	.sort((a, b) => (a.path ?? a).localeCompare(b.path ?? b));
+
+export const runGlobby = async (t, patterns, options) => {
+	const syncResult = globbySync(patterns, options);
+	const promiseResult = await globby(patterns, options);
+	const streamResult = await globbyStream(patterns, options).toArray();
+
+	const result = stabilizeResult(promiseResult);
+	t.deepEqual(
+		stabilizeResult(syncResult),
+		result,
+		'globbySync() result is different than globby()',
+	);
+	t.deepEqual(
+		stabilizeResult(streamResult),
+		result,
+		'globbyStream() result is different than globby()',
+	);
+
+	return promiseResult;
 };

@@ -4,6 +4,7 @@ import {promisify} from 'node:util';
 import fastGlob from 'fast-glob';
 import gitIgnore, {isPathValid} from 'ignore';
 import isPathInside from 'is-path-inside';
+import micromatch from 'micromatch';
 import slash from 'slash';
 
 export const isNegativePattern = pattern => pattern[0] === '!';
@@ -438,6 +439,64 @@ export const negationsCouldRescue = (rules, names) => {
 
 	const couldNameTheSamePath = createNameComparer();
 	return getNegationFinalSegments(rules).some(negation => names.some(name => couldNameTheSamePath(name, negation)));
+};
+
+// Brace groups are expanded before the patterns are matched, so every alternative has to be checked on its own: `{**/.gitignore,dist}` names an ignore file even though the text it ends in, `dist}`, names nothing. `generateTasks()` is the only public fast-glob API that hands the expanded alternatives back as text, and it also leaves escaped braces alone.
+const expandBraceGroups = pattern => {
+	// Skipping the call also keeps the patterns `generateTasks()` rejects, such as an empty one, out of it.
+	if (!pattern.includes('{')) {
+		return [pattern];
+	}
+
+	// A pattern that yields no task, such as a negated one, has no alternatives to check, so fall back to the pattern as written rather than to nothing.
+	const expandedPatterns = fastGlob.generateTasks(pattern).flatMap(task => task.patterns);
+	return expandedPatterns.length > 0 ? expandedPatterns : [pattern];
+};
+
+/**
+Drop the `ignore` patterns that could exclude an ignore file from the search that looks for them.
+
+`ignore` excludes paths from the results, while the ignore files decide what is ignored, so it must never be able to hide one of them. See https://github.com/sindresorhus/globby/issues/281
+
+The rest are normally kept unchanged, so that unreadable or unwanted directories are still skipped while searching. Advanced micromatch syntax in the directory portion makes filename comparison unreliable, so optional pruning is disabled for that rare pattern shape. See https://github.com/sindresorhus/globby/pull/259
+
+A pattern that names a directory is safe to keep even when that directory holds an ignore file: nothing inside an excluded directory ends up in the results either. Only the final segment can name the ignore file itself, and a trailing `/**` does not protect it, since fast-glob matches `foo/**` against `foo` as well.
+
+@param {string[]} ignorePatterns - The `ignore` option, as an array.
+@param {string[]} searchPatterns - The patterns the ignore files are searched with.
+@returns {string[]} The patterns that are left, to be used as the `ignore` option of that search.
+*/
+export const convertIgnorePatternsForIgnoreFileSearch = (ignorePatterns, searchPatterns) => {
+	if (ignorePatterns.length === 0) {
+		return ignorePatterns;
+	}
+
+	const couldNameTheSamePath = createNameComparer();
+	const expandedSearchPatterns = searchPatterns.flatMap(pattern => expandBraceGroups(pattern));
+
+	// Filename comparison is not reliable when micromatch-only syntax appears in the directory part, so skip this optional pruning for that rare pattern shape.
+	if (expandedSearchPatterns.some(pattern => MICROMATCH_ONLY_SYNTAX.test(pattern.slice(0, pattern.lastIndexOf('/') + 1)))) {
+		return [];
+	}
+
+	// The names the search looks for, such as `.gitignore` for the `gitignore` option, or whatever `ignoreFiles` asked for. Only the final segment can name a file; the rest of a search pattern says where to look.
+	const ignoreFileNames = expandedSearchPatterns.map(pattern => finalSegment(pattern)).filter(Boolean);
+
+	const couldNameAnIgnoreFile = pattern => {
+		// A trailing `/**` excludes the contents of the directory it names, so only that name is left to compare. A wildcard final segment, as in `src/*`, still compares as one: it does not skip `src`, so the search walks in and would then throw the `.gitignore` it finds away.
+		const name = finalSegment(pattern.replace(/\/\*\*$/u, ''));
+
+		// Nothing left to compare means the pattern names no path of its own, as with `/`. Treat it as a possible match, since keeping it can only cost a missed ignore file. The same goes for micromatch syntax the comparison below cannot read, such as the extglob in `+(.gitignore)`.
+		if (!name || MICROMATCH_ONLY_SYNTAX.test(name)) {
+			return true;
+		}
+
+		return ignoreFileNames.some(ignoreFileName => MICROMATCH_ONLY_SYNTAX.test(ignoreFileName)
+			? hasGitignoreWildcards(name) || micromatch.isMatch(unescapeGitignorePattern(name), ignoreFileName, {dot: true, nocase: true})
+			: couldNameTheSamePath(name, ignoreFileName));
+	};
+
+	return ignorePatterns.filter(pattern => !expandBraceGroups(pattern).some(expanded => couldNameAnIgnoreFile(expanded)));
 };
 
 // Compute the prune pattern for a single rule, or undefined when the rule cannot be skipped safely. The returned object also carries the guard name (if any) whose skipping relies on the rule set being complete.

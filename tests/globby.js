@@ -24,6 +24,7 @@ import {
 	getPathValues,
 	invalidPatterns,
 	isUnique,
+	runGlobby,
 } from './utilities.js';
 
 const cwd = process.cwd();
@@ -38,39 +39,6 @@ const fixture = [
 	'd.tmp',
 	'e.tmp',
 ];
-
-const stabilizeResult = result => result
-	.map(fastGlobResult => {
-		// In `objectMode`, `fastGlobResult.dirent` contains a function that makes `t.deepEqual` assertion fail.
-		// `fastGlobResult.stats` contains different `atime`.
-		if (typeof fastGlobResult === 'object') {
-			const {dirent, stats, ...rest} = fastGlobResult;
-			return rest;
-		}
-
-		return fastGlobResult;
-	})
-	.sort((a, b) => (a.path ?? a).localeCompare(b.path ?? b));
-
-const runGlobby = async (t, patterns, options) => {
-	const syncResult = globbySync(patterns, options);
-	const promiseResult = await globby(patterns, options);
-	const streamResult = await globbyStream(patterns, options).toArray();
-
-	const result = stabilizeResult(promiseResult);
-	t.deepEqual(
-		stabilizeResult(syncResult),
-		result,
-		'globbySync() result is different than globby()',
-	);
-	t.deepEqual(
-		stabilizeResult(streamResult),
-		result,
-		'globbyStream() result is different than globby()',
-	);
-
-	return promiseResult;
-};
 
 const blockNodeModulesTraversal = directory => {
 	const normalizedDirectory = path.normalize(directory);

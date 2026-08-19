@@ -93,6 +93,8 @@ When enabled, globby searches for `.gitignore` files from the current working di
 
 Gitignore patterns take priority over user patterns, matching Git's behavior. To include gitignored files, set this to `false`.
 
+The `ignore` option applies to the results only. A pattern that could name an ignore file, such as `'**/.gitignore'`, is not used when searching for the ignore files, so it hides them from the results without disabling this option.
+
 **Performance:** Globby reads `.gitignore` files before globbing and hands fast-glob patterns for the directories it can prove are ignored, so whole ignored directories (like large `node_modules` or build outputs) are skipped during traversal instead of being enumerated and filtered afterwards. This holds even when negation patterns (like `!important.log`) or parent `.gitignore` files are present: only the rules that provably cannot be re-included by a negation are used to skip directories, while the final filtering always matches Git's behavior. To read fewer ignore files, use `ignoreFiles: '.gitignore'` to target only the root ignore file.
 
 ##### globalGitignore
@@ -116,6 +118,8 @@ Default: `undefined`
 Glob patterns to look for ignore files, which are then used to ignore globbed files.
 
 This is a more generic form of the `gitignore` option, allowing you to find ignore files with a [compatible syntax](http://git-scm.com/docs/gitignore). For instance, this works with Babel's `.babelignore`, Prettier's `.prettierignore`, or ESLint's `.eslintignore` files.
+
+The `ignore` option applies to the results only, as with the [`gitignore`](#gitignore) option.
 
 **Performance tip:** Using a specific path like `'.gitignore'` is much faster than recursive patterns.
 
@@ -247,6 +251,8 @@ Type: `string | string[]`\
 Default: `[]`
 
 Glob patterns to exclude from `.gitignore` file search.
+
+Unlike the `ignore` option of [`globby()`](#options), which applies to the results only, this one excludes files from the search itself, so a pattern that names an ignore file stops that file from being read.
 
 ##### followSymbolicLinks
 
